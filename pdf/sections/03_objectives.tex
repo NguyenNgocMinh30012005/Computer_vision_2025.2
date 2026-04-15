@@ -1,0 +1,25 @@
+\begin{frame}{Objectives}
+  \begin{enumerate}
+    \item Evaluate a generalizable 3D reconstruction model on unseen scenes.
+    \item Analyze sparse-view performance with 2, 3, and 5 images.
+    \item Compare a pairwise baseline (DUSt3R) with a single-stage multi-view
+    method (MV-DUSt3R+).
+    \item Identify conditions where sparse-view reconstruction fails or remains
+    reliable.
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}{Hypothesis}
+  \begin{block}{Working hypothesis}
+    A feed-forward multi-view model should be more robust than a pairwise
+    baseline when the number of input views is limited, because it reasons over
+    multiple views jointly in one pass.
+  \end{block}
+
+  \vspace{0.3cm}
+  \begin{itemize}
+    \item Better global consistency across views
+    \item Less dependence on separate alignment stages
+    \item Stronger behavior in highly ambiguous sparse-view settings
+  \end{itemize}
+\end{frame}

@@ -1,0 +1,37 @@
+\begin{frame}{Motivation}
+  \begin{itemize}
+    \item Practical 3D capture often has only a small number of usable images.
+    \item Classical high-quality pipelines depend on accurate camera poses or
+    expensive scene-specific optimization.
+    \item Sparse views increase ambiguity because cross-view correspondence is
+    harder to establish reliably.
+    \item A fast, generalizable method for unseen scenes would be useful for
+    robotics, AR/VR, and scalable scene digitization.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Problem Statement}
+  \begin{block}{Core question}
+    How can we reconstruct unseen scenes accurately and efficiently when only
+    2 to 5 input views are available?
+  \end{block}
+
+  \vspace{0.3cm}
+  \begin{columns}[T]
+    \column{0.48\textwidth}
+    \textbf{Key constraints}
+    \begin{itemize}
+      \item Unseen scene at test time
+      \item Sparse overlapping images
+      \item No per-scene optimization
+    \end{itemize}
+
+    \column{0.48\textwidth}
+    \textbf{Expected outcome}
+    \begin{itemize}
+      \item Robust geometry recovery
+      \item Stable performance under view reduction
+      \item Practical runtime per scene
+    \end{itemize}
+  \end{columns}
+\end{frame}

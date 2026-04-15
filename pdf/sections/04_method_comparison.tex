@@ -1,0 +1,84 @@
+\begin{frame}{Proposed Method}
+  \begin{columns}[T]
+    \column{0.34\textwidth}
+    \begin{itemize}
+      \item Primary method: \textbf{MV-DUSt3R+}
+      \item Single-stage feed-forward multi-view reconstruction
+      \item Targeted at sparse-view scenes without camera calibration
+      \item Our study focuses on robustness, quality, and runtime
+    \end{itemize}
+
+    \vspace{0.15cm}
+    \figsource{Tang et al., MV-DUSt3R+, project page and paper}
+
+    \column{0.66\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{mv_overview_slide.png}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Architecture Comparison}
+  \begin{columns}[T]
+    \column{0.49\textwidth}
+    \centering
+    \textbf{DUSt3R baseline}\par
+    \vspace{0.1cm}
+    \includegraphics[width=\linewidth]{dust3r_arch_crop.png}
+
+    \vspace{0.08cm}
+    {\scriptsize Pairwise reasoning with cross-attention between two views}
+
+    \column{0.49\textwidth}
+    \centering
+    \textbf{MV-DUSt3R+ main method}\par
+    \vspace{0.1cm}
+    \includegraphics[width=\linewidth]{mv_arch_slide.png}
+
+    \vspace{0.08cm}
+    {\scriptsize Multi-path design with cross-reference-view information flow}
+  \end{columns}
+
+  \vspace{0.12cm}
+  \figsource{Left: Wang et al., DUSt3R, CVPR 2024. Right: Tang et al., MV-DUSt3R+, project page/paper}
+\end{frame}
+
+\begin{frame}{Why MV-DUSt3R+ vs DUSt3R?}
+  \small
+  \begin{tabular}{p{0.22\textwidth} p{0.33\textwidth} p{0.33\textwidth}}
+    \toprule
+    \textbf{Aspect} & \textbf{DUSt3R} & \textbf{MV-DUSt3R+} \\
+    \midrule
+    Processing style & Pairwise reconstruction & Joint multi-view reconstruction \\
+    Global consistency & Requires later alignment & Built into one forward pass \\
+    Sparse-view behavior & Can accumulate pairwise errors & More robust cue fusion \\
+    Runtime trend & Slower as views increase & Better scaling with more views \\
+    Role in project & Reference baseline & Main candidate method \\
+    \bottomrule
+  \end{tabular}
+
+  \vspace{0.22cm}
+  \begin{itemize}
+    \item DUSt3R is still a strong baseline, so the comparison is direct and meaningful.
+    \item MV-DUSt3R+ is better aligned with our target setting of 2--5 sparse views.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Quantitative Evidence from the Paper}
+  \centering
+  \includegraphics[width=0.91\textwidth]{mvdust3r_results_table.png}
+
+  \vspace{0.08cm}
+  {\small Across multiple datasets and view counts, the highlighted rows show that MV-DUSt3R+ improves reconstruction quality while keeping runtime practical.}
+
+  \figsource{Tang et al., MV-DUSt3R+, Table 2}
+\end{frame}
+
+\begin{frame}{Qualitative Motivation}
+  \centering
+  \includegraphics[width=0.88\textwidth]{mv_qualitative_slide.png}
+
+  \vspace{0.08cm}
+  {\scriptsize DUSt3R often fails on repeated structures, while MV-DUSt3R+ remains more stable in sparse-view scenes.}
+
+  \figsource{Tang et al., MV-DUSt3R+, qualitative results}
+\end{frame}

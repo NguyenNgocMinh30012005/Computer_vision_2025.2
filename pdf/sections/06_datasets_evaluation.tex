@@ -1,0 +1,68 @@
+\begin{frame}{Datasets}
+  \begin{columns}[T]
+    \column{0.42\textwidth}
+    \begin{block}{Primary dataset: ScanNet++}
+      High-fidelity indoor scenes with registered DSLR images and commodity
+      iPhone captures.
+    \end{block}
+
+    \begin{block}{Secondary dataset: DTU}
+      Controlled object-centric scenes for supplementary evaluation and
+      sanity checks in a cleaner setting.
+    \end{block}
+
+    \small If compute is limited, we will use curated subsets rather than the
+    full datasets.
+
+    \column{0.58\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{scannetpp_overview_crop.png}
+  \end{columns}
+
+  \vspace{0.08cm}
+  \figsource{Yeshwanth et al., ScanNet++, ICCV 2023, Figure 1}
+\end{frame}
+
+\begin{frame}{Why ScanNet++?}
+  \begin{columns}[T]
+    \column{0.63\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{scannetpp_table_crop.png}
+
+    \column{0.37\textwidth}
+    \begin{itemize}
+      \item 460 indoor scenes with high-fidelity geometry
+      \item DSLR images support stronger geometric supervision
+      \item Commodity captures make sparse-view testing realistic
+      \item Dense semantics and NVS setup make the benchmark richer
+    \end{itemize}
+  \end{columns}
+
+  \vspace{0.08cm}
+  \figsource{Yeshwanth et al., ScanNet++, ICCV 2023, Table 1}
+\end{frame}
+
+\begin{frame}{Evaluation Plan}
+  \begin{columns}[T]
+    \column{0.48\textwidth}
+    \begin{itemize}
+      \item Reconstruction accuracy against available ground-truth geometry
+      \item Completeness and consistency of reconstructed point clouds
+      \item Performance degradation under 2-view, 3-view, and 5-view settings
+      \item Inference efficiency, including runtime per scene
+    \end{itemize}
+
+    \vspace{0.15cm}
+    \begin{block}{Success criterion}
+      Show that the multi-view method is more robust than the pairwise
+      baseline under identical sparse-view conditions.
+    \end{block}
+
+    \column{0.52\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{mvdust3r_results_table.png}
+  \end{columns}
+
+  \vspace{0.08cm}
+  \figsource{Tang et al., MV-DUSt3R+, quantitative benchmark}
+\end{frame}

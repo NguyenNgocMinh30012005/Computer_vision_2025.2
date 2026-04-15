@@ -1,0 +1,42 @@
+\documentclass[aspectratio=169]{beamer}
+
+\usetheme{Madrid}
+\usecolortheme{default}
+\setbeamertemplate{navigation symbols}{}
+
+\usepackage[T5,T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english,vietnamese]{babel}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning}
+
+\definecolor{accent}{RGB}{14,88,109}
+\definecolor{soft}{RGB}{236,244,247}
+\setbeamercolor{title}{fg=accent}
+\setbeamercolor{frametitle}{fg=accent}
+\setbeamercolor{structure}{fg=accent}
+\setbeamercolor{block title}{fg=white,bg=accent}
+\setbeamercolor{block body}{bg=soft}
+\graphicspath{{assets/figures/}}
+\newcommand{\figsource}[1]{{\raggedright\tiny Source: #1\par}}
+
+\title[Sparse View 3D Reconstruction Proposal]{Sparse\_View\_3D\_Reconstruction\_Proposal}
+\subtitle{Project Proposal Slides}
+\author[CV Team]{Nguyễn Ngọc Minh, Kiều Sơn Tùng, Đặng Thịnh Tường Minh}
+\institute[CV 2025.2]{Computer Vision 2025.2}
+\date{\today}
+
+\begin{document}
+
+\input{sections/01_title_team.tex}
+\input{sections/02_motivation_problem.tex}
+\input{sections/03_objectives.tex}
+\input{sections/04_method_comparison.tex}
+\input{sections/05_pipeline.tex}
+\input{sections/06_datasets_evaluation.tex}
+\input{sections/07_deliverables.tex}
+\input{sections/08_references.tex}
+
+\end{document}

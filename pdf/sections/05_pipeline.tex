@@ -1,0 +1,48 @@
+\begin{frame}{Planned Pipeline}
+  \centering
+  \begin{tikzpicture}[
+    node distance=0.85cm,
+    every node/.style={font=\small},
+    box/.style={
+      rectangle,
+      rounded corners,
+      draw=accent,
+      fill=soft,
+      align=center,
+      minimum width=0.78\textwidth,
+      minimum height=0.8cm
+    },
+    arr/.style={-{Latex[length=2.5mm]}, very thick, draw=accent}
+  ]
+    \node[box] (data) {Prepare multi-view scenes and split into train / validation / unseen test};
+    \node[box, below=of data] (subset) {Create sparse-view subsets with 2, 3, and 5 input images};
+    \node[box, below=of subset] (train) {Train or fine-tune the selected model on the training split};
+    \node[box, below=of train] (eval) {Evaluate on unseen scenes under each view-count setting};
+    \node[box, below=of eval] (compare) {Compare reconstruction quality, robustness, and runtime against DUSt3R};
+
+    \draw[arr] (data) -- (subset);
+    \draw[arr] (subset) -- (train);
+    \draw[arr] (train) -- (eval);
+    \draw[arr] (eval) -- (compare);
+  \end{tikzpicture}
+\end{frame}
+
+\begin{frame}{Experiment Variables}
+  \begin{columns}[T]
+    \column{0.48\textwidth}
+    \textbf{Controlled factors}
+    \begin{itemize}
+      \item Number of input views
+      \item Same sparse-view protocol
+      \item Same unseen-scene setting
+    \end{itemize}
+
+    \column{0.48\textwidth}
+    \textbf{Observed outcomes}
+    \begin{itemize}
+      \item Reconstruction accuracy
+      \item Completeness and consistency
+      \item Runtime per scene
+    \end{itemize}
+  \end{columns}
+\end{frame}
