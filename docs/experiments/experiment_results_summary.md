@@ -80,14 +80,38 @@ Expected output files:
 - `metrics.csv`
 - `fig_qualitative_b0_vs_final.png`
 
-## Submitted Phase 2 Runs
+## Run 12 Supervised Reliability
 
-The first supervised-extension kernels have been pushed to Kaggle and are waiting for user-provided logs/results:
+Run 12 freezes MV-DUSt3R+ and trains a small OARH proxy MLP on GT-depth-derived point labels. The validation point-label F1 rises to about `0.969`, but reconstruction F-score on the held-out scene is mixed:
+
+| Views | Confidence-only F-score | OARH F-score | Delta |
+| ---: | ---: | ---: | ---: |
+| 2 | 0.4268 | 0.2405 | -0.1863 |
+| 3 | 0.5981 | 0.4265 | -0.1715 |
+| 4 | 0.6513 | 0.6737 | +0.0224 |
+| 5 | 0.5605 | 0.5685 | +0.0079 |
+
+Interpretation: the learned reliability proxy is not safe as an unconditional replacement for confidence filtering. It should be validation-gated or reported as a failed/partial learned ablation, especially for 2/3-view sparse reconstruction.
+
+## Run 13 Match Disambiguation
+
+Run 13 trains a proxy RSDH match-validity MLP using nearest-surface consistency labels. The proxy task is strong on the held-out scene:
+
+| Views | Match precision | Match recall | Match F1 |
+| ---: | ---: | ---: | ---: |
+| 3 | 0.9894 | 0.9930 | 0.9912 |
+| 4 | 0.9915 | 0.9928 | 0.9922 |
+| 5 | 0.9937 | 0.9951 | 0.9944 |
+
+Interpretation: match disambiguation is promising, but this is still a supervised proxy using GT-depth-derived labels and simplified features. The report should not claim that full MASt3R-based repeated-structure disambiguation is solved yet.
+
+## Submitted Phase 2 Runs
 
 | Run | Kernel | Purpose |
 | --- | --- | --- |
 | 12 | `mv-dust3r-run-12-supervised-reliability` | Train a frozen-backbone OARH proxy MLP and compare learned reliability against confidence-only filtering |
 | 13 | `mv-dust3r-run-13-match-disambiguation` | Train a proxy RSDH match-validity MLP using GT-depth nearest-surface consistency |
+| 14 | [`mv-dust3r-run-14-validation-gated-learned-pipeline`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-14-validation-gated-learned-pipeline) | Use OARH only when it beats confidence-only on the validation proxy; otherwise fall back to confidence filtering |
 
 ## Limitations
 
@@ -101,8 +125,8 @@ The first supervised-extension kernels have been pushed to Kaggle and are waitin
 ## Future Work
 
 - Replace the proxy evaluator with an official mesh/laser-scan geometry evaluator on ScanNet++ scenes with full 3D ground truth.
-- Train OARH, an occlusion-aware reliability head, to distinguish occluded-but-valid points from geometrically wrong points.
-- Add MASt3R reciprocal matching and train RSDH, a repeated-structure match disambiguation head.
+- Improve OARH labels/features so point-label F1 translates into reconstruction F-score; current Run 12 results are mixed.
+- Add real MASt3R reciprocal matching and train RSDH with descriptor margin and cycle consistency, beyond the Run 13 proxy.
 - Redesign occlusion reasoning using camera geometry, z-buffer consistency, and supervised per-view visibility masks.
 - Revisit repeated-structure filtering as match validity learning, not as self-similarity suppression.
 - If OARH/RSDH improve validation, lightly fine-tune MV-DUSt3R+ confidence layers and the last decoder blocks.

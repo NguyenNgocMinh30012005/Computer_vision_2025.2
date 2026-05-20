@@ -19,6 +19,7 @@ Run order:
 10. `kaggle_run11_final_validation_3seeds.py`
 11. `kaggle_run12_supervised_reliability.py`
 12. `kaggle_run13_match_disambiguation.py`
+13. `kaggle_run14_validation_gated_learned_pipeline.py`
 
 The final validation script uses fixed thresholds selected before test-time
 evaluation, rather than tuning on the final test rows.
@@ -28,3 +29,6 @@ train small MLP heads on proxy labels generated from ScanNet posed depth:
 
 - Run 12 trains an occlusion-aware reliability proxy head for point filtering.
 - Run 13 trains a repeated-structure match-disambiguation proxy head.
+- Run 14 applies a validation gate: OARH is used only for view counts where it
+  beats confidence-only filtering on the proxy validation scene; otherwise the
+  pipeline falls back to fixed confidence filtering.

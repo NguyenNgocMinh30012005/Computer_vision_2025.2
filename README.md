@@ -2,22 +2,22 @@
 
 This repository contains the Computer Vision 2025.2 project on sparse-view indoor
 3D reconstruction with MV-DUSt3R+. It includes the proposal slide deck, Kaggle
-experiment scripts, ablation notes, and the planned supervised extension for
+experiment scripts, ablation notes, and the supervised extension plan for
 occlusion-aware reliability and repeated-structure disambiguation.
 
 ## Repository Layout
 
 ```text
 .
-├── docs/
-│   ├── experiments/   # run order, Kaggle guide, result summaries
-│   ├── method/        # supervised OARH/RSDH extension notes
-│   └── proposal/      # original proposal sources and team PDF
-├── notebooks/         # notebook-based sanity checks
-├── pdf/               # LaTeX Beamer source and generated main.pdf
-├── scripts/
-│   └── kaggle/        # reproducible staged Kaggle experiments
-└── tools/             # local maintenance helpers
++-- docs/
+|   +-- experiments/   # run order, Kaggle guide, result summaries
+|   +-- method/        # supervised OARH/RSDH extension notes
+|   +-- proposal/      # original proposal sources and team PDF
++-- notebooks/         # notebook-based sanity checks
++-- pdf/               # LaTeX Beamer source and generated main.pdf
++-- scripts/
+|   +-- kaggle/        # reproducible staged Kaggle experiments
++-- tools/             # local maintenance helpers
 ```
 
 Generated Kaggle submission folders, downloaded outputs, local credentials, and
@@ -39,6 +39,7 @@ The staged Kaggle scripts live in `scripts/kaggle/`:
 - `kaggle_run11_final_validation_3seeds.py`: fixed-threshold B0 vs Final over 3 seeds
 - `kaggle_run12_supervised_reliability.py`: frozen-backbone OARH proxy training
 - `kaggle_run13_match_disambiguation.py`: RSDH proxy match-validity training
+- `kaggle_run14_validation_gated_learned_pipeline.py`: validation-gated OARH fallback policy
 
 The notebook sanity check is in `notebooks/kaggle_run0_mvdust3r_sanity.ipynb`.
 
@@ -47,11 +48,15 @@ The notebook sanity check is in `notebooks/kaggle_run0_mvdust3r_sanity.ipynb`.
 The strongest verified pipeline is view selection plus fixed confidence
 thresholding and baseline fusion. Heuristic occlusion and ambiguity filters were
 kept out of the final pipeline because they reduced F-score/completeness in the
-ablations. The next planned phase is a supervised extension:
+ablations.
 
-- OARH: Occlusion-Aware Reliability Head
-- RSDH: Repeated-Structure Disambiguation Head
-- optional light fine-tuning of confidence layers / last decoder blocks
+Run 12 shows that the frozen-backbone OARH proxy is not safe as an unconditional
+replacement for confidence thresholding: it helps only some larger-view cases
+and hurts 2/3-view reconstruction. Run 13 shows strong proxy match-validity
+learning, but it should be reported as a supervised proxy result rather than a
+full MASt3R-based repeated-structure solution. Run 14 therefore tests a
+validation-gated learned policy that falls back to confidence-only filtering
+when the learned reliability head does not win on validation.
 
 See `docs/experiments/experiment_results_summary.md` and
 `docs/method/supervised_extension_run_order.md`.
@@ -60,6 +65,7 @@ Latest Kaggle kernels:
 
 - [Run 12 Supervised Reliability](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-12-supervised-reliability)
 - [Run 13 Match Disambiguation](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-13-match-disambiguation)
+- [Run 14 Validation-Gated Learned Pipeline](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-14-validation-gated-learned-pipeline)
 
 ## Build The Slides
 

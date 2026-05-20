@@ -459,14 +459,13 @@ Selected sparse views
 De khong ghi de Run 11 da dung cho final validation, phase nay danh so tiep:
 
 ```text
-Run 12 - Build GT labels
-Run 13 - Train OARH: Occlusion-Aware Reliability Head
-Run 14 - Evaluate OARH
-Run 15 - Add MASt3R reciprocal matches
-Run 16 - Train RSDH: Repeated-Structure Disambiguation Head
-Run 17 - Evaluate RSDH
-Run 18 - Light fine-tune MV-DUSt3R+
-Run 19 - Learned full evaluation
+Run 12 - Train and evaluate OARH proxy
+Run 13 - Train and evaluate RSDH proxy
+Run 14 - Validation-gated learned pipeline
+Run 15 - Add real MASt3R reciprocal matches
+Run 16 - Re-evaluate RSDH with descriptor/cycle features
+Run 17 - Optional light fine-tune MV-DUSt3R+
+Run 18 - Learned full evaluation
 ```
 
 Chi tiet nam trong:
@@ -485,17 +484,25 @@ Nguyen tac quan trong:
 
 ## Submitted Phase 2 Kaggle Kernels
 
-Da submit hai kernel dau cho phase learned extension:
+Da submit cac kernel dau cho phase learned extension:
 
 | Run | Kaggle kernel | Ghi chu |
 | --- | --- | --- |
 | 12 | `mv-dust3r-run-12-supervised-reliability` | Freeze MV-DUSt3R+, tao label proxy tu GT depth, train OARH MLP, so sanh voi confidence-only tren held-out scene |
 | 13 | `mv-dust3r-run-13-match-disambiguation` | Train RSDH proxy tren pair labels tu nearest-surface consistency; chua dung MASt3R descriptors day du |
+| 14 | `mv-dust3r-run-14-validation-gated-learned-pipeline` | Chi ap dung OARH neu thang confidence-only tren validation proxy; neu khong thi fallback ve confidence |
+
+Ket qua hien tai:
+
+- Run 12: OARH co validation label F1 cao nhung reconstruction F-score chi tang nhe o 4/5 views va giam manh o 2/3 views. Vi vay khong duoc claim OARH unconditional la thanh cong.
+- Run 13: RSDH proxy dat match F1 tren 0.99 tren held-out scene, nhung day van la proxy label/feature, chua phai full MASt3R repeated-structure solution.
+- Run 14: dung de test policy validation-gated trung thuc hon.
 
 Output can gui lai sau khi Kaggle chay xong:
 
 - Run 12: `metrics.csv`, `training_history.csv`, `run_config.json`
 - Run 13: `match_metrics.csv`, `training_history.csv`, `run_config.json`
+- Run 14: `metrics.csv`, `gate_decisions.csv`, `training_history.csv`, `run_config.json`
 
 Nguyen tac dung:
 

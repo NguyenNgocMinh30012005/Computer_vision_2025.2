@@ -155,24 +155,26 @@ Do not enforce consistency through occluded views.
 
 | Run | Name | Goal |
 | ---: | --- | --- |
-| 12 | Build GT labels | Generate `y_keep`, `y_visible`, `y_occluded`, `y_match` |
-| 13 | Train OARH | Train occlusion-aware reliability head with frozen MV-DUSt3R+ |
-| 14 | Evaluate OARH | Compare against confidence-only on occlusion-heavy scenes |
-| 15 | Add MASt3R matches | Extract reciprocal matches, descriptor margin, cycle error |
-| 16 | Train RSDH | Train repeated-structure match disambiguation head |
-| 17 | Evaluate RSDH | Test on chairs/windows/cabinets/floor tiles or proxy repeated regions |
-| 18 | Light fine-tune MV-DUSt3R+ | Unfreeze confidence head and last decoder blocks |
-| 19 | Learned full evaluation | Compare B0, current best, OARH, RSDH, and learned full pipeline |
+| 12 | OARH proxy | Train and evaluate a frozen-backbone reliability MLP against confidence-only filtering |
+| 13 | RSDH proxy | Train and evaluate a proxy repeated-structure match-validity MLP |
+| 14 | Validation-gated learned pipeline | Use OARH only when it wins on validation, otherwise fall back to confidence-only |
+| 15 | Add real MASt3R matches | Extract reciprocal matches, descriptor margin, cycle error |
+| 16 | RSDH with descriptor/cycle features | Re-evaluate match disambiguation beyond nearest-surface proxy features |
+| 17 | Light fine-tune MV-DUSt3R+ | Unfreeze confidence head and last decoder blocks only if validation justifies it |
+| 18 | Learned full evaluation | Compare B0, current best, gated OARH, RSDH, and learned full pipeline |
 
 Minimum viable version if time is short:
 
 ```text
-Run 12 - Build GT labels
-Run 13 - Train OARH
-Run 14 - Evaluate OARH
-Run 16 - Train RSDH
-Run 19 - Learned full evaluation
+Run 12 - OARH proxy
+Run 13 - RSDH proxy
+Run 14 - Validation-gated learned pipeline
+Run 18 - Learned full evaluation
 ```
+
+Current note after Runs 12 and 13: OARH is mixed and should be gated, while
+RSDH is promising but still proxy-based until real MASt3R descriptors/cycle
+features are included.
 
 ## Dataset Split
 
