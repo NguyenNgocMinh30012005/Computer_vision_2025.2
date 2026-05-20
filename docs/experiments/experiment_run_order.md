@@ -483,6 +483,20 @@ Nguyen tac quan trong:
 - Khong ep multi-view consistency qua occluded views.
 - Neu OARH/RSDH fail, bao cao trung thuc nhu cac ablation heuristic da lam.
 
+## Submitted Phase 2 Kaggle Kernels
+
+Da submit hai kernel dau cho phase learned extension:
+
+| Run | Kaggle kernel | Ghi chu |
+| --- | --- | --- |
+| 12 | `mv-dust3r-run-12-supervised-reliability` | Freeze MV-DUSt3R+, tao label proxy tu GT depth, train OARH MLP, so sanh voi confidence-only tren held-out scene |
+| 13 | `mv-dust3r-run-13-match-disambiguation` | Train RSDH proxy tren pair labels tu nearest-surface consistency; chua dung MASt3R descriptors day du |
+
+Output can gui lai sau khi Kaggle chay xong:
+
+- Run 12: `metrics.csv`, `training_history.csv`, `run_config.json`
+- Run 13: `match_metrics.csv`, `training_history.csv`, `run_config.json`
+
 Nguyen tac dung:
 
 - Khong chay Run 2 neu Run 1 chua do metric on dinh.

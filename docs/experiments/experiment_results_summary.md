@@ -80,6 +80,15 @@ Expected output files:
 - `metrics.csv`
 - `fig_qualitative_b0_vs_final.png`
 
+## Submitted Phase 2 Runs
+
+The first supervised-extension kernels have been pushed to Kaggle and are waiting for user-provided logs/results:
+
+| Run | Kernel | Purpose |
+| --- | --- | --- |
+| 12 | `mv-dust3r-run-12-supervised-reliability` | Train a frozen-backbone OARH proxy MLP and compare learned reliability against confidence-only filtering |
+| 13 | `mv-dust3r-run-13-match-disambiguation` | Train a proxy RSDH match-validity MLP using GT-depth nearest-surface consistency |
+
 ## Limitations
 
 - The current Kaggle evaluation uses ScanNet posed RGB-D depth as proxy geometry, not the full ScanNet++ laser-scan mesh evaluator.

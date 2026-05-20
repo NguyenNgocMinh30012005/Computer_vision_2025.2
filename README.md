@@ -37,6 +37,8 @@ The staged Kaggle scripts live in `scripts/kaggle/`:
 - `kaggle_run9_final_stress_test.py`: case-specific stress test
 - `kaggle_run10_sensitivity_visualization.py`: confidence sensitivity figures
 - `kaggle_run11_final_validation_3seeds.py`: fixed-threshold B0 vs Final over 3 seeds
+- `kaggle_run12_supervised_reliability.py`: frozen-backbone OARH proxy training
+- `kaggle_run13_match_disambiguation.py`: RSDH proxy match-validity training
 
 The notebook sanity check is in `notebooks/kaggle_run0_mvdust3r_sanity.ipynb`.
 
@@ -53,6 +55,11 @@ ablations. The next planned phase is a supervised extension:
 
 See `docs/experiments/experiment_results_summary.md` and
 `docs/method/supervised_extension_run_order.md`.
+
+Latest Kaggle kernels:
+
+- [Run 12 Supervised Reliability](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-12-supervised-reliability)
+- [Run 13 Match Disambiguation](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-13-match-disambiguation)
 
 ## Build The Slides
 

@@ -17,6 +17,14 @@ Run order:
 8. `kaggle_run9_final_stress_test.py`
 9. `kaggle_run10_sensitivity_visualization.py`
 10. `kaggle_run11_final_validation_3seeds.py`
+11. `kaggle_run12_supervised_reliability.py`
+12. `kaggle_run13_match_disambiguation.py`
 
 The final validation script uses fixed thresholds selected before test-time
 evaluation, rather than tuning on the final test rows.
+
+Run 12 and Run 13 are Stage-A supervised extensions. They freeze MV-DUSt3R+ and
+train small MLP heads on proxy labels generated from ScanNet posed depth:
+
+- Run 12 trains an occlusion-aware reliability proxy head for point filtering.
+- Run 13 trains a repeated-structure match-disambiguation proxy head.
