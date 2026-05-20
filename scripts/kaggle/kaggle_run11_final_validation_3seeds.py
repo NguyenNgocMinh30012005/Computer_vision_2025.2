@@ -145,9 +145,31 @@ def patch_torch_load():
     torch.load = torch_load_compat
 
 
+def configure_hf_token():
+    if os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_HUB_TOKEN"):
+        return
+    try:
+        from kaggle_secrets import UserSecretsClient
+
+        secrets = UserSecretsClient()
+        for name in ("HF_TOKEN", "HUGGINGFACE_TOKEN", "HUGGINGFACE_HUB_TOKEN"):
+            try:
+                token = secrets.get_secret(name)
+            except Exception:
+                token = None
+            if token:
+                os.environ["HF_TOKEN"] = token
+                os.environ["HUGGINGFACE_HUB_TOKEN"] = token
+                print(f"Using Hugging Face token from Kaggle secret: {name}")
+                return
+    except Exception as exc:
+        print("HF token secret lookup skipped:", type(exc).__name__)
+
+
 def download_checkpoint(root):
     from huggingface_hub import hf_hub_download
 
+    configure_hf_token()
     (root / "checkpoints").mkdir(parents=True, exist_ok=True)
     return hf_hub_download(
         repo_id="Zhenggang/MV-DUSt3R",

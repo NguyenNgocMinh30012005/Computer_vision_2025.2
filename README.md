@@ -22,6 +22,8 @@ occlusion-aware reliability and repeated-structure disambiguation.
 
 Generated Kaggle submission folders, downloaded outputs, local credentials, and
 the cloned upstream `mvdust3r/` repository are intentionally ignored.
+Local Hugging Face token files such as `HF.json` and `.env` are also ignored;
+use Kaggle Secrets (`HF_TOKEN`) for runs that download from the Hub.
 
 ## Experiment Scripts
 

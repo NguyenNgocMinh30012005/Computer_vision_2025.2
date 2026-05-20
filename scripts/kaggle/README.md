@@ -5,6 +5,11 @@ Each script is self-contained: it clones the upstream MV-DUSt3R+ repository into
 `/kaggle/temp/mvdust3r`, filters heavy Kaggle-managed dependencies, runs the
 selected experiment, and writes outputs under `/kaggle/working/outputs`.
 
+For higher Hugging Face rate limits on Kaggle, add the token as a Kaggle secret
+named `HF_TOKEN`, `HUGGINGFACE_TOKEN`, or `HUGGINGFACE_HUB_TOKEN`. Run 11 and
+the later helper-based scripts automatically export the secret before downloading
+the MV-DUSt3R+ checkpoint.
+
 Run order:
 
 1. `kaggle_run1_run2_eval_baseline.py`

@@ -197,6 +197,10 @@ cython_debug/
 # Kaggle credentials
 kaggle.json
 .kaggle/
+HF.json
+hf.json
+.env
+.env.*
 
 # Project-local generated outputs and external clones
 mvdust3r/
