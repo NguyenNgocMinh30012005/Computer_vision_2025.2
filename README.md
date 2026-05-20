@@ -1,18 +1,62 @@
-# Sparse-View 3D Reconstruction Proposal Slides
+# Sparse-View 3D Reconstruction
 
-This repository contains a LaTeX Beamer slide deck created from
-`Sparse_View_3D_Reconstruction_Proposal.docx`.
+This repository contains the Computer Vision 2025.2 project on sparse-view indoor
+3D reconstruction with MV-DUSt3R+. It includes the proposal slide deck, Kaggle
+experiment scripts, ablation notes, and the planned supervised extension for
+occlusion-aware reliability and repeated-structure disambiguation.
 
-## Files
+## Repository Layout
 
-- `Sparse_View_3D_Reconstruction_Proposal.docx`: source proposal context
-- `pdf/main.tex`: Beamer entry point
-- `pdf/sections/`: slide content split by topic
-- `pdf/main.pdf`: generated presentation
+```text
+.
+├── docs/
+│   ├── experiments/   # run order, Kaggle guide, result summaries
+│   ├── method/        # supervised OARH/RSDH extension notes
+│   └── proposal/      # original proposal sources and team PDF
+├── notebooks/         # notebook-based sanity checks
+├── pdf/               # LaTeX Beamer source and generated main.pdf
+├── scripts/
+│   └── kaggle/        # reproducible staged Kaggle experiments
+└── tools/             # local maintenance helpers
+```
 
-## Build
+Generated Kaggle submission folders, downloaded outputs, local credentials, and
+the cloned upstream `mvdust3r/` repository are intentionally ignored.
 
-From `pdf/`, use the required repo workflow:
+## Experiment Scripts
+
+The staged Kaggle scripts live in `scripts/kaggle/`:
+
+- `kaggle_run1_run2_eval_baseline.py`: evaluator smoke test and B0 baseline
+- `kaggle_run3_confidence_sweep.py`: confidence threshold sweep
+- `kaggle_run4_view_selection.py`: random/diversity/overlap/hybrid view ablation
+- `kaggle_run5_basic_fusion.py`: F0/F1/F2/F3 fusion ablation
+- `kaggle_run6_occlusion_fusion.py`: occlusion-aware filtering ablation
+- `kaggle_run7_repeated_structure_filtering.py`: repeated-structure ablation
+- `kaggle_run8_full_pipeline.py`: B0/B1/V/F/O/A/Full comparison
+- `kaggle_run9_final_stress_test.py`: case-specific stress test
+- `kaggle_run10_sensitivity_visualization.py`: confidence sensitivity figures
+- `kaggle_run11_final_validation_3seeds.py`: fixed-threshold B0 vs Final over 3 seeds
+
+The notebook sanity check is in `notebooks/kaggle_run0_mvdust3r_sanity.ipynb`.
+
+## Current Finding
+
+The strongest verified pipeline is view selection plus fixed confidence
+thresholding and baseline fusion. Heuristic occlusion and ambiguity filters were
+kept out of the final pipeline because they reduced F-score/completeness in the
+ablations. The next planned phase is a supervised extension:
+
+- OARH: Occlusion-Aware Reliability Head
+- RSDH: Repeated-Structure Disambiguation Head
+- optional light fine-tuning of confidence layers / last decoder blocks
+
+See `docs/experiments/experiment_results_summary.md` and
+`docs/method/supervised_extension_run_order.md`.
+
+## Build The Slides
+
+From `pdf/`, use the required cleanup workflow:
 
 ```bash
 latexmk -pdf main.tex
@@ -23,3 +67,17 @@ find . -maxdepth 1 -type f \( \
   -name "*.bbl" -o -name "*.blg" \
 \) -delete
 ```
+
+The generated deck is `pdf/main.pdf`.
+
+On Windows PowerShell, the same workflow is wrapped by:
+
+```powershell
+.\tools\build_pdf.ps1
+```
+
+## Push Workflow
+
+For local maintenance, `tools/push_to_github.ps1` stages the curated project
+files, verifies that LaTeX intermediate files are absent, commits with a
+Conventional Commit message, and pushes to `origin main`.

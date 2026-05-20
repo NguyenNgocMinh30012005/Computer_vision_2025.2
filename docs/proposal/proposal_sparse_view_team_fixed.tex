@@ -1,0 +1,287 @@
+\documentclass[aspectratio=169,11pt]{beamer}
+\usetheme{Madrid}
+\usecolortheme{default}
+\setbeamertemplate{navigation symbols}{}
+\usepackage[T5,T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english,vietnamese]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta}
+
+\definecolor{accent}{RGB}{14,88,109}
+\definecolor{soft}{RGB}{236,244,247}
+\definecolor{navy}{RGB}{14,88,109}
+\definecolor{teal}{RGB}{0,120,140}
+\definecolor{darkgreen}{RGB}{24,110,76}
+\definecolor{softgray}{RGB}{236,244,247}
+
+\setbeamercolor{title}{fg=accent}
+\setbeamercolor{frametitle}{fg=accent}
+\setbeamercolor{structure}{fg=accent}
+\setbeamercolor{block title}{fg=white,bg=accent}
+\setbeamercolor{block body}{bg=soft}
+\setbeamertemplate{itemize items}[circle]
+\setbeamertemplate{enumerate items}[default]
+\graphicspath{{pdf/assets/figures/}}
+
+\title{Confidence-Aware Sparse-View 3D Reconstruction on Unseen Scenes}
+\subtitle{Project Proposal}
+\author{}
+\institute{Computer Vision Project}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}[plain]
+\vspace{0.9cm}
+\begin{center}
+{\LARGE\bfseries\color{navy} Confidence-Aware Sparse-View\\[0.15em]3D Reconstruction on Unseen Scenes\par}
+\vspace{0.35cm}
+{\large Project Proposal\par}
+\vspace{1.55cm}
+{\normalsize Computer Vision Project\par}
+\vspace{0.2cm}
+{\normalsize \today\par}
+\end{center}
+\end{frame}
+
+\begin{frame}{Student Information}
+\begin{beamercolorbox}[rounded=true,shadow=true,wd=0.96\paperwidth,sep=0.6em]{block body}
+\begin{itemize}
+    \item Nguyễn Ngọc Minh -- 20235533
+    \item Kiều Sơn Tùng -- 20235571
+    \item Đặng Thịnh Tường Minh -- 20235528
+\end{itemize}
+\end{beamercolorbox}
+\end{frame}
+
+\begin{frame}{Problem Statement}
+\begin{block}{Research objective}
+Improve sparse-view 3D reconstruction on unseen indoor scenes by reducing three common failure modes: far-reference views, severe occlusion, and repeated structures.
+\end{block}
+
+\begin{itemize}
+    \item Sparse-view settings provide limited geometric evidence and weaker co-visibility across images.
+    \item Naive fusion of all predicted 3D points often introduces noise, structural inconsistency, and unstable point clouds.
+    \item The project targets a modular extension to a pretrained reconstruction backbone rather than a new backbone architecture.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Baseline and Technical Gap}
+\begin{columns}[T,totalwidth=\textwidth]
+\column{0.58\textwidth}
+\begin{block}{Baseline backbone}
+\textbf{MV-DUSt3R+} is a single-stage multi-view reconstruction network designed for sparse-view scene reconstruction.
+\end{block}
+
+\textbf{Observed limitations in sparse-view scenes}
+\begin{itemize}
+    \item \textbf{Far-reference views}: large viewpoint gaps reduce reliable correspondence.
+    \item \textbf{Occlusion}: unsupported regions may still contribute to the final point cloud.
+    \item \textbf{Repeated structures}: visually similar regions increase matching ambiguity.
+\end{itemize}
+
+\column{0.42\textwidth}
+\begin{center}
+\begin{tikzpicture}[node distance=0.45cm, >=Latex, every node/.style={font=\scriptsize}]
+  \node[draw, rounded corners, fill=navy!8, minimum width=2.4cm, minimum height=0.65cm, align=center] (views) {Sparse views};
+  \node[draw, rounded corners, fill=navy!8, below=of views, minimum width=2.6cm, minimum height=0.65cm, align=center] (backbone) {MV-DUSt3R+};
+  \node[draw, rounded corners, fill=accent!12, below left=0.55cm and 0.1cm of backbone, minimum width=1.45cm, minimum height=0.65cm, align=center] (far) {Far\\reference};
+  \node[draw, rounded corners, fill=accent!12, below=0.55cm of backbone, minimum width=1.35cm, minimum height=0.65cm, align=center] (occ) {Occlusion};
+  \node[draw, rounded corners, fill=accent!12, below right=0.55cm and 0.1cm of backbone, minimum width=1.6cm, minimum height=0.65cm, align=center] (rep) {Repeated\\structure};
+  \node[draw, rounded corners, fill=darkgreen!12, below=0.85cm of occ, minimum width=3.0cm, minimum height=0.72cm, align=center] (goal) {Filtering and fusion\\must be selective};
+  \draw[->, thick] (views) -- (backbone);
+  \draw[->, thick] (backbone) -- (far);
+  \draw[->, thick] (backbone) -- (occ);
+  \draw[->, thick] (backbone) -- (rep);
+  \draw[->, thick] (far) -- (goal);
+  \draw[->, thick] (occ) -- (goal);
+  \draw[->, thick] (rep) -- (goal);
+\end{tikzpicture}
+\end{center}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Proposed Pipeline}
+\begin{center}
+\begin{tikzpicture}[>=Latex, node distance=0.42cm, every node/.style={font=\scriptsize}]
+  \node[draw, rounded corners, fill=navy!8, minimum width=1.8cm, minimum height=0.75cm, align=center] (input) {Sparse input\\views};
+  \node[draw, rounded corners, fill=teal!12, right=of input, minimum width=2.1cm, minimum height=0.75cm, align=center] (select) {View selection\\coverage / overlap / visibility};
+  \node[draw, rounded corners, fill=navy!8, right=of select, minimum width=1.8cm, minimum height=0.75cm, align=center] (infer) {MV-DUSt3R+\\inference};
+  \node[draw, rounded corners, fill=teal!12, below=0.62cm of select, minimum width=2.4cm, minimum height=0.78cm, align=center] (score) {Scoring modules\\confidence / occlusion / ambiguity};
+  \node[draw, rounded corners, fill=darkgreen!12, right=0.55cm of score, minimum width=2.05cm, minimum height=0.78cm, align=center] (fusion) {Weighted fusion\\and filtering};
+  \node[draw, rounded corners, fill=softgray, below=0.68cm of fusion, minimum width=2.75cm, minimum height=0.78cm, align=center] (output) {Refined point cloud};
+  \draw[->, thick] (input) -- (select);
+  \draw[->, thick] (select) -- (infer);
+  \draw[->, thick] (select) -- (score);
+  \draw[->, thick] (infer) |- (score);
+  \draw[->, thick] (score) -- (fusion);
+  \draw[->, thick] (fusion) -- (output);
+\end{tikzpicture}
+\end{center}
+
+\vspace{0.3em}
+\textbf{Fusion weight}
+\[
+W_{\mathrm{final}}(p)=C(p)\,(1-O(p))\,S_{mv}(p)\,(1-A(p))\,G(p)\,M(p)
+\]
+\vspace{-0.7em}
+\begin{itemize}
+    \item $C$: confidence, $O$: occlusion, $S_{mv}$: multi-view support
+    \item $A$: ambiguity, $G$: anchor support, $M$: multi-view agreement
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Proposed Contributions}
+\begin{enumerate}
+    \item \textbf{Visibility-aware view selection}
+    \begin{itemize}
+        \item Compare random, coverage-aware, diversity-aware, and hybrid view policies.
+        \item Reduce far-reference cases and improve co-visibility before inference.
+    \end{itemize}
+
+    \item \textbf{Occlusion-aware weighted fusion}
+    \begin{itemize}
+        \item Suppress pixels that are weakly supported, poorly reprojected, or likely occluded.
+        \item Reduce unstable geometry in the final point cloud.
+    \end{itemize}
+
+    \item \textbf{Ambiguity-aware repeated-structure filtering}
+    \begin{itemize}
+        \item Use ambiguity estimation, anchor pixels, and multi-view agreement for repeated indoor patterns.
+    \end{itemize}
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{Repeated-Structure Filtering Strategy}
+\begin{columns}[T,totalwidth=\textwidth]
+\column{0.57\textwidth}
+\textbf{Ambiguity estimation}
+\[
+A(p)=\alpha S(p)+\beta U(p)+\gamma R(p)
+\]
+\begin{itemize}
+    \item $S(p)$: self-similarity within the image
+    \item $U(p)=1-C(p)$: uncertainty from model confidence
+    \item $R(p)$: reprojection disagreement across views
+\end{itemize}
+
+\textbf{Decision principle}
+A candidate region is preserved only when it satisfies:
+\begin{itemize}
+    \item low ambiguity,
+    \item support from reliable anchors,
+    \item agreement across multiple views.
+\end{itemize}
+
+\column{0.43\textwidth}
+\begin{block}{Targeted failure case}
+Repeated structures such as chairs, windows, and cabinet patterns may produce geometrically incorrect but visually plausible matches.
+\end{block}
+
+\begin{block}{Expected effect}
+\begin{itemize}
+    \item fewer false correspondences,
+    \item cleaner repeated-pattern regions,
+    \item improved structural consistency.
+\end{itemize}
+\end{block}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Dataset}
+\begin{columns}[T,totalwidth=\textwidth]
+\column{0.54\textwidth}
+\textbf{Primary dataset: ScanNet++}
+\begin{itemize}
+    \item High-fidelity indoor-scene benchmark with registered DSLR images, iPhone RGB-D streams, and laser-scanned geometry.
+    \item Appropriate for this project because it contains clutter, occlusion, and repeated indoor structures.
+    \item Well suited for sparse-view experiments on unseen scenes.
+\end{itemize}
+
+\textbf{Optional supplementary dataset}
+\begin{itemize}
+    \item A smaller subset from ScanNet or CO3Dv2 may be used for rapid prototyping and ablation.
+\end{itemize}
+
+\column{0.46\textwidth}
+\begin{center}
+\includegraphics[width=\linewidth,height=0.68\textheight,keepaspectratio]{scannetpp_overview_crop.png}
+\end{center}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Experimental Protocol and Feasibility}
+\textbf{Protocol}
+\begin{itemize}
+    \item Evaluate on unseen indoor scenes under 2-, 3-, and 5-view settings.
+    \item Compare the baseline MV-DUSt3R+ with each proposed module and with the full pipeline.
+\end{itemize}
+
+\textbf{Evaluation criteria}
+\begin{itemize}
+    \item reconstruction accuracy, completeness, and consistency,
+    \item runtime per scene,
+    \item case-based analysis on far-reference, occlusion-heavy, and repeated-structure scenarios.
+\end{itemize}
+
+\textbf{Why the project is feasible}
+\begin{itemize}
+    \item The project builds on a pretrained backbone and introduces modular additions rather than a new backbone.
+    \item Each module can be implemented and evaluated incrementally.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Task Assignment}
+\begin{columns}[T,totalwidth=\textwidth]
+\column{0.33\textwidth}
+\begin{block}{Nguyễn Ngọc Minh}
+\begin{itemize}
+    \item Literature review and related work
+    \item Dataset preparation and experimental protocol
+\end{itemize}
+\end{block}
+
+\column{0.33\textwidth}
+\begin{block}{Kiều Sơn Tùng}
+\begin{itemize}
+    \item Backbone setup and baseline inference
+    \item View-selection and scoring implementation
+\end{itemize}
+\end{block}
+
+\column{0.33\textwidth}
+\begin{block}{Đặng Thịnh Tường Minh}
+\begin{itemize}
+    \item Weighted fusion and repeated-structure module
+    \item Evaluation, visualization, and report integration
+\end{itemize}
+\end{block}
+\end{columns}
+
+\vspace{0.3em}
+\begin{block}{Collaboration plan}
+Implementation, experiment design, and result discussion will be reviewed jointly across the group at each project milestone.
+\end{block}
+\end{frame}
+
+\begin{frame}{Expected Outcome}
+\begin{itemize}
+    \item A sparse-view reconstruction pipeline with improved robustness on unseen indoor scenes.
+    \item Empirical evidence of how view selection, occlusion-aware fusion, and repeated-structure filtering affect reconstruction quality.
+    \item A final implementation and report demonstrating both experimental rigor and computer vision methodology.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Selected References}
+\footnotesize
+\begin{thebibliography}{9}
+\bibitem{dust3r} Wang et al. \emph{DUSt3R: Geometric 3D Vision Made Easy}. CVPR 2024.
+\bibitem{mvdust3r} Tang et al. \emph{MV-DUSt3R+: Single-Stage Scene Reconstruction from Sparse Views in 2 Seconds}. CVPR 2025.
+\bibitem{scannetpp} Yeshwanth et al. \emph{ScanNet++: A High-Fidelity Dataset of 3D Indoor Scenes}. ICCV 2023.
+\end{thebibliography}
+\end{frame}
+
+\end{document}

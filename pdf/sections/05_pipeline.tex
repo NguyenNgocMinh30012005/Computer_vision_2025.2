@@ -15,15 +15,15 @@
     arr/.style={-{Latex[length=2.5mm]}, very thick, draw=accent}
   ]
     \node[box] (data) {Prepare multi-view scenes and split into train / validation / unseen test};
-    \node[box, below=of data] (subset) {Create sparse-view subsets with 2, 3, and 5 input images};
-    \node[box, below=of subset] (train) {Train or fine-tune the selected model on the training split};
-    \node[box, below=of train] (eval) {Evaluate on unseen scenes under each view-count setting};
-    \node[box, below=of eval] (compare) {Compare reconstruction quality, robustness, and runtime against DUSt3R};
+    \node[box, below=of data] (subset) {Create sparse-view subsets with 2, 3, 4, and 5 input images};
+    \node[box, below=of subset] (base) {Run MV-DUSt3R+ pretrained with selected sparse views};
+    \node[box, below=of base] (heads) {Apply learned reliability / visibility / ambiguity heads};
+    \node[box, below=of heads] (eval) {Evaluate geometry, robustness, runtime, and case-specific failures};
 
     \draw[arr] (data) -- (subset);
-    \draw[arr] (subset) -- (train);
-    \draw[arr] (train) -- (eval);
-    \draw[arr] (eval) -- (compare);
+    \draw[arr] (subset) -- (base);
+    \draw[arr] (base) -- (heads);
+    \draw[arr] (heads) -- (eval);
   \end{tikzpicture}
 \end{frame}
 
@@ -33,8 +33,8 @@
     \textbf{Controlled factors}
     \begin{itemize}
       \item Number of input views
-      \item Same sparse-view protocol
-      \item Same unseen-scene setting
+      \item Scene-level train / validation / test split
+      \item Fixed threshold on final test
     \end{itemize}
 
     \column{0.48\textwidth}
@@ -43,6 +43,21 @@
       \item Reconstruction accuracy
       \item Completeness and consistency
       \item Runtime per scene
+      \item Occlusion and repeated-structure failures
     \end{itemize}
   \end{columns}
+\end{frame}
+
+\begin{frame}{Training Strategy}
+  \footnotesize
+  \begin{enumerate}
+    \item Freeze MV-DUSt3R+ and train small reliability / match heads on
+    generated GT labels.
+    \item Evaluate OARH on occlusion-heavy scenes and RSDH on repeated-structure
+    scenes before mixing them into the full pipeline.
+    \item If validation improves, unfreeze only the confidence head and last
+    decoder blocks for light fine-tuning.
+    \item Keep final test clean: no threshold tuning, no checkpoint selection
+    on test scenes.
+  \end{enumerate}
 \end{frame}

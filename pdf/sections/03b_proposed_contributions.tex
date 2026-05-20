@@ -1,0 +1,69 @@
+\begin{frame}{Proposed Contributions}
+  \begin{alertblock}{Our contribution}
+    Beyond benchmarking DUSt3R and MV-DUSt3R+, we first identify which
+    sparse-view components help, then propose a supervised extension for
+    the failure cases that heuristic filters could not solve.
+  \end{alertblock}
+
+  \vspace{0.12cm}
+  \begin{itemize}
+    \item \textbf{View selection for far-reference issue:} replace random sparse-view
+    sampling with policies that balance scene coverage, viewpoint diversity,
+    and overlap.
+    \item \textbf{Honest ablation of heuristic fusion/filtering:} test confidence,
+    multi-view support, occlusion, and ambiguity signals separately.
+    \item \textbf{Supervised reliability extension:} replace failed hand-written
+    filters with learned occlusion reliability and repeated-structure match
+    disambiguation heads.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Contribution Details}
+  \footnotesize
+  \begin{block}{1. View selection for far-reference issue}
+    \begin{itemize}
+      \item Compare \textbf{random baseline}, \textbf{coverage-aware},
+      \textbf{diversity-aware}, and \textbf{hybrid} sparse-view policies.
+      \item The goal is to reduce far-reference failures while preserving
+      co-visibility under 2--5 input views.
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{2. Heuristic ablation before adding learned modules}
+    \begin{itemize}
+      \item Evaluate \(C\), \(S_{mv}\), \(M\), occlusion penalties, and
+      ambiguity penalties independently.
+      \item If a module reduces F-score or completeness, keep it out of the
+      final pipeline and report the failure explicitly.
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{3. Supervised occlusion and ambiguity heads}
+    \begin{itemize}
+      \item Train an \textbf{Occlusion-Aware Reliability Head} to keep
+      occluded-but-valid points and reject floating/wrong geometry.
+      \item Train a \textbf{Repeated-Structure Disambiguation Head} using
+      reciprocal matches, descriptor margin, reprojection, and cycle error.
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Learned Extension After Ablation}
+  \footnotesize
+  \begin{block}{Why not keep tuning heuristic filters?}
+    Early ablations show that hand-written occlusion and ambiguity filters can
+    remove valid geometry and reduce completeness. The next step is supervised
+    reliability learning rather than stronger manual penalties.
+  \end{block}
+
+  \begin{itemize}
+    \item \textbf{OARH:} predict whether each candidate point should be kept,
+    using confidence, visibility, occlusion, reprojection, depth disagreement,
+    and multi-view agreement features.
+    \item \textbf{RSDH:} predict whether repeated-structure matches are valid,
+    using MASt3R reciprocal matching, feature margin, 3D disagreement, and
+    cycle consistency.
+    \item \textbf{Fine-tuning policy:} freeze MV-DUSt3R+ first; only later
+    unfreeze the confidence head and last decoder blocks if validation improves.
+  \end{itemize}
+\end{frame}

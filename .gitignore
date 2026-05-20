@@ -194,6 +194,22 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
+# Kaggle credentials
+kaggle.json
+.kaggle/
+
+# Project-local generated outputs and external clones
+mvdust3r/
+kaggle_run*_submission/
+downloads/
+outputs/
+__results__.html
+__script__.ipynb
+pdf/assets/page_debug/
+
+# Local duplicate reference downloads kept outside the curated PDF assets
+Tang_MV-DUSt3R*.pdf
+
 # Cursor
 #  Cursor is an AI-powered code editor. `.cursorignore` specifies files/directories to
 #  exclude from AI features like autocomplete and code analysis. Recommended for sensitive data
