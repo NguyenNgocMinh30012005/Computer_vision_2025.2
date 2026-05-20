@@ -1,3 +1,4 @@
+import csv
 import json
 import sys
 import time
@@ -131,6 +132,20 @@ def write_json(path, obj):
     path.write_text(json.dumps(obj, indent=2))
 
 
+def write_csv_union(path, rows):
+    if not rows:
+        return
+    fieldnames = []
+    for row in rows:
+        for key in row:
+            if key not in fieldnames:
+                fieldnames.append(key)
+    with path.open("w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
 def main():
     run12.set_seed(SEED)
     base.require_t4x2()
@@ -198,7 +213,7 @@ def main():
         gate_rows,
     )
 
-    base.write_csv(out_dir / "metrics.csv", eval_rows)
+    write_csv_union(out_dir / "metrics.csv", eval_rows)
     base.write_csv(out_dir / "gate_decisions.csv", gate_rows)
     base.write_csv(out_dir / "training_history.csv", history)
     torch.save(

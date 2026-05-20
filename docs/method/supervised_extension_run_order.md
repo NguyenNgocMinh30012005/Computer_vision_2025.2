@@ -172,9 +172,10 @@ Run 14 - Validation-gated learned pipeline
 Run 18 - Learned full evaluation
 ```
 
-Current note after Runs 12 and 13: OARH is mixed and should be gated, while
-RSDH is promising but still proxy-based until real MASt3R descriptors/cycle
-features are included.
+Current note after Runs 12--14: OARH is mixed. A validation gate avoids the
+large 2/3/5-view regressions, but still slightly overfits at 4 views on the
+held-out scene. RSDH is promising but still proxy-based until real MASt3R
+descriptors/cycle features are included.
 
 ## Dataset Split
 

@@ -56,7 +56,10 @@ and hurts 2/3-view reconstruction. Run 13 shows strong proxy match-validity
 learning, but it should be reported as a supervised proxy result rather than a
 full MASt3R-based repeated-structure solution. Run 14 therefore tests a
 validation-gated learned policy that falls back to confidence-only filtering
-when the learned reliability head does not win on validation.
+when the learned reliability head does not win on validation. The first Run 14
+log shows that gating avoids the large 2/3/5-view OARH regressions but still
+slightly overfits at 4 views, so the final tested reconstruction policy remains
+fixed confidence thresholding rather than unconditional learned reliability.
 
 See `docs/experiments/experiment_results_summary.md` and
 `docs/method/supervised_extension_run_order.md`.

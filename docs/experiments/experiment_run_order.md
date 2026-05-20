@@ -496,7 +496,7 @@ Ket qua hien tai:
 
 - Run 12: OARH co validation label F1 cao nhung reconstruction F-score chi tang nhe o 4/5 views va giam manh o 2/3 views. Vi vay khong duoc claim OARH unconditional la thanh cong.
 - Run 13: RSDH proxy dat match F1 tren 0.99 tren held-out scene, nhung day van la proxy label/feature, chua phai full MASt3R repeated-structure solution.
-- Run 14: dung de test policy validation-gated trung thuc hon.
+- Run 14: validation gate tranh duoc cac regression lon o 2/3/5 views, nhung gate 4-view hoi overfit validation proxy va thua confidence-only nhe tren held-out scene. Vi vay final policy van nen la confidence-only fixed threshold; OARH la partial/failed learned ablation can cai tien.
 
 Output can gui lai sau khi Kaggle chay xong:
 

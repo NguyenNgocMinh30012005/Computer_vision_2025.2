@@ -105,6 +105,30 @@ Run 13 trains a proxy RSDH match-validity MLP using nearest-surface consistency 
 
 Interpretation: match disambiguation is promising, but this is still a supervised proxy using GT-depth-derived labels and simplified features. The report should not claim that full MASt3R-based repeated-structure disambiguation is solved yet.
 
+## Run 14 Validation-Gated Learned Pipeline
+
+Run 14 applies a validation gate before using OARH. The gate selects OARH only when it beats confidence-only by more than `0.005` F-score on the train-scene proxy validation.
+
+Validation gate decisions:
+
+| Views | Validation confidence F-score | Validation OARH F-score | Selected method |
+| ---: | ---: | ---: | --- |
+| 2 | 0.3772 | 0.3772 | Confidence |
+| 3 | 0.6150 | 0.3411 | Confidence |
+| 4 | 0.7234 | 0.7487 | OARH |
+| 5 | 0.7218 | 0.3926 | Confidence |
+
+Held-out `scene0000_01` result:
+
+| Views | Confidence F-score | OARH F-score | Gated F-score | Gated choice |
+| ---: | ---: | ---: | ---: | --- |
+| 2 | 0.4252 | 0.3710 | 0.4252 | Confidence |
+| 3 | 0.6029 | 0.4755 | 0.6029 | Confidence |
+| 4 | 0.6763 | 0.6738 | 0.6738 | OARH |
+| 5 | 0.5901 | 0.5704 | 0.5901 | Confidence |
+
+Interpretation: validation gating avoids the large OARH regressions at 2/3/5 views, but the 4-view gate slightly overfits the proxy validation scene and underperforms confidence-only by about `0.0025` F-score on the held-out scene. This supports keeping confidence-only as the final tested reconstruction policy while presenting OARH as a partial learned ablation that needs better labels/features.
+
 ## Submitted Phase 2 Runs
 
 | Run | Kernel | Purpose |
