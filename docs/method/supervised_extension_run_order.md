@@ -177,6 +177,20 @@ large 2/3/5-view regressions, but still slightly overfits at 4 views on the
 held-out scene. RSDH is promising but still proxy-based until real MASt3R
 descriptors/cycle features are included.
 
+Current execution note after submitting Runs 15--18:
+
+- Run 15 is the real reciprocal-feature extraction step. It attempts MASt3R
+  first and records an explicit fallback backend if Kaggle cannot install or
+  load the full MASt3R stack.
+- Run 16 trains RSDH on descriptor, margin, reciprocal, 3D-disagreement, and
+  cycle-proxy features produced with the Run 15 extraction path.
+- Run 17 is intentionally a decision gate. It should skip light backbone
+  fine-tuning unless the validation-gated learned pipeline beats the verified
+  confidence-only final policy by a meaningful margin.
+- Run 18 summarizes the learned extension honestly: the final deployable policy
+  remains the verified confidence-only reconstruction unless the new learned
+  runs clearly improve validation and held-out metrics.
+
 ## Dataset Split
 
 Use scene-level split only.

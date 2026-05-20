@@ -136,6 +136,17 @@ Interpretation: validation gating avoids the large OARH regressions at 2/3/5 vie
 | 12 | `mv-dust3r-run-12-supervised-reliability` | Train a frozen-backbone OARH proxy MLP and compare learned reliability against confidence-only filtering |
 | 13 | `mv-dust3r-run-13-match-disambiguation` | Train a proxy RSDH match-validity MLP using GT-depth nearest-surface consistency |
 | 14 | [`mv-dust3r-run-14-validation-gated-learned-pipeline`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-14-validation-gated-learned-pipeline) | Use OARH only when it beats confidence-only on the validation proxy; otherwise fall back to confidence filtering |
+| 15 | [`mv-dust3r-run-15-mast3r-reciprocal-features`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-15-mast3r-reciprocal-features) | Extract reciprocal match features with MASt3R when available, or an explicitly logged ORB fallback if MASt3R setup is unavailable |
+| 16 | [`mv-dust3r-run-16-rsdh-descriptor-cycle`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-16-rsdh-descriptor-cycle) | Train RSDH on descriptor, margin, reciprocal, 3D-disagreement, and cycle-proxy features |
+| 17 | [`mv-dust3r-run-17-light-finetune-decision`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-17-light-finetune-decision) | Decide whether light MV-DUSt3R+ fine-tuning is justified from validation-gated learned results before spending GPU time |
+| 18 | [`mv-dust3r-run-18-learned-full-evaluation-summary`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-18-learned-full-evaluation-summary) | Summarize B0, current best, OARH/gated reliability, RSDH, and the final learned-extension recommendation |
+
+Expected outputs for the submitted remaining runs:
+
+- Run 15: `match_features.csv`, `feature_summary.csv`, `run_config.json`
+- Run 16: `match_metrics.csv`, `training_history.csv`, `feature_summary.csv`, `rsdh_descriptor_cycle_head.pt`, `run_config.json`
+- Run 17: `fine_tune_decision.csv`, `run_config.json`
+- Run 18: `final_learned_summary.csv`, `run_config.json`
 
 ## Limitations
 
@@ -150,10 +161,10 @@ Interpretation: validation gating avoids the large OARH regressions at 2/3/5 vie
 
 - Replace the proxy evaluator with an official mesh/laser-scan geometry evaluator on ScanNet++ scenes with full 3D ground truth.
 - Improve OARH labels/features so point-label F1 translates into reconstruction F-score; current Run 12 results are mixed.
-- Add real MASt3R reciprocal matching and train RSDH with descriptor margin and cycle consistency, beyond the Run 13 proxy.
+- Analyze the Run 15/16 MASt3R-or-fallback reciprocal match features and decide whether the RSDH descriptor/cycle result is strong enough to replace the Run 13 proxy.
 - Redesign occlusion reasoning using camera geometry, z-buffer consistency, and supervised per-view visibility masks.
 - Revisit repeated-structure filtering as match validity learning, not as self-similarity suppression.
-- If OARH/RSDH improve validation, lightly fine-tune MV-DUSt3R+ confidence layers and the last decoder blocks.
+- If OARH/RSDH improve validation in future data, lightly fine-tune MV-DUSt3R+ confidence layers and the last decoder blocks; Run 17 records the current decision gate instead of forcing a costly fine-tune.
 - Evaluate on more scenes and report confidence intervals across scene categories.
 - Add qualitative failure analysis for occlusion-heavy scenes where the final pipeline remains weakest.
 

@@ -42,6 +42,10 @@ The staged Kaggle scripts live in `scripts/kaggle/`:
 - `kaggle_run12_supervised_reliability.py`: frozen-backbone OARH proxy training
 - `kaggle_run13_match_disambiguation.py`: RSDH proxy match-validity training
 - `kaggle_run14_validation_gated_learned_pipeline.py`: validation-gated OARH fallback policy
+- `kaggle_run15_mast3r_reciprocal_features.py`: MASt3R reciprocal match feature extraction with explicit fallback logging
+- `kaggle_run16_rsdh_descriptor_cycle.py`: RSDH descriptor/cycle-feature training
+- `kaggle_run17_light_finetune_decision.py`: validation-based fine-tune gate
+- `kaggle_run18_learned_full_evaluation_summary.py`: final learned-extension summary
 
 The notebook sanity check is in `notebooks/kaggle_run0_mvdust3r_sanity.ipynb`.
 
@@ -71,6 +75,10 @@ Latest Kaggle kernels:
 - [Run 12 Supervised Reliability](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-12-supervised-reliability)
 - [Run 13 Match Disambiguation](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-13-match-disambiguation)
 - [Run 14 Validation-Gated Learned Pipeline](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-14-validation-gated-learned-pipeline)
+- [Run 15 MASt3R Reciprocal Features](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-15-mast3r-reciprocal-features)
+- [Run 16 RSDH Descriptor Cycle](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-16-rsdh-descriptor-cycle)
+- [Run 17 Light Finetune Decision](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-17-light-finetune-decision)
+- [Run 18 Learned Full Evaluation Summary](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-18-learned-full-evaluation-summary)
 
 ## Build The Slides
 
