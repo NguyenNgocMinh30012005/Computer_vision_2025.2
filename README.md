@@ -5,6 +5,46 @@ This repository contains the Computer Vision 2025.2 project on sparse-view indoo
 experiment scripts, ablation notes, and the supervised extension plan for
 occlusion-aware reliability and repeated-structure disambiguation.
 
+## Portfolio Summary
+
+This is my main computer vision research project. The goal is to make
+sparse-view indoor 3D reconstruction more reliable when only a few views are
+available and scenes contain occlusion, repeated structures, or weak overlap.
+
+The repository is organized as a staged experiment log rather than a single
+notebook dump. Runs 1-20 cover baseline evaluation, confidence thresholding,
+view selection, fusion ablations, occlusion filtering, repeated-structure
+analysis, supervised reliability proxies, and hard-case mining.
+
+## Highlights
+
+- Built a reproducible Kaggle experiment sequence around MV-DUSt3R+.
+- Compared confidence filtering, view selection, and fusion strategies.
+- Tested occlusion-aware and repeated-structure reliability ideas through
+  ablation scripts.
+- Added supervised proxy experiments for OARH/RSDH-style reliability heads.
+- Documented negative results where learned or heuristic filters hurt
+  reconstruction quality.
+
+## My Contribution
+
+- Designed the staged run order and experiment tracking structure.
+- Implemented the Kaggle scripts for baseline, ablation, validation-gated, and
+  supervised extension runs.
+- Wrote the project documentation, method notes, and slide/report assets.
+- Reported limitations explicitly instead of presenting every learned extension
+  as a final improvement.
+
+## Results Snapshot
+
+| Area | Finding |
+|---|---|
+| Baseline reliability | Fixed confidence thresholding remains the safest final policy. |
+| View selection | Diversity/overlap-aware selection is useful for sparse views. |
+| OARH proxy | Helps selected larger-view cases but can regress 2/3-view cases. |
+| RSDH proxy | Strong proxy F1, but currently best treated as an upper-bound result. |
+| Final direction | Use validation-gated learned reliability instead of unconditional learned filtering. |
+
 ## Repository Layout
 
 ```text
@@ -82,6 +122,18 @@ instead of sampling generic points.
 
 See `docs/experiments/experiment_results_summary.md` and
 `docs/method/supervised_extension_run_order.md`.
+
+## How To Reproduce
+
+1. Read `scripts/kaggle/README.md` and
+   `docs/experiments/experiment_run_order.md`.
+2. Run the staged Kaggle scripts in order, starting from the baseline and
+   confidence sweep.
+3. Compare the generated summaries with
+   `docs/experiments/experiment_results_summary.md`.
+
+The project expects the upstream model/data setup to be handled in Kaggle. Local
+credentials and downloaded model artifacts are intentionally ignored.
 
 Latest Kaggle kernels:
 
