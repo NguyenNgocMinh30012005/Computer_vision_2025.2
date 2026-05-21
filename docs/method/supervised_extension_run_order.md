@@ -193,6 +193,15 @@ Current execution note after submitting Runs 15--18:
   remains the verified confidence-only reconstruction unless the new learned
   runs clearly improve validation and held-out metrics.
 
+Current note after Runs 15--16 completed:
+
+- Run 15 successfully used MASt3R, not the ORB fallback, and produced reciprocal
+  match features for train-proxy `scene0000_00` and held-out `scene0000_01`.
+- Run 16 reached near-perfect held-out proxy match F1 from those features.
+  However, this is an upper-bound/sanity result because labels and some
+  features use GT-depth-derived 3D disagreement. It supports the RSDH direction
+  but should not be claimed as a solved image-only repeated-structure module.
+
 ## Dataset Split
 
 Use scene-level split only.

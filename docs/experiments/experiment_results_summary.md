@@ -129,6 +129,35 @@ Held-out `scene0000_01` result:
 
 Interpretation: validation gating avoids the large OARH regressions at 2/3/5 views, but the 4-view gate slightly overfits the proxy validation scene and underperforms confidence-only by about `0.0025` F-score on the held-out scene. This supports keeping confidence-only as the final tested reconstruction policy while presenting OARH as a partial learned ablation that needs better labels/features.
 
+## Run 15 MASt3R Reciprocal Features
+
+Run 15 successfully loaded the real MASt3R backend, not the ORB fallback. It extracted reciprocal match features from `scene0000_00` as the train proxy and `scene0000_01` as the held-out scene:
+
+| Split | Scene | Views | Backend | Matches | Positive ratio | Depth-valid ratio |
+| --- | --- | ---: | --- | ---: | ---: | ---: |
+| Train proxy | scene0000_00 | 3 | MASt3R | 1419 | 0.4264 | 0.8295 |
+| Train proxy | scene0000_00 | 4 | MASt3R | 2837 | 0.4681 | 0.9027 |
+| Train proxy | scene0000_00 | 5 | MASt3R | 2315 | 0.5076 | 0.8056 |
+| Held-out | scene0000_01 | 3 | MASt3R | 2206 | 0.3305 | 0.7566 |
+| Held-out | scene0000_01 | 4 | MASt3R | 4263 | 0.7361 | 0.9191 |
+| Held-out | scene0000_01 | 5 | MASt3R | 1672 | 0.5879 | 0.8439 |
+
+Interpretation: the feature extraction path is now real MASt3R reciprocal matching. Some far-view pairs produce very few or zero reciprocal matches, which is useful evidence for repeated/far-reference ambiguity handling.
+
+## Run 16 RSDH Descriptor/Cycle Features
+
+Run 16 consumes the successful Run 15 `match_features.csv` as a Kaggle kernel source, so it can train the small RSDH MLP even when Kaggle allocates a non-T4 GPU. The run used CPU because Kaggle allocated a P100 that was incompatible with the installed PyTorch CUDA build. Validation selected probability threshold `0.55`.
+
+Held-out `scene0000_01` proxy match metrics:
+
+| Views | Match precision | Match recall | Match F1 | Pairs | Positive ratio |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 3 | 1.0000 | 1.0000 | 1.0000 | 965 | 0.7554 |
+| 4 | 1.0000 | 1.0000 | 1.0000 | 3485 | 0.9004 |
+| 5 | 1.0000 | 1.0000 | 1.0000 | 1193 | 0.8240 |
+
+Interpretation: RSDH is very strong on this GT-depth-assisted proxy task, but this should be framed as an upper-bound/sanity result rather than a final repeated-structure solution. The features include 3D disagreement and cycle-proxy terms derived from available depth, so the result does not yet prove image-only disambiguation on unseen repeated structures.
+
 ## Submitted Phase 2 Runs
 
 | Run | Kernel | Purpose |

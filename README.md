@@ -66,6 +66,11 @@ when the learned reliability head does not win on validation. The first Run 14
 log shows that gating avoids the large 2/3/5-view OARH regressions but still
 slightly overfits at 4 views, so the final tested reconstruction policy remains
 fixed confidence thresholding rather than unconditional learned reliability.
+Run 15 successfully used the MASt3R backend for reciprocal match extraction.
+Run 16 then trained RSDH from the Run 15 kernel-source features and reached
+near-perfect held-out proxy match F1, but this should be reported as a
+GT-depth-assisted proxy/upper-bound result because the features include direct
+3D disagreement derived from available depth.
 
 See `docs/experiments/experiment_results_summary.md` and
 `docs/method/supervised_extension_run_order.md`.
