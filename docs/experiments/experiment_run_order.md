@@ -523,6 +523,7 @@ Da submit cac kernel dau cho phase learned extension:
 | 17 | `mv-dust3r-run-17-light-finetune-decision` | Dung ket qua validation-gated de quyet dinh co nen fine-tune nhe backbone hay khong |
 | 18 | `mv-dust3r-run-18-learned-full-evaluation-summary` | Tong hop B0, current best, OARH/gated, RSDH va khuyen nghi final learned extension |
 | 19 | `mv-dust3r-run-19-supervised-label-cache` | Tao label cache visibility/occlusion/floating/match de chuan bi OARH v2 va RSDH v2 |
+| 20 | `mv-dust3r-run-20-occlusion-ambiguity-subset-mining` | Mine subset occlusion-heavy, low-overlap/far va hard-negative tu Run 19 |
 
 Ket qua hien tai:
 
@@ -531,6 +532,7 @@ Ket qua hien tai:
 - Run 14: validation gate tranh duoc cac regression lon o 2/3/5 views, nhung gate 4-view hoi overfit validation proxy va thua confidence-only nhe tren held-out scene. Vi vay final policy van nen la confidence-only fixed threshold; OARH la partial/failed learned ablation can cai tien.
 - Run 15--18: da submit de chay not phase learned extension. Run 15/16 kiem tra reciprocal feature va descriptor/cycle RSDH; Run 17 khong fine-tune mu quang neu validation chua ung ho; Run 18 tao summary cuoi cho bao cao.
 - Run 19: bat dau phase nghiem ngat hon de giai quyet occlusion va repeated structures. Run nay tao label cache truoc, chua train model, de cac run sau khong con dua vao heuristic/proxy mong.
+- Run 20: doc output Run 19 lam kernel source, tao balanced labels/manifests cho OARH v2 va RSDH v2 de train dung vao cac case kho.
 
 Output can gui lai sau khi Kaggle chay xong:
 
@@ -542,6 +544,7 @@ Output can gui lai sau khi Kaggle chay xong:
 - Run 17: `fine_tune_decision.csv`, `run_config.json`
 - Run 18: `final_learned_summary.csv`, `run_config.json`
 - Run 19: `label_cache.csv`, `label_summary.csv`, `view_group_manifest.csv`, `scene_split.csv`, `occlusion_heavy_groups.csv`, `run_config.json`
+- Run 20: `subset_group_manifest.csv`, `final_eval_group_manifest.csv`, `oarh_v2_balanced_labels.csv`, `rsdh_v2_hard_negative_labels.csv`, `sample_bucket_counts.csv`, `run_config.json`
 
 Nguyen tac dung:
 

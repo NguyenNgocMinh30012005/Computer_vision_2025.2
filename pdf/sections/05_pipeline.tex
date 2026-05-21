@@ -53,6 +53,8 @@
   \begin{enumerate}
     \item First build a supervised label cache with per-view visibility,
     occlusion, floating/wrong-depth, and match labels.
+    \item Mine occlusion-heavy, low-overlap, and hard-negative subsets before
+    training the learned heads.
     \item Freeze MV-DUSt3R+ and train small reliability / match heads on
     generated GT labels.
     \item Evaluate OARH on occlusion-heavy scenes and RSDH on repeated-structure

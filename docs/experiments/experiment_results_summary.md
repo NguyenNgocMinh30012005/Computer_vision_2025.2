@@ -183,6 +183,25 @@ Run 19 starts the stricter phase for solving the remaining occlusion and repeate
 
 Interpretation rule: Run 19 is a data/label validation step. OARH v2 and RSDH v2 should only be trained after this cache shows enough occlusion-heavy and hard-negative examples on held-out scenes.
 
+The first Run 19 log confirms a larger 30-scene scan with scene-level split:
+18 train scenes, 6 validation scenes, and 6 test scenes. It found held-out
+occlusion-heavy groups, including `scene0011_01_4_diversity_aware`,
+`scene0013_00_3_hybrid`, `scene0013_01_4_hybrid`, and
+`scene0013_01_5_hybrid`, plus a validation occlusion-heavy group
+`scene0009_01_3_hybrid`.
+
+## Run 20 Occlusion/Ambiguity Subset Mining
+
+Run 20 consumes the Run 19 kernel output and mines focused subsets for the next training runs:
+
+- `subset_group_manifest.csv`: all groups with occlusion/low-overlap/wrong-depth classes and priority scores.
+- `final_eval_group_manifest.csv`: validation/test groups eligible for final case-specific evaluation.
+- `oarh_v2_balanced_labels.csv`: balanced point-label rows for OARH v2.
+- `rsdh_v2_hard_negative_labels.csv`: balanced match-positive / hard-negative rows for RSDH v2.
+- `sample_bucket_counts.csv`: available vs sampled counts per split and label bucket.
+
+Interpretation rule: Run 20 is the bridge from label creation to real training. Run 21 should train OARH v2 from `oarh_v2_balanced_labels.csv`; Run 24 should train RSDH v2 using image-only MASt3R features and `rsdh_v2_hard_negative_labels.csv` labels.
+
 Expected outputs for the submitted remaining runs:
 
 - Run 15: `match_features.csv`, `feature_summary.csv`, `run_config.json`
@@ -190,6 +209,7 @@ Expected outputs for the submitted remaining runs:
 - Run 17: `fine_tune_decision.csv`, `run_config.json`
 - Run 18: `final_learned_summary.csv`, `run_config.json`
 - Run 19: `label_cache.csv`, `label_summary.csv`, `view_group_manifest.csv`, `scene_split.csv`, `occlusion_heavy_groups.csv`, `run_config.json`
+- Run 20: `subset_group_manifest.csv`, `final_eval_group_manifest.csv`, `oarh_v2_balanced_labels.csv`, `rsdh_v2_hard_negative_labels.csv`, `sample_bucket_counts.csv`, `run_config.json`
 
 ## Limitations
 

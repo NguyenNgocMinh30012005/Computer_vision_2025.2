@@ -219,6 +219,11 @@ Current Phase 3 execution note:
   `label_summary.csv`, `view_group_manifest.csv`, `scene_split.csv`, and
   `occlusion_heavy_groups.csv` so later OARH v2/RSDH v2 experiments can train
   from explicit visibility, occlusion, floating/wrong-depth, and match labels.
+- Run 20 consumes the Run 19 kernel-source output and writes focused manifests:
+  `subset_group_manifest.csv`, `final_eval_group_manifest.csv`,
+  `oarh_v2_balanced_labels.csv`, and `rsdh_v2_hard_negative_labels.csv`.
+  This keeps later training/evaluation concentrated on occlusion-heavy,
+  low-overlap/far, and hard-negative cases instead of generic easy pixels.
 - A strong final claim requires Runs 21--28 to show held-out reconstruction
   improvement on occlusion-heavy and repeated-structure subsets, not only high
   proxy classification F1.

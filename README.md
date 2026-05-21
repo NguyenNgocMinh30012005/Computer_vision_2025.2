@@ -47,6 +47,7 @@ The staged Kaggle scripts live in `scripts/kaggle/`:
 - `kaggle_run17_light_finetune_decision.py`: validation-based fine-tune gate
 - `kaggle_run18_learned_full_evaluation_summary.py`: final learned-extension summary
 - `kaggle_run19_supervised_label_cache.py`: scalable visibility/occlusion label cache for OARH v2 and RSDH v2
+- `kaggle_run20_occlusion_ambiguity_subset_mining.py`: mines occlusion-heavy, low-overlap, and hard-negative subsets from Run 19
 
 The notebook sanity check is in `notebooks/kaggle_run0_mvdust3r_sanity.ipynb`.
 
@@ -75,6 +76,9 @@ GT-depth-assisted proxy/upper-bound result because the features include direct
 which builds a scene-level supervised label cache for visibility, occlusion, and
 wrong-depth candidates before retraining OARH/RSDH with stronger held-out
 evidence.
+Run 20 consumes that cache and produces balanced OARH v2/RSDH v2 manifests so
+the next training runs can target occlusion-heavy and hard-negative cases
+instead of sampling generic points.
 
 See `docs/experiments/experiment_results_summary.md` and
 `docs/method/supervised_extension_run_order.md`.
@@ -89,6 +93,7 @@ Latest Kaggle kernels:
 - [Run 17 Light Finetune Decision](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-17-light-finetune-decision)
 - [Run 18 Learned Full Evaluation Summary](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-18-learned-full-evaluation-summary)
 - [Run 19 Supervised Label Cache](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-19-supervised-label-cache)
+- [Run 20 Occlusion Ambiguity Subset Mining](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-20-occlusion-ambiguity-subset-mining)
 
 ## Build The Slides
 
