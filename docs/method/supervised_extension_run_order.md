@@ -162,6 +162,16 @@ Do not enforce consistency through occluded views.
 | 16 | RSDH with descriptor/cycle features | Re-evaluate match disambiguation beyond nearest-surface proxy features |
 | 17 | Light fine-tune MV-DUSt3R+ | Unfreeze confidence head and last decoder blocks only if validation justifies it |
 | 18 | Learned full evaluation | Compare B0, current best, gated OARH, RSDH, and learned full pipeline |
+| 19 | Supervised label cache | Build scene-level visibility, occlusion, wrong-depth, and match labels for OARH v2 / RSDH v2 |
+| 20 | Occlusion and ambiguity subset mining | Select occlusion-heavy and repeated/hard-negative view groups from the label cache |
+| 21 | OARH v2 multitask | Train keep, visibility-class, and depth-residual heads using the Run 19 cache |
+| 22 | OARH v2 reconstruction integration | Evaluate learned visibility-aware fusion on occlusion-heavy held-out groups |
+| 23 | Hard-negative match dataset | Mine repeated-looking false matches for chair/window/cabinet/tile/bookshelf-like regions |
+| 24 | RSDH v2 image-only features | Train match validity from MASt3R descriptors, margins, reciprocal flags, and cycle cues without GT-derived inference features |
+| 25 | RSDH v2 reconstruction integration | Use validated matches in reconstruction/fusion and evaluate repeated-structure held-out groups |
+| 26 | Joint learned pipeline | Combine OARH v2 and RSDH v2 and verify that overall F-score does not regress |
+| 27 | Conditional light fine-tune | Fine-tune confidence/last decoder blocks only if Run 26 wins validation |
+| 28 | Final held-out evaluation | Compare B0, fixed-confidence final, and learned full pipeline on unseen scenes |
 
 Minimum viable version if time is short:
 
@@ -201,6 +211,17 @@ Current note after Runs 15--16 completed:
   However, this is an upper-bound/sanity result because labels and some
   features use GT-depth-derived 3D disagreement. It supports the RSDH direction
   but should not be claimed as a solved image-only repeated-structure module.
+
+Current Phase 3 execution note:
+
+- Run 19 is the first stricter run for solving the remaining two limitations.
+  It does not train a model yet. Instead, it writes `label_cache.csv`,
+  `label_summary.csv`, `view_group_manifest.csv`, `scene_split.csv`, and
+  `occlusion_heavy_groups.csv` so later OARH v2/RSDH v2 experiments can train
+  from explicit visibility, occlusion, floating/wrong-depth, and match labels.
+- A strong final claim requires Runs 21--28 to show held-out reconstruction
+  improvement on occlusion-heavy and repeated-structure subsets, not only high
+  proxy classification F1.
 
 ## Dataset Split
 

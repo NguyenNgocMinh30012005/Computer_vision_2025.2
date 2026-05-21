@@ -42,6 +42,16 @@ Config nay nen ghi ro:
   run_16_rsdh_descriptor_cycle/
   run_17_light_finetune_decision/
   run_18_learned_full_evaluation_summary/
+  run_19_supervised_label_cache/
+  run_20_occlusion_ambiguity_subset_mining/
+  run_21_oarh_v2_multitask/
+  run_22_oarh_v2_reconstruction/
+  run_23_repeated_hard_negative_dataset/
+  run_24_rsdh_v2_image_only/
+  run_25_rsdh_v2_reconstruction/
+  run_26_joint_learned_pipeline/
+  run_27_conditional_light_finetune/
+  run_28_final_heldout_learned_eval/
 ```
 
 Chi thay doi dung bien dang duoc test trong tung run. Cac thanh phan khac phai giu nguyen de ket qua ablation co y nghia.
@@ -473,6 +483,16 @@ Run 15 - Add real MASt3R reciprocal matches
 Run 16 - Re-evaluate RSDH with descriptor/cycle features
 Run 17 - Optional light fine-tune MV-DUSt3R+
 Run 18 - Learned full evaluation
+Run 19 - Build supervised visibility/occlusion label cache
+Run 20 - Mine occlusion-heavy and ambiguity-heavy subsets
+Run 21 - Train OARH v2 multitask labels
+Run 22 - Integrate OARH v2 into reconstruction
+Run 23 - Build repeated-structure hard-negative match dataset
+Run 24 - Train RSDH v2 from image-only MASt3R features
+Run 25 - Integrate RSDH v2 into reconstruction
+Run 26 - Joint OARH v2 + RSDH v2 learned pipeline
+Run 27 - Conditional light fine-tune if validation wins
+Run 28 - Final held-out learned evaluation
 ```
 
 Chi tiet nam trong:
@@ -502,6 +522,7 @@ Da submit cac kernel dau cho phase learned extension:
 | 16 | `mv-dust3r-run-16-rsdh-descriptor-cycle` | Train RSDH voi descriptor/margin/reciprocal/3D disagreement/cycle-proxy features |
 | 17 | `mv-dust3r-run-17-light-finetune-decision` | Dung ket qua validation-gated de quyet dinh co nen fine-tune nhe backbone hay khong |
 | 18 | `mv-dust3r-run-18-learned-full-evaluation-summary` | Tong hop B0, current best, OARH/gated, RSDH va khuyen nghi final learned extension |
+| 19 | `mv-dust3r-run-19-supervised-label-cache` | Tao label cache visibility/occlusion/floating/match de chuan bi OARH v2 va RSDH v2 |
 
 Ket qua hien tai:
 
@@ -509,6 +530,7 @@ Ket qua hien tai:
 - Run 13: RSDH proxy dat match F1 tren 0.99 tren held-out scene, nhung day van la proxy label/feature, chua phai full MASt3R repeated-structure solution.
 - Run 14: validation gate tranh duoc cac regression lon o 2/3/5 views, nhung gate 4-view hoi overfit validation proxy va thua confidence-only nhe tren held-out scene. Vi vay final policy van nen la confidence-only fixed threshold; OARH la partial/failed learned ablation can cai tien.
 - Run 15--18: da submit de chay not phase learned extension. Run 15/16 kiem tra reciprocal feature va descriptor/cycle RSDH; Run 17 khong fine-tune mu quang neu validation chua ung ho; Run 18 tao summary cuoi cho bao cao.
+- Run 19: bat dau phase nghiem ngat hon de giai quyet occlusion va repeated structures. Run nay tao label cache truoc, chua train model, de cac run sau khong con dua vao heuristic/proxy mong.
 
 Output can gui lai sau khi Kaggle chay xong:
 
@@ -519,6 +541,7 @@ Output can gui lai sau khi Kaggle chay xong:
 - Run 16: `match_metrics.csv`, `training_history.csv`, `feature_summary.csv`, `rsdh_descriptor_cycle_head.pt`, `run_config.json`
 - Run 17: `fine_tune_decision.csv`, `run_config.json`
 - Run 18: `final_learned_summary.csv`, `run_config.json`
+- Run 19: `label_cache.csv`, `label_summary.csv`, `view_group_manifest.csv`, `scene_split.csv`, `occlusion_heavy_groups.csv`, `run_config.json`
 
 Nguyen tac dung:
 

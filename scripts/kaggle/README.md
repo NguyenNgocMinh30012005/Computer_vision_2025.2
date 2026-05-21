@@ -29,6 +29,7 @@ Run order:
 15. `kaggle_run16_rsdh_descriptor_cycle.py`
 16. `kaggle_run17_light_finetune_decision.py`
 17. `kaggle_run18_learned_full_evaluation_summary.py`
+18. `kaggle_run19_supervised_label_cache.py`
 
 The final validation script uses fixed thresholds selected before test-time
 evaluation, rather than tuning on the final test rows. Run 11 prefers T4 x2,
@@ -54,6 +55,9 @@ train small MLP heads on proxy labels generated from ScanNet posed depth:
   fine-tuning is justified before spending GPU time on backbone updates.
 - Run 18 writes a final learned-extension summary comparing the verified
   confidence-only final policy against the learned/gated extensions.
+- Run 19 starts the stricter Phase 3 path. It creates a scalable supervised
+  label cache with per-view visibility, occlusion, floating/wrong-depth, and
+  geometry-consistent match labels for OARH v2 and RSDH v2.
 
 Latest pushed kernels:
 
@@ -61,3 +65,4 @@ Latest pushed kernels:
 - Run 16: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-16-rsdh-descriptor-cycle>
 - Run 17: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-17-light-finetune-decision>
 - Run 18: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-18-learned-full-evaluation-summary>
+- Run 19: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-19-supervised-label-cache>

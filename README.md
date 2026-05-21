@@ -46,6 +46,7 @@ The staged Kaggle scripts live in `scripts/kaggle/`:
 - `kaggle_run16_rsdh_descriptor_cycle.py`: RSDH descriptor/cycle-feature training from Run 15 kernel-source features
 - `kaggle_run17_light_finetune_decision.py`: validation-based fine-tune gate
 - `kaggle_run18_learned_full_evaluation_summary.py`: final learned-extension summary
+- `kaggle_run19_supervised_label_cache.py`: scalable visibility/occlusion label cache for OARH v2 and RSDH v2
 
 The notebook sanity check is in `notebooks/kaggle_run0_mvdust3r_sanity.ipynb`.
 
@@ -70,7 +71,10 @@ Run 15 successfully used the MASt3R backend for reciprocal match extraction.
 Run 16 then trained RSDH from the Run 15 kernel-source features and reached
 near-perfect held-out proxy match F1, but this should be reported as a
 GT-depth-assisted proxy/upper-bound result because the features include direct
-3D disagreement derived from available depth.
+3D disagreement derived from available depth. The next phase starts with Run 19,
+which builds a scene-level supervised label cache for visibility, occlusion, and
+wrong-depth candidates before retraining OARH/RSDH with stronger held-out
+evidence.
 
 See `docs/experiments/experiment_results_summary.md` and
 `docs/method/supervised_extension_run_order.md`.
@@ -84,6 +88,7 @@ Latest Kaggle kernels:
 - [Run 16 RSDH Descriptor Cycle](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-16-rsdh-descriptor-cycle)
 - [Run 17 Light Finetune Decision](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-17-light-finetune-decision)
 - [Run 18 Learned Full Evaluation Summary](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-18-learned-full-evaluation-summary)
+- [Run 19 Supervised Label Cache](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-19-supervised-label-cache)
 
 ## Build The Slides
 

@@ -171,12 +171,25 @@ Interpretation: RSDH is very strong on this GT-depth-assisted proxy task, but th
 | 17 | [`mv-dust3r-run-17-light-finetune-decision`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-17-light-finetune-decision) | Decide whether light MV-DUSt3R+ fine-tuning is justified from validation-gated learned results before spending GPU time |
 | 18 | [`mv-dust3r-run-18-learned-full-evaluation-summary`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-18-learned-full-evaluation-summary) | Summarize B0, current best, OARH/gated reliability, RSDH, and the final learned-extension recommendation |
 
+## Run 19 Supervised Label Cache
+
+Run 19 starts the stricter phase for solving the remaining occlusion and repeated-structure limitations. It writes a reusable label cache instead of training immediately:
+
+- `label_cache.csv`: per-candidate keep, visibility, occlusion, floating/wrong-depth, and geometry-consistent match labels.
+- `label_summary.csv`: group-level visible/occluded/floating ratios.
+- `view_group_manifest.csv`: selected sparse-view groups.
+- `scene_split.csv`: scene-level train/val/test assignment.
+- `occlusion_heavy_groups.csv`: view groups with occlusion ratio above the configured threshold.
+
+Interpretation rule: Run 19 is a data/label validation step. OARH v2 and RSDH v2 should only be trained after this cache shows enough occlusion-heavy and hard-negative examples on held-out scenes.
+
 Expected outputs for the submitted remaining runs:
 
 - Run 15: `match_features.csv`, `feature_summary.csv`, `run_config.json`
 - Run 16: `match_metrics.csv`, `training_history.csv`, `feature_summary.csv`, `rsdh_descriptor_cycle_head.pt`, `run_config.json`
 - Run 17: `fine_tune_decision.csv`, `run_config.json`
 - Run 18: `final_learned_summary.csv`, `run_config.json`
+- Run 19: `label_cache.csv`, `label_summary.csv`, `view_group_manifest.csv`, `scene_split.csv`, `occlusion_heavy_groups.csv`, `run_config.json`
 
 ## Limitations
 
