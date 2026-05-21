@@ -37,6 +37,19 @@ BATCH_SIZE = 4096
 LR = 1e-3
 
 
+def safe_device():
+    if not torch.cuda.is_available():
+        return "cpu"
+    try:
+        major, _minor = torch.cuda.get_device_capability(0)
+        if major >= 7:
+            return "cuda"
+    except Exception as exc:
+        print("CUDA compatibility check failed; using CPU:", repr(exc))
+    print("CUDA device is not compatible with this PyTorch build; using CPU for Run 16 MLP training.")
+    return "cpu"
+
+
 class MatchMLP(nn.Module):
     def __init__(self, in_dim):
         super().__init__()
@@ -65,6 +78,29 @@ def write_csv_union(path, rows):
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
+
+
+def read_csv_rows(path):
+    with path.open(newline="") as f:
+        return list(csv.DictReader(f))
+
+
+def find_run15_outputs():
+    input_root = Path("/kaggle/input")
+    if not input_root.exists():
+        return None, None
+    candidates = sorted(input_root.rglob("match_features.csv"))
+    for candidate in candidates:
+        if "run_15_mast3r_reciprocal_features" in str(candidate) or "mv-dust3r-run-15" in str(candidate):
+            summary = candidate.with_name("feature_summary.csv")
+            print("Using Run 15 kernel-source match features:", candidate)
+            return candidate, summary if summary.exists() else None
+    if candidates:
+        candidate = candidates[0]
+        summary = candidate.with_name("feature_summary.csv")
+        print("Using first available match_features.csv:", candidate)
+        return candidate, summary if summary.exists() else None
+    return None, None
 
 
 def featurize(rows):
@@ -123,7 +159,7 @@ def threshold_metrics(prob, labels):
 
 
 def train_model(x_train, y_train, x_val, y_val):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = safe_device()
     model = MatchMLP(x_train.shape[1]).to(device)
     opt = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=1e-4)
     pos = float(y_train.sum())
@@ -202,15 +238,22 @@ def main():
     random.seed(SEED)
     np.random.seed(SEED)
     torch.manual_seed(SEED)
-    torch.cuda.manual_seed_all(SEED)
-    base.require_t4x2()
-    posed_root = base.find_posed_images_root()
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(SEED)
     started = time.time()
     out_dir = Path("/kaggle/working/outputs") / RUN_NAME
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    backend = run15.setup_mast3r_backend()
-    raw_rows, feature_summary = run15.collect_rows(posed_root, backend)
+    match_features_path, feature_summary_path = find_run15_outputs()
+    if match_features_path is not None:
+        raw_rows = read_csv_rows(match_features_path)
+        feature_summary = read_csv_rows(feature_summary_path) if feature_summary_path else []
+        backend = {"name": "run15_kernel_source", "error": None}
+    else:
+        base.require_t4x2()
+        posed_root = base.find_posed_images_root()
+        backend = run15.setup_mast3r_backend()
+        raw_rows, feature_summary = run15.collect_rows(posed_root, backend)
     train_rows = [r for r in raw_rows if r["split"] == "train_proxy"]
     test_rows = [r for r in raw_rows if r["split"] == "heldout"]
     x_train_all, y_train_all, _ = featurize(train_rows)
@@ -224,7 +267,7 @@ def main():
     train_idx, val_idx = order[:split], order[split:]
     model, history = train_model(x_train_all[train_idx], y_train_all[train_idx], x_train_all[val_idx], y_train_all[val_idx])
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = safe_device()
     model.eval()
     with torch.no_grad():
         val_prob = torch.sigmoid(model(torch.from_numpy(x_train_all[val_idx]).float().to(device))).cpu().numpy()

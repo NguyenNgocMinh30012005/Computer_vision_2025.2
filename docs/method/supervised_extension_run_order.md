@@ -183,7 +183,9 @@ Current execution note after submitting Runs 15--18:
   first and records an explicit fallback backend if Kaggle cannot install or
   load the full MASt3R stack.
 - Run 16 trains RSDH on descriptor, margin, reciprocal, 3D-disagreement, and
-  cycle-proxy features produced with the Run 15 extraction path.
+  cycle-proxy features produced by Run 15. It should consume the successful Run
+  15 `match_features.csv` as a Kaggle kernel source when available, so it does
+  not depend on receiving a T4x2 allocation again.
 - Run 17 is intentionally a decision gate. It should skip light backbone
   fine-tuning unless the validation-gated learned pipeline beats the verified
   confidence-only final policy by a meaningful margin.

@@ -43,7 +43,7 @@ The staged Kaggle scripts live in `scripts/kaggle/`:
 - `kaggle_run13_match_disambiguation.py`: RSDH proxy match-validity training
 - `kaggle_run14_validation_gated_learned_pipeline.py`: validation-gated OARH fallback policy
 - `kaggle_run15_mast3r_reciprocal_features.py`: MASt3R reciprocal match feature extraction with explicit fallback logging
-- `kaggle_run16_rsdh_descriptor_cycle.py`: RSDH descriptor/cycle-feature training
+- `kaggle_run16_rsdh_descriptor_cycle.py`: RSDH descriptor/cycle-feature training from Run 15 kernel-source features
 - `kaggle_run17_light_finetune_decision.py`: validation-based fine-tune gate
 - `kaggle_run18_learned_full_evaluation_summary.py`: final learned-extension summary
 

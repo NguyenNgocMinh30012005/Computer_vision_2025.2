@@ -44,8 +44,9 @@ train small MLP heads on proxy labels generated from ScanNet posed depth:
 - Run 15 extracts reciprocal match features with MASt3R when available and logs
   an explicit ORB fallback if the MASt3R dependency stack is unavailable on
   Kaggle.
-- Run 16 trains an RSDH descriptor/cycle-feature MLP from the Run 15-style
-  match features.
+- Run 16 trains an RSDH descriptor/cycle-feature MLP from the Run 15
+  `match_features.csv` kernel-source output when available, avoiding another
+  expensive MASt3R extraction pass.
 - Run 17 records a validation-based decision on whether light MV-DUSt3R+
   fine-tuning is justified before spending GPU time on backbone updates.
 - Run 18 writes a final learned-extension summary comparing the verified
