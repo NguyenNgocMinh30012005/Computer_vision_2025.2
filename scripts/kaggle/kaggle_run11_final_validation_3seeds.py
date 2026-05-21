@@ -36,11 +36,53 @@ MAX_SCENES = 2
 IMAGE_SIZE = 224
 MAX_POINTS = 50000
 F_SCORE_THRESHOLD_M = 0.05
+TORCH_REEXEC_FLAG = "RUN11_TORCH_REEXECED_AFTER_COMPAT_INSTALL"
 
 
 def run(cmd, **kwargs):
     print("+", " ".join(map(str, cmd)))
     subprocess.run(cmd, check=True, **kwargs)
+
+
+def verify_cuda_usable():
+    try:
+        x = torch.ones(1, device="cuda")
+        y = (x + 1).detach().cpu().item()
+        return y == 2.0, None
+    except Exception as exc:
+        return False, repr(exc)
+
+
+def install_p100_compatible_torch_and_reexec(names):
+    if os.environ.get(TORCH_REEXEC_FLAG) == "1":
+        raise RuntimeError(
+            "CUDA is still unusable after one Torch compatibility reinstall. "
+            f"GPU names: {names}; torch={torch.__version__}"
+        )
+    if not any("P100" in name for name in names):
+        raise RuntimeError(
+            "CUDA is unusable and this script only auto-reinstalls Torch for P100 fallback. "
+            f"GPU names: {names}; torch={torch.__version__}"
+        )
+    print("Detected P100 with an incompatible Torch/CUDA build.")
+    print("Installing Torch 2.5.1 cu121 and restarting Run 11 once.")
+    run(
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "-q",
+            "--no-cache-dir",
+            "--index-url",
+            "https://download.pytorch.org/whl/cu121",
+            "torch==2.5.1",
+            "torchvision==0.20.1",
+            "torchaudio==2.5.1",
+        ]
+    )
+    os.environ[TORCH_REEXEC_FLAG] = "1"
+    os.execv(sys.executable, [sys.executable] + sys.argv)
 
 
 def require_t4x2():
@@ -52,8 +94,15 @@ def require_t4x2():
             name = torch.cuda.get_device_name(i)
             names.append(name)
             print(f"GPU {i}:", name)
-    assert torch.cuda.device_count() >= 2 and all("T4" in n for n in names), f"Expected T4 x2, got: {names}"
     print("Torch:", torch.__version__)
+    if not torch.cuda.is_available() or torch.cuda.device_count() < 1:
+        raise RuntimeError("Run 11 requires at least one usable CUDA GPU.")
+    ok, err = verify_cuda_usable()
+    if not ok:
+        print("CUDA smoke test failed:", err)
+        install_p100_compatible_torch_and_reexec(names)
+    if not (torch.cuda.device_count() >= 2 and all("T4" in n for n in names)):
+        print(f"Warning: expected T4 x2, got {names}. Continuing with available compatible GPU(s).")
 
 
 def clone_repo():

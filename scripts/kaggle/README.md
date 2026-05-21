@@ -31,7 +31,10 @@ Run order:
 17. `kaggle_run18_learned_full_evaluation_summary.py`
 
 The final validation script uses fixed thresholds selected before test-time
-evaluation, rather than tuning on the final test rows.
+evaluation, rather than tuning on the final test rows. Run 11 prefers T4 x2,
+but if Kaggle allocates a P100 with the default Torch build that cannot execute
+CUDA kernels, it installs a P100-compatible Torch 2.5.1 cu121 build and restarts
+once before continuing with the available GPU.
 
 Run 12 and Run 13 are Stage-A supervised extensions. They freeze MV-DUSt3R+ and
 train small MLP heads on proxy labels generated from ScanNet posed depth:

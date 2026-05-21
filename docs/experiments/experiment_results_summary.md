@@ -73,6 +73,7 @@ Generated figures:
 ## Run 11 Final Validation
 
 Run 11 should be used as the final B0-vs-Final table because it uses fixed thresholds selected from Run 10 and reruns B0 with 3 seeds.
+The script now tolerates Kaggle assigning a P100 instead of T4 x2 by reinstalling a P100-compatible Torch build and restarting once, while still reporting the actual GPU setup in the log.
 
 Expected output files:
 

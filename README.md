@@ -38,7 +38,7 @@ The staged Kaggle scripts live in `scripts/kaggle/`:
 - `kaggle_run8_full_pipeline.py`: B0/B1/V/F/O/A/Full comparison
 - `kaggle_run9_final_stress_test.py`: case-specific stress test
 - `kaggle_run10_sensitivity_visualization.py`: confidence sensitivity figures
-- `kaggle_run11_final_validation_3seeds.py`: fixed-threshold B0 vs Final over 3 seeds
+- `kaggle_run11_final_validation_3seeds.py`: fixed-threshold B0 vs Final over 3 seeds, with a P100 Torch compatibility fallback
 - `kaggle_run12_supervised_reliability.py`: frozen-backbone OARH proxy training
 - `kaggle_run13_match_disambiguation.py`: RSDH proxy match-validity training
 - `kaggle_run14_validation_gated_learned_pipeline.py`: validation-gated OARH fallback policy
