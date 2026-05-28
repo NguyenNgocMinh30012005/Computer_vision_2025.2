@@ -175,6 +175,7 @@ Interpretation: RSDH is very strong on this GT-depth-assisted proxy task, but th
 | 21 | [`mv-dust3r-run-21-oarh-v2-multitask`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-21-oarh-v2-multitask) | Train the OARH v2 keep/visibility/depth-residual multitask head from Run 20 balanced labels |
 | 22 | [`mv-dust3r-run-22-oarh-v2-integration`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-22-oarh-v2-integration) | Test whether the Run 21 OARH v2 head improves reconstruction F-score on final-eval groups |
 | 23 | [`mv-dust3r-run-23-candidate-calibration`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-23-candidate-calibration) | Train a reliability head on actual MV-DUSt3R reconstruction candidates after Run 22 exposed proxy-to-reconstruction domain shift |
+| 24 | [`mv-dust3r-run-24-rsdh-v2-image-only`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-24-rsdh-v2-image-only) | Train image-only RSDH v2 match validity from Run 20 hard-negative labels |
 
 ## Run 19 Supervised Label Cache
 
@@ -289,6 +290,37 @@ reconstruction candidates:
 This run tests whether the occlusion/reliability limit can be improved after
 removing the proxy-to-reconstruction domain mismatch seen in Run 22.
 
+The pasted Run 23 log is much closer than Run 22, but still fails the
+validation gate:
+
+| Split | Method | Mean F-score | Delta vs fixed confidence | Mean selected ratio |
+| --- | --- | ---: | ---: | ---: |
+| Val | Fixed confidence | 0.6674 | 0.0000 | 0.9874 |
+| Val | Best learned RCRH (`top_ratio_0.995`) | 0.6618 | -0.0056 | 0.9950 |
+| Test | Fixed confidence | 0.6014 | 0.0000 | 0.9877 |
+| Test | Best learned RCRH (`top_ratio_0.995`) | 0.5923 | -0.0090 | 0.9950 |
+
+Interpretation: training on actual reconstruction candidates removes most of
+the catastrophic domain shift from Run 22, but the learned ranker only stays
+competitive when it keeps almost every point. It is not yet a real occlusion
+solution because lower keep ratios collapse recall and completeness.
+
+## Run 24 RSDH v2 Image-Only Match Validity
+
+Run 24 moves to the remaining repeated-structure / wrong-match limitation. It
+consumes `rsdh_v2_hard_negative_labels.csv` from Run 20 and trains a match
+validity head using only prediction-time image information:
+
+- source/target normalized pixel coordinates,
+- view count and view-policy indicators,
+- RGB, grayscale, gradient, and downsampled patch similarity features around
+  the source and target pixels.
+
+It deliberately excludes `candidate_type`, `visibility_label`, GT depth
+residuals, and group-class labels from inference features. Validation chooses
+the learned threshold and gates the learned MLP against simple image-only
+baselines before any Run 25 reconstruction integration.
+
 Expected outputs for the submitted remaining runs:
 
 - Run 15: `match_features.csv`, `feature_summary.csv`, `run_config.json`
@@ -300,6 +332,7 @@ Expected outputs for the submitted remaining runs:
 - Run 21: `training_history.csv`, `split_metrics.csv`, `final_eval_group_metrics.csv`, `oarh_v2_multitask_head.pt`, `run_config.json`
 - Run 22: `metrics.csv`, `summary.csv`, `gate_decision.csv`, `run_config.json`
 - Run 23: `candidate_label_summary.csv`, `training_history.csv`, `metrics.csv`, `summary.csv`, `gate_decision.csv`, `rcrh_candidate_head.pt`, `run_config.json`
+- Run 24: `split_metrics.csv`, `group_metrics.csv`, `training_history.csv`, `feature_summary.csv`, `gate_decision.csv`, `rsdh_v2_image_only_head.pt`, `run_config.json`
 
 ## Limitations
 
@@ -313,8 +346,8 @@ Expected outputs for the submitted remaining runs:
 ## Future Work
 
 - Replace the proxy evaluator with an official mesh/laser-scan geometry evaluator on ScanNet++ scenes with full 3D ground truth.
-- Improve OARH labels/features so point-label F1 translates into reconstruction F-score; Run 22 shows the Run 21 proxy head does not transfer, so Run 23 retrains from actual reconstruction candidates.
-- Analyze the Run 15/16 MASt3R-or-fallback reciprocal match features and decide whether the RSDH descriptor/cycle result is strong enough to replace the Run 13 proxy.
+- Improve OARH labels/features so point-label F1 translates into reconstruction F-score; Run 22 shows the Run 21 proxy head does not transfer, and Run 23 shows actual-candidate calibration is close but still not enough to beat fixed confidence.
+- Analyze the Run 24 image-only RSDH result and integrate it into reconstruction only if it beats validation baselines.
 - Redesign occlusion reasoning using camera geometry, z-buffer consistency, and supervised per-view visibility masks.
 - Revisit repeated-structure filtering as match validity learning, not as self-similarity suppression.
 - If OARH/RSDH improve validation in future data, lightly fine-tune MV-DUSt3R+ confidence layers and the last decoder blocks; Run 17 records the current decision gate instead of forcing a costly fine-tune.

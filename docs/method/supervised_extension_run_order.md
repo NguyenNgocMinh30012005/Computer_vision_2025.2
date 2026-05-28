@@ -239,6 +239,13 @@ Current Phase 3 execution note:
 - Run 23 retrains reliability on actual MV-DUSt3R candidate points with
   GT-geometry labels and prediction-only features. It treats the learned head as
   a ranking policy and selects it only if validation reconstruction F-score wins.
+- Run 23 is close but still fails the gate: the best learned ranking keeps
+  99.5% of points and reaches 0.6618 validation F-score, below fixed confidence
+  at 0.6674. It reduces the Run 22 collapse but does not solve occlusion.
+- Run 24 therefore moves to RSDH v2 for repeated-structure ambiguity. It trains
+  from Run 20 hard-negative match labels using image-only patch, coordinate, and
+  view-policy features, with no GT-depth residuals or label-leakage fields as
+  inference inputs.
 - A strong final claim requires Runs 21--28 to show held-out reconstruction
   improvement on occlusion-heavy and repeated-structure subsets, not only high
   proxy classification F1.

@@ -34,6 +34,7 @@ Run order:
 20. `kaggle_run21_oarh_v2_multitask.py`
 21. `kaggle_run22_oarh_v2_reconstruction_integration.py`
 22. `kaggle_run23_reconstruction_candidate_calibration.py`
+23. `kaggle_run24_rsdh_v2_image_only.py`
 
 The final validation script uses fixed thresholds selected before test-time
 evaluation, rather than tuning on the final test rows. Run 11 prefers T4 x2,
@@ -75,6 +76,9 @@ train small MLP heads on proxy labels generated from ScanNet posed depth:
   reliability head on actual MV-DUSt3R candidate points labeled by GT geometry.
   It evaluates learned ranking ratios against fixed confidence and gates the
   result by validation reconstruction F-score.
+- Run 24 shifts to repeated-structure ambiguity. It trains RSDH v2 from Run 20
+  hard-negative match labels using only image patch, coordinate, and view-policy
+  features, then gates the learned match head against image-only baselines.
 
 Latest pushed kernels:
 
@@ -87,3 +91,4 @@ Latest pushed kernels:
 - Run 21: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-21-oarh-v2-multitask>
 - Run 22: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-22-oarh-v2-integration>
 - Run 23: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-23-candidate-calibration>
+- Run 24: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-24-rsdh-v2-image-only>
