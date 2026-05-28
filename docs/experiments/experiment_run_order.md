@@ -487,7 +487,7 @@ Run 19 - Build supervised visibility/occlusion label cache
 Run 20 - Mine occlusion-heavy and ambiguity-heavy subsets
 Run 21 - Train OARH v2 multitask labels
 Run 22 - Integrate OARH v2 into reconstruction
-Run 23 - Build repeated-structure hard-negative match dataset
+Run 23 - Train reconstruction-candidate calibration head
 Run 24 - Train RSDH v2 from image-only MASt3R features
 Run 25 - Integrate RSDH v2 into reconstruction
 Run 26 - Joint OARH v2 + RSDH v2 learned pipeline
@@ -525,7 +525,8 @@ Da submit cac kernel dau cho phase learned extension:
 | 19 | `mv-dust3r-run-19-supervised-label-cache` | Tao label cache visibility/occlusion/floating/match de chuan bi OARH v2 va RSDH v2 |
 | 20 | `mv-dust3r-run-20-occlusion-ambiguity-subset-mining` | Mine subset occlusion-heavy, low-overlap/far va hard-negative tu Run 19 |
 | 21 | `mv-dust3r-run-21-oarh-v2-multitask` | Train OARH v2 multitask head tren Run 20 balanced labels |
-| 22 | `mv-dust3r-run-22-oarh-v2-reconstruction-integration` | Tich hop OARH v2 vao reconstruction candidate filtering va so voi fixed-confidence final |
+| 22 | `mv-dust3r-run-22-oarh-v2-integration` | Tich hop OARH v2 vao reconstruction candidate filtering va so voi fixed-confidence final |
+| 23 | `mv-dust3r-run-23-candidate-calibration` | Sau khi Run 22 fail, train reliability head tren actual MV-DUSt3R candidates va gate bang validation reconstruction F-score |
 
 Ket qua hien tai:
 
@@ -536,7 +537,8 @@ Ket qua hien tai:
 - Run 19: bat dau phase nghiem ngat hon de giai quyet occlusion va repeated structures. Run nay tao label cache truoc, chua train model, de cac run sau khong con dua vao heuristic/proxy mong.
 - Run 20: doc output Run 19 lam kernel source, tao balanced labels/manifests cho OARH v2 va RSDH v2 de train dung vao cac case kho.
 - Run 21: train OARH v2 that su tren `oarh_v2_balanced_labels.csv`, du doan keep/reject, visibility class va depth residual. Feature input khong dung truc tiep `candidate_type` hay `visibility_label` de tranh leak nhan.
-- Run 22: dung checkpoint Run 21 tren output MV-DUSt3R va do lai F-score reconstruction. Day la run quyet dinh OARH v2 co chuyen tu proxy label F1 sang geometry F-score hay khong.
+- Run 22: dung checkpoint Run 21 tren output MV-DUSt3R va do lai F-score reconstruction. Ket qua pasted log cho thay fixed confidence thang ro: val F-score 0.6716 so voi best learned 0.2160, test F-score 0.6033 so voi best learned 0.1936. Vi vay OARH v2 proxy khong duoc dung lam final reconstruction policy.
+- Run 23: sua dung nguyen nhan domain shift cua Run 22 bang cach train tren actual reconstruction candidates, gan nhan bang GT geometry, va chi chon learned ranking neu validation reconstruction F-score thang fixed confidence.
 
 Output can gui lai sau khi Kaggle chay xong:
 
@@ -551,6 +553,7 @@ Output can gui lai sau khi Kaggle chay xong:
 - Run 20: `subset_group_manifest.csv`, `final_eval_group_manifest.csv`, `oarh_v2_balanced_labels.csv`, `rsdh_v2_hard_negative_labels.csv`, `sample_bucket_counts.csv`, `run_config.json`
 - Run 21: `training_history.csv`, `split_metrics.csv`, `final_eval_group_metrics.csv`, `oarh_v2_multitask_head.pt`, `run_config.json`
 - Run 22: `metrics.csv`, `summary.csv`, `gate_decision.csv`, `run_config.json`
+- Run 23: `candidate_label_summary.csv`, `training_history.csv`, `metrics.csv`, `summary.csv`, `gate_decision.csv`, `rcrh_candidate_head.pt`, `run_config.json`
 
 Nguyen tac dung:
 

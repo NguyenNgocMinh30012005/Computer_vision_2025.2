@@ -173,7 +173,8 @@ Interpretation: RSDH is very strong on this GT-depth-assisted proxy task, but th
 | 19 | [`mv-dust3r-run-19-supervised-label-cache`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-19-supervised-label-cache) | Build scene-level visibility, occlusion, floating/wrong-depth, and match label cache |
 | 20 | [`mv-dust3r-run-20-occlusion-ambiguity-subset-mining`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-20-occlusion-ambiguity-subset-mining) | Mine balanced occlusion-heavy, low-overlap, and hard-negative subsets from Run 19 |
 | 21 | [`mv-dust3r-run-21-oarh-v2-multitask`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-21-oarh-v2-multitask) | Train the OARH v2 keep/visibility/depth-residual multitask head from Run 20 balanced labels |
-| 22 | [`mv-dust3r-run-22-oarh-v2-reconstruction-integration`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-22-oarh-v2-reconstruction-integration) | Test whether the Run 21 OARH v2 head improves reconstruction F-score on final-eval groups |
+| 22 | [`mv-dust3r-run-22-oarh-v2-integration`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-22-oarh-v2-integration) | Test whether the Run 21 OARH v2 head improves reconstruction F-score on final-eval groups |
+| 23 | [`mv-dust3r-run-23-candidate-calibration`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-23-candidate-calibration) | Train a reliability head on actual MV-DUSt3R reconstruction candidates after Run 22 exposed proxy-to-reconstruction domain shift |
 
 ## Run 19 Supervised Label Cache
 
@@ -257,6 +258,37 @@ Run 22 writes validation/test summaries and a gate decision. If learned OARH
 does not beat fixed confidence on validation by the configured margin, the
 project should keep the fixed-confidence reconstruction policy.
 
+The pasted Run 22 log gives a clear negative gate:
+
+| Split | Method | Mean F-score | Delta vs fixed confidence | Mean selected ratio |
+| --- | --- | ---: | ---: | ---: |
+| Val | Fixed confidence | 0.6716 | 0.0000 | 0.9874 |
+| Val | Best learned OARH v2 (`threshold_0.70`) | 0.2160 | -0.4556 | 0.3385 |
+| Test | Fixed confidence | 0.6033 | 0.0000 | 0.9877 |
+| Test | Best learned OARH v2 (`threshold_0.50`) | 0.1936 | -0.4097 | 0.2507 |
+
+Interpretation: Run 21 solved the proxy labels, but not the reconstruction
+policy. The learned OARH v2 head rejects too many real reconstruction
+candidates, causing a large recall/completeness collapse. The gate correctly
+selects `confidence_fixed_final`.
+
+## Run 23 Reconstruction Candidate Calibration
+
+Run 23 is the direct follow-up to the Run 22 failure. Instead of training on
+Run 20 proxy candidate rows, it generates labels from actual MV-DUSt3R
+reconstruction candidates:
+
+- run MV-DUSt3R on selected train, validation, and test groups,
+- label each predicted candidate point by nearest GT geometry distance,
+- train a reconstruction-candidate reliability head from confidence, point
+  coordinates, view metadata, and cross-view predicted support,
+- evaluate learned ranking ratios against fixed confidence,
+- choose any learned policy only when validation reconstruction F-score beats
+  fixed confidence by the configured margin.
+
+This run tests whether the occlusion/reliability limit can be improved after
+removing the proxy-to-reconstruction domain mismatch seen in Run 22.
+
 Expected outputs for the submitted remaining runs:
 
 - Run 15: `match_features.csv`, `feature_summary.csv`, `run_config.json`
@@ -267,6 +299,7 @@ Expected outputs for the submitted remaining runs:
 - Run 20: `subset_group_manifest.csv`, `final_eval_group_manifest.csv`, `oarh_v2_balanced_labels.csv`, `rsdh_v2_hard_negative_labels.csv`, `sample_bucket_counts.csv`, `run_config.json`
 - Run 21: `training_history.csv`, `split_metrics.csv`, `final_eval_group_metrics.csv`, `oarh_v2_multitask_head.pt`, `run_config.json`
 - Run 22: `metrics.csv`, `summary.csv`, `gate_decision.csv`, `run_config.json`
+- Run 23: `candidate_label_summary.csv`, `training_history.csv`, `metrics.csv`, `summary.csv`, `gate_decision.csv`, `rcrh_candidate_head.pt`, `run_config.json`
 
 ## Limitations
 
@@ -280,7 +313,7 @@ Expected outputs for the submitted remaining runs:
 ## Future Work
 
 - Replace the proxy evaluator with an official mesh/laser-scan geometry evaluator on ScanNet++ scenes with full 3D ground truth.
-- Improve OARH labels/features so point-label F1 translates into reconstruction F-score; current Run 12 results are mixed.
+- Improve OARH labels/features so point-label F1 translates into reconstruction F-score; Run 22 shows the Run 21 proxy head does not transfer, so Run 23 retrains from actual reconstruction candidates.
 - Analyze the Run 15/16 MASt3R-or-fallback reciprocal match features and decide whether the RSDH descriptor/cycle result is strong enough to replace the Run 13 proxy.
 - Redesign occlusion reasoning using camera geometry, z-buffer consistency, and supervised per-view visibility masks.
 - Revisit repeated-structure filtering as match validity learning, not as self-similarity suppression.

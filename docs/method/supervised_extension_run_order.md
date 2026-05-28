@@ -166,7 +166,7 @@ Do not enforce consistency through occluded views.
 | 20 | Occlusion and ambiguity subset mining | Select occlusion-heavy and repeated/hard-negative view groups from the label cache |
 | 21 | OARH v2 multitask | Train keep, visibility-class, and depth-residual heads using the Run 20 OARH labels |
 | 22 | OARH v2 reconstruction integration | Evaluate learned visibility-aware fusion on occlusion-heavy held-out groups |
-| 23 | Hard-negative match dataset | Mine repeated-looking false matches for chair/window/cabinet/tile/bookshelf-like regions |
+| 23 | Reconstruction candidate calibration | Train reliability from actual MV-DUSt3R candidate points after Run 22 proxy-to-reconstruction failure |
 | 24 | RSDH v2 image-only features | Train match validity from MASt3R descriptors, margins, reciprocal flags, and cycle cues without GT-derived inference features |
 | 25 | RSDH v2 reconstruction integration | Use validated matches in reconstruction/fusion and evaluate repeated-structure held-out groups |
 | 26 | Joint learned pipeline | Combine OARH v2 and RSDH v2 and verify that overall F-score does not regress |
@@ -231,6 +231,14 @@ Current Phase 3 execution note:
 - Run 22 integrates the Run 21 checkpoint into reconstruction candidate
   filtering. It compares fixed-confidence point selection against several OARH
   v2 thresholds and an OARH-plus-confidence guard on Run 20 final-eval groups.
+- Run 22 fails the validation gate: fixed confidence reaches 0.6716 validation
+  mean F-score while the best learned OARH v2 variant reaches only 0.2160.
+  Test shows the same pattern, 0.6033 fixed confidence versus 0.1936 best
+  learned. This means the Run 21 proxy labels do not transfer to real
+  reconstruction candidate filtering.
+- Run 23 retrains reliability on actual MV-DUSt3R candidate points with
+  GT-geometry labels and prediction-only features. It treats the learned head as
+  a ranking policy and selects it only if validation reconstruction F-score wins.
 - A strong final claim requires Runs 21--28 to show held-out reconstruction
   improvement on occlusion-heavy and repeated-structure subsets, not only high
   proxy classification F1.

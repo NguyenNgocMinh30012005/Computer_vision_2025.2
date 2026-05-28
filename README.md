@@ -90,6 +90,7 @@ The staged Kaggle scripts live in `scripts/kaggle/`:
 - `kaggle_run20_occlusion_ambiguity_subset_mining.py`: mines occlusion-heavy, low-overlap, and hard-negative subsets from Run 19
 - `kaggle_run21_oarh_v2_multitask.py`: trains an OARH v2 keep/visibility/depth-residual multitask head from Run 20 labels
 - `kaggle_run22_oarh_v2_reconstruction_integration.py`: evaluates whether Run 21 OARH v2 improves reconstruction F-score on Run 20 final-eval groups
+- `kaggle_run23_reconstruction_candidate_calibration.py`: retrains reliability on actual MV-DUSt3R reconstruction candidates after Run 22 exposed proxy-to-reconstruction domain shift
 
 The notebook sanity check is in `notebooks/kaggle_run0_mvdust3r_sanity.ipynb`.
 
@@ -131,6 +132,11 @@ The pasted Run 21 log confirms strong held-out proxy metrics, with test
 integrates the Run 21 checkpoint into reconstruction candidate filtering and
 compares it with the fixed-confidence final policy on the Run 20 final-eval
 groups.
+Run 22 showed that the proxy head does not transfer: validation F-score fell
+from `0.6716` with fixed confidence to `0.2160` for the best learned OARH
+variant, and test F-score fell from `0.6033` to `0.1936`. Run 23 therefore
+trains on actual MV-DUSt3R reconstruction candidates and selects any learned
+ranking policy only through validation reconstruction F-score.
 
 See `docs/experiments/experiment_results_summary.md` and
 `docs/method/supervised_extension_run_order.md`.
@@ -159,7 +165,8 @@ Latest Kaggle kernels:
 - [Run 19 Supervised Label Cache](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-19-supervised-label-cache)
 - [Run 20 Occlusion Ambiguity Subset Mining](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-20-occlusion-ambiguity-subset-mining)
 - [Run 21 OARH v2 Multitask](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-21-oarh-v2-multitask)
-- [Run 22 OARH v2 Reconstruction Integration](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-22-oarh-v2-reconstruction-integration)
+- [Run 22 OARH v2 Reconstruction Integration](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-22-oarh-v2-integration)
+- [Run 23 Reconstruction Candidate Calibration](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-23-candidate-calibration)
 
 ## Build The Slides
 

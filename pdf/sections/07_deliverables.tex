@@ -1,4 +1,5 @@
 \begin{frame}{Expected Deliverables}
+  \scriptsize
   \begin{itemize}
     \item End-to-end implementation for training and evaluation
     \item Quantitative results on unseen scenes across multiple view counts
@@ -19,12 +20,15 @@
     visibility, and depth-residual prediction from mined labels
     \item Submitted Run 22 OARH v2 reconstruction-integration kernel to compare
     learned candidate filtering against fixed confidence
+    \item Submitted Run 23 reconstruction-candidate calibration kernel after
+    Run 22 showed proxy-to-reconstruction domain shift
     \item Clean GitHub repository with curated docs, proposal sources, and PDF
     deck
   \end{itemize}
 \end{frame}
 
 \begin{frame}{Expected Contributions}
+  \footnotesize
   \begin{itemize}
     \item A focused benchmark of sparse-view reconstruction on unseen scenes
     \item A direct comparison between pairwise and single-stage multi-view
@@ -36,7 +40,7 @@
     needs better labels/features, while RSDH is strong on a GT-depth-assisted
     MASt3R proxy but not yet a final image-only ambiguity solution
     \item A stricter Phase 3 protocol with label caching, subset mining, OARH
-    v2 training, and reconstruction-level integration checks before claiming
-    the remaining limitations are solved
+    v2 training, reconstruction-level integration checks, and candidate-level
+    calibration before claiming the remaining limitations are solved
   \end{itemize}
 \end{frame}

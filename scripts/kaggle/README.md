@@ -33,6 +33,7 @@ Run order:
 19. `kaggle_run20_occlusion_ambiguity_subset_mining.py`
 20. `kaggle_run21_oarh_v2_multitask.py`
 21. `kaggle_run22_oarh_v2_reconstruction_integration.py`
+22. `kaggle_run23_reconstruction_candidate_calibration.py`
 
 The final validation script uses fixed thresholds selected before test-time
 evaluation, rather than tuning on the final test rows. Run 11 prefers T4 x2,
@@ -70,6 +71,10 @@ train small MLP heads on proxy labels generated from ScanNet posed depth:
 - Run 22 uses the Run 21 checkpoint on MV-DUSt3R reconstruction candidates and
   compares OARH v2 filtering against the fixed-confidence final policy on the
   Run 20 final-eval groups.
+- Run 23 responds to the Run 22 regression by training a reconstruction-candidate
+  reliability head on actual MV-DUSt3R candidate points labeled by GT geometry.
+  It evaluates learned ranking ratios against fixed confidence and gates the
+  result by validation reconstruction F-score.
 
 Latest pushed kernels:
 
@@ -80,4 +85,5 @@ Latest pushed kernels:
 - Run 19: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-19-supervised-label-cache>
 - Run 20: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-20-occlusion-ambiguity-subset-mining>
 - Run 21: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-21-oarh-v2-multitask>
-- Run 22: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-22-oarh-v2-reconstruction-integration>
+- Run 22: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-22-oarh-v2-integration>
+- Run 23: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-23-candidate-calibration>
