@@ -228,6 +228,9 @@ Current Phase 3 execution note:
   balanced labels. It predicts keep/reject, visibility class, and depth
   residual, while excluding direct label-leakage inputs such as
   `candidate_type` and `visibility_label`.
+- Run 22 integrates the Run 21 checkpoint into reconstruction candidate
+  filtering. It compares fixed-confidence point selection against several OARH
+  v2 thresholds and an OARH-plus-confidence guard on Run 20 final-eval groups.
 - A strong final claim requires Runs 21--28 to show held-out reconstruction
   improvement on occlusion-heavy and repeated-structure subsets, not only high
   proxy classification F1.

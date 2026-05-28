@@ -173,6 +173,7 @@ Interpretation: RSDH is very strong on this GT-depth-assisted proxy task, but th
 | 19 | [`mv-dust3r-run-19-supervised-label-cache`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-19-supervised-label-cache) | Build scene-level visibility, occlusion, floating/wrong-depth, and match label cache |
 | 20 | [`mv-dust3r-run-20-occlusion-ambiguity-subset-mining`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-20-occlusion-ambiguity-subset-mining) | Mine balanced occlusion-heavy, low-overlap, and hard-negative subsets from Run 19 |
 | 21 | [`mv-dust3r-run-21-oarh-v2-multitask`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-21-oarh-v2-multitask) | Train the OARH v2 keep/visibility/depth-residual multitask head from Run 20 balanced labels |
+| 22 | [`mv-dust3r-run-22-oarh-v2-reconstruction-integration`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-22-oarh-v2-reconstruction-integration) | Test whether the Run 21 OARH v2 head improves reconstruction F-score on final-eval groups |
 
 ## Run 19 Supervised Label Cache
 
@@ -226,6 +227,36 @@ OARH v2 training run in Phase 3, but it remains a label-cache/proxy test until
 Run 22 integrates the learned head into reconstruction and reports geometry
 metrics on the final occlusion-heavy groups.
 
+The pasted Run 21 log shows a strong proxy result:
+
+- validation rows: 75,841; test rows: 129,766,
+- validation `keep_f1`: 0.99995; test `keep_f1`: 0.99958,
+- validation `visibility_accuracy`: 0.99119; test `visibility_accuracy`: 0.98081,
+- validation `occluded_f1`: 0.98836; test `occluded_f1`: 0.97954,
+- test depth residual MAE: 0.05666 m.
+
+Interpretation rule: this is a necessary but not sufficient result. It says the
+OARH v2 head learned the Run 20 labels well on held-out groups. It does not yet
+prove reconstruction improvement, so Run 22 compares OARH-filtered point clouds
+against the fixed-confidence final policy using geometry metrics.
+
+## Run 22 OARH v2 Reconstruction Integration
+
+Run 22 consumes `final_eval_group_manifest.csv` from Run 20 and
+`oarh_v2_multitask_head.pt` from Run 21. For each selected final-eval group, it
+runs MV-DUSt3R, builds OARH v2 features for reconstruction candidates, and
+compares:
+
+- `confidence_fixed_final`,
+- `oarh_v2_threshold_0.50`,
+- `oarh_v2_threshold_0.70`,
+- `oarh_v2_threshold_0.90`,
+- `oarh_v2_and_confidence_guard`.
+
+Run 22 writes validation/test summaries and a gate decision. If learned OARH
+does not beat fixed confidence on validation by the configured margin, the
+project should keep the fixed-confidence reconstruction policy.
+
 Expected outputs for the submitted remaining runs:
 
 - Run 15: `match_features.csv`, `feature_summary.csv`, `run_config.json`
@@ -235,6 +266,7 @@ Expected outputs for the submitted remaining runs:
 - Run 19: `label_cache.csv`, `label_summary.csv`, `view_group_manifest.csv`, `scene_split.csv`, `occlusion_heavy_groups.csv`, `run_config.json`
 - Run 20: `subset_group_manifest.csv`, `final_eval_group_manifest.csv`, `oarh_v2_balanced_labels.csv`, `rsdh_v2_hard_negative_labels.csv`, `sample_bucket_counts.csv`, `run_config.json`
 - Run 21: `training_history.csv`, `split_metrics.csv`, `final_eval_group_metrics.csv`, `oarh_v2_multitask_head.pt`, `run_config.json`
+- Run 22: `metrics.csv`, `summary.csv`, `gate_decision.csv`, `run_config.json`
 
 ## Limitations
 

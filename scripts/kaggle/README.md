@@ -32,6 +32,7 @@ Run order:
 18. `kaggle_run19_supervised_label_cache.py`
 19. `kaggle_run20_occlusion_ambiguity_subset_mining.py`
 20. `kaggle_run21_oarh_v2_multitask.py`
+21. `kaggle_run22_oarh_v2_reconstruction_integration.py`
 
 The final validation script uses fixed thresholds selected before test-time
 evaluation, rather than tuning on the final test rows. Run 11 prefers T4 x2,
@@ -66,6 +67,9 @@ train small MLP heads on proxy labels generated from ScanNet posed depth:
 - Run 21 trains an OARH v2 multitask head from the Run 20 balanced labels. It
   predicts point keep/reject, visibility class, and clipped depth residual while
   excluding direct target-label leakage features from the input.
+- Run 22 uses the Run 21 checkpoint on MV-DUSt3R reconstruction candidates and
+  compares OARH v2 filtering against the fixed-confidence final policy on the
+  Run 20 final-eval groups.
 
 Latest pushed kernels:
 
@@ -76,3 +80,4 @@ Latest pushed kernels:
 - Run 19: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-19-supervised-label-cache>
 - Run 20: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-20-occlusion-ambiguity-subset-mining>
 - Run 21: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-21-oarh-v2-multitask>
+- Run 22: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-22-oarh-v2-reconstruction-integration>

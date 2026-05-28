@@ -58,8 +58,10 @@
     \item Freeze MV-DUSt3R+ and train small reliability / match heads on
     generated GT labels; Run 21 trains the first OARH v2 multitask head from
     Run 20 labels without direct target-label leakage features.
-    \item Evaluate OARH on occlusion-heavy scenes and RSDH on repeated-structure
-    scenes before mixing them into the full pipeline.
+    \item Run 22 then applies the learned OARH v2 head to reconstruction
+    candidates and compares geometry metrics against fixed confidence.
+    \item Evaluate RSDH on repeated-structure scenes before mixing learned
+    modules into the full pipeline.
     \item If validation improves, unfreeze only the confidence head and last
     decoder blocks for light fine-tuning.
     \item Keep final test clean: no threshold tuning, no checkpoint selection

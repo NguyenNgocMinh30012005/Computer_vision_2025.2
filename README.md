@@ -89,6 +89,7 @@ The staged Kaggle scripts live in `scripts/kaggle/`:
 - `kaggle_run19_supervised_label_cache.py`: scalable visibility/occlusion label cache for OARH v2 and RSDH v2
 - `kaggle_run20_occlusion_ambiguity_subset_mining.py`: mines occlusion-heavy, low-overlap, and hard-negative subsets from Run 19
 - `kaggle_run21_oarh_v2_multitask.py`: trains an OARH v2 keep/visibility/depth-residual multitask head from Run 20 labels
+- `kaggle_run22_oarh_v2_reconstruction_integration.py`: evaluates whether Run 21 OARH v2 improves reconstruction F-score on Run 20 final-eval groups
 
 The notebook sanity check is in `notebooks/kaggle_run0_mvdust3r_sanity.ipynb`.
 
@@ -125,6 +126,11 @@ and reports split-level plus group-level metrics for occlusion-heavy held-out
 groups. It intentionally excludes direct label-leakage inputs such as
 `candidate_type` and `visibility_label`; reconstruction-level proof is still
 reserved for the follow-up integration run.
+The pasted Run 21 log confirms strong held-out proxy metrics, with test
+`keep_f1` near 0.9996 and test `occluded_f1` near 0.9795. Run 22 therefore
+integrates the Run 21 checkpoint into reconstruction candidate filtering and
+compares it with the fixed-confidence final policy on the Run 20 final-eval
+groups.
 
 See `docs/experiments/experiment_results_summary.md` and
 `docs/method/supervised_extension_run_order.md`.
@@ -153,6 +159,7 @@ Latest Kaggle kernels:
 - [Run 19 Supervised Label Cache](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-19-supervised-label-cache)
 - [Run 20 Occlusion Ambiguity Subset Mining](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-20-occlusion-ambiguity-subset-mining)
 - [Run 21 OARH v2 Multitask](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-21-oarh-v2-multitask)
+- [Run 22 OARH v2 Reconstruction Integration](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-22-oarh-v2-reconstruction-integration)
 
 ## Build The Slides
 
