@@ -15,6 +15,8 @@
     occlusion and ambiguity supervision
     \item Submitted Run 20 subset-mining kernel to prepare balanced OARH v2 and
     RSDH v2 training/evaluation manifests
+    \item Submitted Run 21 OARH v2 multitask training kernel for keep,
+    visibility, and depth-residual prediction from mined labels
     \item Clean GitHub repository with curated docs, proposal sources, and PDF
     deck
   \end{itemize}
@@ -31,8 +33,8 @@
     \item A supervised follow-up plan with honest outcomes: gated OARH still
     needs better labels/features, while RSDH is strong on a GT-depth-assisted
     MASt3R proxy but not yet a final image-only ambiguity solution
-    \item A stricter Phase 3 protocol that requires held-out occlusion-heavy and
-    repeated-structure gains before claiming the remaining limitations are
-    solved
+    \item A stricter Phase 3 protocol with label caching, subset mining, and
+    OARH v2 training, while still requiring held-out reconstruction gains
+    before claiming the remaining limitations are solved
   \end{itemize}
 \end{frame}

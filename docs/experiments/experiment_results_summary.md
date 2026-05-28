@@ -159,7 +159,7 @@ Held-out `scene0000_01` proxy match metrics:
 
 Interpretation: RSDH is very strong on this GT-depth-assisted proxy task, but this should be framed as an upper-bound/sanity result rather than a final repeated-structure solution. The features include 3D disagreement and cycle-proxy terms derived from available depth, so the result does not yet prove image-only disambiguation on unseen repeated structures.
 
-## Submitted Phase 2 Runs
+## Submitted Learned and Phase 3 Runs
 
 | Run | Kernel | Purpose |
 | --- | --- | --- |
@@ -170,6 +170,9 @@ Interpretation: RSDH is very strong on this GT-depth-assisted proxy task, but th
 | 16 | [`mv-dust3r-run-16-rsdh-descriptor-cycle`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-16-rsdh-descriptor-cycle) | Train RSDH on descriptor, margin, reciprocal, 3D-disagreement, and cycle-proxy features from the Run 15 kernel-source output |
 | 17 | [`mv-dust3r-run-17-light-finetune-decision`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-17-light-finetune-decision) | Decide whether light MV-DUSt3R+ fine-tuning is justified from validation-gated learned results before spending GPU time |
 | 18 | [`mv-dust3r-run-18-learned-full-evaluation-summary`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-18-learned-full-evaluation-summary) | Summarize B0, current best, OARH/gated reliability, RSDH, and the final learned-extension recommendation |
+| 19 | [`mv-dust3r-run-19-supervised-label-cache`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-19-supervised-label-cache) | Build scene-level visibility, occlusion, floating/wrong-depth, and match label cache |
+| 20 | [`mv-dust3r-run-20-occlusion-ambiguity-subset-mining`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-20-occlusion-ambiguity-subset-mining) | Mine balanced occlusion-heavy, low-overlap, and hard-negative subsets from Run 19 |
+| 21 | [`mv-dust3r-run-21-oarh-v2-multitask`](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-21-oarh-v2-multitask) | Train the OARH v2 keep/visibility/depth-residual multitask head from Run 20 balanced labels |
 
 ## Run 19 Supervised Label Cache
 
@@ -202,6 +205,27 @@ Run 20 consumes the Run 19 kernel output and mines focused subsets for the next 
 
 Interpretation rule: Run 20 is the bridge from label creation to real training. Run 21 should train OARH v2 from `oarh_v2_balanced_labels.csv`; Run 24 should train RSDH v2 using image-only MASt3R features and `rsdh_v2_hard_negative_labels.csv` labels.
 
+The pasted Run 20 log confirms that it streamed all 4,423,680 Run 19 label
+rows, selected 32 final evaluation groups, mined 79 OARH candidate groups and
+108 RSDH candidate groups, and sampled 320,692 OARH rows plus 212,100 RSDH rows.
+The highest-priority final-eval groups include occlusion-core, borderline
+occlusion, low-overlap/far, and wrong-depth hard-negative cases.
+
+## Run 21 OARH v2 Multitask Training
+
+Run 21 consumes `oarh_v2_balanced_labels.csv` from Run 20 and trains a compact
+multitask MLP:
+
+- binary keep/reject point reliability,
+- 3-way visibility class prediction,
+- clipped depth-residual regression.
+
+The input features deliberately exclude direct target-label leakage such as
+`candidate_type` and `visibility_label`. Run 21 is therefore the first real
+OARH v2 training run in Phase 3, but it remains a label-cache/proxy test until
+Run 22 integrates the learned head into reconstruction and reports geometry
+metrics on the final occlusion-heavy groups.
+
 Expected outputs for the submitted remaining runs:
 
 - Run 15: `match_features.csv`, `feature_summary.csv`, `run_config.json`
@@ -210,6 +234,7 @@ Expected outputs for the submitted remaining runs:
 - Run 18: `final_learned_summary.csv`, `run_config.json`
 - Run 19: `label_cache.csv`, `label_summary.csv`, `view_group_manifest.csv`, `scene_split.csv`, `occlusion_heavy_groups.csv`, `run_config.json`
 - Run 20: `subset_group_manifest.csv`, `final_eval_group_manifest.csv`, `oarh_v2_balanced_labels.csv`, `rsdh_v2_hard_negative_labels.csv`, `sample_bucket_counts.csv`, `run_config.json`
+- Run 21: `training_history.csv`, `split_metrics.csv`, `final_eval_group_metrics.csv`, `oarh_v2_multitask_head.pt`, `run_config.json`
 
 ## Limitations
 

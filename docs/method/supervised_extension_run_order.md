@@ -164,7 +164,7 @@ Do not enforce consistency through occluded views.
 | 18 | Learned full evaluation | Compare B0, current best, gated OARH, RSDH, and learned full pipeline |
 | 19 | Supervised label cache | Build scene-level visibility, occlusion, wrong-depth, and match labels for OARH v2 / RSDH v2 |
 | 20 | Occlusion and ambiguity subset mining | Select occlusion-heavy and repeated/hard-negative view groups from the label cache |
-| 21 | OARH v2 multitask | Train keep, visibility-class, and depth-residual heads using the Run 19 cache |
+| 21 | OARH v2 multitask | Train keep, visibility-class, and depth-residual heads using the Run 20 OARH labels |
 | 22 | OARH v2 reconstruction integration | Evaluate learned visibility-aware fusion on occlusion-heavy held-out groups |
 | 23 | Hard-negative match dataset | Mine repeated-looking false matches for chair/window/cabinet/tile/bookshelf-like regions |
 | 24 | RSDH v2 image-only features | Train match validity from MASt3R descriptors, margins, reciprocal flags, and cycle cues without GT-derived inference features |
@@ -224,6 +224,10 @@ Current Phase 3 execution note:
   `oarh_v2_balanced_labels.csv`, and `rsdh_v2_hard_negative_labels.csv`.
   This keeps later training/evaluation concentrated on occlusion-heavy,
   low-overlap/far, and hard-negative cases instead of generic easy pixels.
+- Run 21 trains the first Phase 3 OARH v2 multitask head from the Run 20
+  balanced labels. It predicts keep/reject, visibility class, and depth
+  residual, while excluding direct label-leakage inputs such as
+  `candidate_type` and `visibility_label`.
 - A strong final claim requires Runs 21--28 to show held-out reconstruction
   improvement on occlusion-heavy and repeated-structure subsets, not only high
   proxy classification F1.

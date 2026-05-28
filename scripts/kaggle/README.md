@@ -31,6 +31,7 @@ Run order:
 17. `kaggle_run18_learned_full_evaluation_summary.py`
 18. `kaggle_run19_supervised_label_cache.py`
 19. `kaggle_run20_occlusion_ambiguity_subset_mining.py`
+20. `kaggle_run21_oarh_v2_multitask.py`
 
 The final validation script uses fixed thresholds selected before test-time
 evaluation, rather than tuning on the final test rows. Run 11 prefers T4 x2,
@@ -62,6 +63,9 @@ train small MLP heads on proxy labels generated from ScanNet posed depth:
 - Run 20 consumes the Run 19 kernel output and mines focused manifests for
   OARH v2/RSDH v2, including occlusion-heavy, low-overlap/far, and hard-negative
   subsets.
+- Run 21 trains an OARH v2 multitask head from the Run 20 balanced labels. It
+  predicts point keep/reject, visibility class, and clipped depth residual while
+  excluding direct target-label leakage features from the input.
 
 Latest pushed kernels:
 
@@ -71,3 +75,4 @@ Latest pushed kernels:
 - Run 18: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-18-learned-full-evaluation-summary>
 - Run 19: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-19-supervised-label-cache>
 - Run 20: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-20-occlusion-ambiguity-subset-mining>
+- Run 21: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-21-oarh-v2-multitask>
