@@ -246,6 +246,13 @@ Current Phase 3 execution note:
   from Run 20 hard-negative match labels using image-only patch, coordinate, and
   view-policy features, with no GT-depth residuals or label-leakage fields as
   inference inputs.
+- Run 24 passes the image-only match-validity gate: validation F1 improves from
+  the best image-only baseline at 0.6212 to the learned RSDH v2 MLP at 0.6954,
+  and test F1 improves from 0.5517 to 0.6596.
+- Run 25 integrates that checkpoint into reconstruction candidate scoring. It
+  compares fixed confidence with RSDH threshold, RSDH top-ratio, and combined
+  confidence/RSDH ranking policies, then keeps the learned policy only if
+  validation reconstruction F-score wins.
 - A strong final claim requires Runs 21--28 to show held-out reconstruction
   improvement on occlusion-heavy and repeated-structure subsets, not only high
   proxy classification F1.

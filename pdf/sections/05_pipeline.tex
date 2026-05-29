@@ -63,8 +63,10 @@
     transfer to geometry F-score.
     \item Run 23 retrains reliability on actual MV-DUSt3R candidate points and
     nearly recovers fixed confidence only when keeping almost all candidates.
-    \item Run 24 trains RSDH v2 from image-only match features for
-    repeated-structure / wrong-match ambiguity before reconstruction mixing.
+    \item Run 24 trains RSDH v2 from image-only match features and passes its
+    proxy gate for repeated-structure / wrong-match ambiguity.
+    \item Run 25 integrates the Run 24 RSDH v2 head into reconstruction
+    candidate scoring and keeps it only if validation geometry F-score wins.
     \item If validation improves, unfreeze only the confidence head and last
     decoder blocks for light fine-tuning.
     \item Keep final test clean: no threshold tuning, no checkpoint selection

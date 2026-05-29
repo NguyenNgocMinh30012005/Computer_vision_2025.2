@@ -12,7 +12,7 @@ sparse-view indoor 3D reconstruction more reliable when only a few views are
 available and scenes contain occlusion, repeated structures, or weak overlap.
 
 The repository is organized as a staged experiment log rather than a single
-notebook dump. Runs 1-24 cover baseline evaluation, confidence thresholding,
+notebook dump. Runs 1-25 cover baseline evaluation, confidence thresholding,
 view selection, fusion ablations, occlusion filtering, repeated-structure
 analysis, supervised reliability proxies, and hard-case mining.
 
@@ -42,7 +42,7 @@ analysis, supervised reliability proxies, and hard-case mining.
 | Baseline reliability | Fixed confidence thresholding remains the safest final policy. |
 | View selection | Diversity/overlap-aware selection is useful for sparse views. |
 | OARH proxy | Helps selected larger-view cases but can regress 2/3-view cases. |
-| RSDH proxy | Strong proxy F1, but currently best treated as an upper-bound result. |
+| RSDH proxy | Run 24 learned image-only match validity beats image-only baselines and is now being tested in reconstruction. |
 | Final direction | Use validation-gated learned reliability instead of unconditional learned filtering. |
 
 ## Repository Layout
@@ -92,6 +92,7 @@ The staged Kaggle scripts live in `scripts/kaggle/`:
 - `kaggle_run22_oarh_v2_reconstruction_integration.py`: evaluates whether Run 21 OARH v2 improves reconstruction F-score on Run 20 final-eval groups
 - `kaggle_run23_reconstruction_candidate_calibration.py`: retrains reliability on actual MV-DUSt3R reconstruction candidates after Run 22 exposed proxy-to-reconstruction domain shift
 - `kaggle_run24_rsdh_v2_image_only.py`: trains an image-only RSDH v2 match-validity head from Run 20 hard-negative labels
+- `kaggle_run25_rsdh_v2_reconstruction_integration.py`: integrates the Run 24 RSDH v2 checkpoint into reconstruction candidate scoring and gates it against fixed confidence
 
 The notebook sanity check is in `notebooks/kaggle_run0_mvdust3r_sanity.ipynb`.
 
@@ -142,7 +143,11 @@ Run 23 nearly recovers the fixed-confidence policy only when it keeps `99.5%`
 of points, but the validation gate still selects fixed confidence (`0.6674`
 versus `0.6618`). Run 24 therefore moves to the remaining repeated-structure
 limit by training RSDH v2 from image-only patch/coordinate features and Run 20
-hard-negative match labels.
+hard-negative match labels. Run 24 passes its validation gate: the image-only
+RSDH MLP reaches validation match F1 `0.6954` versus the best image-only patch
+baseline `0.6212`, and test F1 `0.6596` versus `0.5517`. Run 25 now tests
+whether that match-validity signal improves reconstruction F-score when applied
+to actual MV-DUSt3R candidate points.
 
 See `docs/experiments/experiment_results_summary.md` and
 `docs/method/supervised_extension_run_order.md`.
@@ -174,6 +179,7 @@ Latest Kaggle kernels:
 - [Run 22 OARH v2 Reconstruction Integration](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-22-oarh-v2-integration)
 - [Run 23 Reconstruction Candidate Calibration](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-23-candidate-calibration)
 - [Run 24 RSDH v2 Image Only](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-24-rsdh-v2-image-only)
+- [Run 25 RSDH v2 Reconstruction Integration](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-25-rsdh-v2-integration)
 
 ## Build The Slides
 

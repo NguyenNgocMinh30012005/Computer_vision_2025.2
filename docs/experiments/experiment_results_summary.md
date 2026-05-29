@@ -206,7 +206,7 @@ Run 20 consumes the Run 19 kernel output and mines focused subsets for the next 
 - `rsdh_v2_hard_negative_labels.csv`: balanced match-positive / hard-negative rows for RSDH v2.
 - `sample_bucket_counts.csv`: available vs sampled counts per split and label bucket.
 
-Interpretation rule: Run 20 is the bridge from label creation to real training. Run 21 should train OARH v2 from `oarh_v2_balanced_labels.csv`; Run 24 should train RSDH v2 using image-only MASt3R features and `rsdh_v2_hard_negative_labels.csv` labels.
+Interpretation rule: Run 20 is the bridge from label creation to real training. Run 21 should train OARH v2 from `oarh_v2_balanced_labels.csv`; Run 24 should train RSDH v2 using image-only patch/coordinate features and `rsdh_v2_hard_negative_labels.csv` labels.
 
 The pasted Run 20 log confirms that it streamed all 4,423,680 Run 19 label
 rows, selected 32 final evaluation groups, mined 79 OARH candidate groups and
@@ -321,6 +321,40 @@ residuals, and group-class labels from inference features. Validation chooses
 the learned threshold and gates the learned MLP against simple image-only
 baselines before any Run 25 reconstruction integration.
 
+The pasted Run 24 files show that the learned image-only RSDH MLP passes this
+gate:
+
+| Split | Best image-only baseline F1 | RSDH v2 MLP F1 | Delta |
+| --- | ---: | ---: | ---: |
+| Train | 0.5886 | 0.7422 | +0.1536 |
+| Val | 0.6212 | 0.6954 | +0.0741 |
+| Test | 0.5517 | 0.6596 | +0.1079 |
+
+Validation selects `rsdh_v2_image_only_mlp` over the patch-similarity
+threshold baseline. Group-level results are still weaker on low-overlap/far
+cases, but the learned head improves the average validation and test group F1.
+This is the first Phase 3 learned component that clears its proxy gate without
+GT-depth leakage, so Run 25 integrates it into reconstruction candidate scoring.
+
+## Run 25 RSDH v2 Reconstruction Integration
+
+Run 25 consumes `final_eval_group_manifest.csv` from Run 20 and
+`rsdh_v2_image_only_head.pt` from Run 24. It reruns MV-DUSt3R on the final
+evaluation groups, projects reconstruction candidates into the other selected
+views, scores image-only patch/coordinate match features with the RSDH v2 MLP,
+and compares:
+
+- `confidence_fixed_final`,
+- RSDH threshold-only and RSDH-plus-confidence guards,
+- RSDH top-ratio ranking policies,
+- combined confidence/RSDH ranking policies.
+
+The gate remains reconstruction-level: the learned RSDH policy should be used
+only if validation mean F-score beats fixed confidence by the configured
+margin. Otherwise, the project should report Run 24 as a strong image-only
+match-validity result but keep fixed confidence for the final reconstruction
+pipeline.
+
 Expected outputs for the submitted remaining runs:
 
 - Run 15: `match_features.csv`, `feature_summary.csv`, `run_config.json`
@@ -333,6 +367,7 @@ Expected outputs for the submitted remaining runs:
 - Run 22: `metrics.csv`, `summary.csv`, `gate_decision.csv`, `run_config.json`
 - Run 23: `candidate_label_summary.csv`, `training_history.csv`, `metrics.csv`, `summary.csv`, `gate_decision.csv`, `rcrh_candidate_head.pt`, `run_config.json`
 - Run 24: `split_metrics.csv`, `group_metrics.csv`, `training_history.csv`, `feature_summary.csv`, `gate_decision.csv`, `rsdh_v2_image_only_head.pt`, `run_config.json`
+- Run 25: `metrics.csv`, `summary.csv`, `gate_decision.csv`, `run_config.json`
 
 ## Limitations
 
@@ -347,7 +382,7 @@ Expected outputs for the submitted remaining runs:
 
 - Replace the proxy evaluator with an official mesh/laser-scan geometry evaluator on ScanNet++ scenes with full 3D ground truth.
 - Improve OARH labels/features so point-label F1 translates into reconstruction F-score; Run 22 shows the Run 21 proxy head does not transfer, and Run 23 shows actual-candidate calibration is close but still not enough to beat fixed confidence.
-- Analyze the Run 24 image-only RSDH result and integrate it into reconstruction only if it beats validation baselines.
+- Analyze the Run 25 reconstruction gate to decide whether the Run 24 RSDH v2 head becomes part of the final pipeline or remains a strong image-only match-validity result.
 - Redesign occlusion reasoning using camera geometry, z-buffer consistency, and supervised per-view visibility masks.
 - Revisit repeated-structure filtering as match validity learning, not as self-similarity suppression.
 - If OARH/RSDH improve validation in future data, lightly fine-tune MV-DUSt3R+ confidence layers and the last decoder blocks; Run 17 records the current decision gate instead of forcing a costly fine-tune.

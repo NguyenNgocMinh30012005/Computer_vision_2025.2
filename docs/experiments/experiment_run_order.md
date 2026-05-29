@@ -488,7 +488,7 @@ Run 20 - Mine occlusion-heavy and ambiguity-heavy subsets
 Run 21 - Train OARH v2 multitask labels
 Run 22 - Integrate OARH v2 into reconstruction
 Run 23 - Train reconstruction-candidate calibration head
-Run 24 - Train RSDH v2 from image-only MASt3R features
+Run 24 - Train RSDH v2 from image-only patch/coordinate features
 Run 25 - Integrate RSDH v2 into reconstruction
 Run 26 - Joint OARH v2 + RSDH v2 learned pipeline
 Run 27 - Conditional light fine-tune if validation wins
@@ -528,6 +528,7 @@ Da submit cac kernel dau cho phase learned extension:
 | 22 | `mv-dust3r-run-22-oarh-v2-integration` | Tich hop OARH v2 vao reconstruction candidate filtering va so voi fixed-confidence final |
 | 23 | `mv-dust3r-run-23-candidate-calibration` | Sau khi Run 22 fail, train reliability head tren actual MV-DUSt3R candidates va gate bang validation reconstruction F-score |
 | 24 | `mv-dust3r-run-24-rsdh-v2-image-only` | Train RSDH v2 image-only match-validity head tu Run 20 hard-negative labels |
+| 25 | `mv-dust3r-run-25-rsdh-v2-integration` | Tich hop Run 24 RSDH v2 vao reconstruction candidate scoring va gate bang validation reconstruction F-score |
 
 Ket qua hien tai:
 
@@ -540,7 +541,8 @@ Ket qua hien tai:
 - Run 21: train OARH v2 that su tren `oarh_v2_balanced_labels.csv`, du doan keep/reject, visibility class va depth residual. Feature input khong dung truc tiep `candidate_type` hay `visibility_label` de tranh leak nhan.
 - Run 22: dung checkpoint Run 21 tren output MV-DUSt3R va do lai F-score reconstruction. Ket qua pasted log cho thay fixed confidence thang ro: val F-score 0.6716 so voi best learned 0.2160, test F-score 0.6033 so voi best learned 0.1936. Vi vay OARH v2 proxy khong duoc dung lam final reconstruction policy.
 - Run 23: sua dung nguyen nhan domain shift cua Run 22 bang cach train tren actual reconstruction candidates, gan nhan bang GT geometry, va chi chon learned ranking neu validation reconstruction F-score thang fixed confidence. Ket qua pasted log gan hon nhieu nhung van fail gate: val fixed confidence 0.6674 so voi RCRH top_ratio_0.995 la 0.6618; test fixed 0.6014 so voi 0.5923.
-- Run 24: chuyen sang limit repeated-structure/wrong-match, train RSDH v2 tu `rsdh_v2_hard_negative_labels.csv` bang image-only patch/coordinate features va gate voi validation match F1 truoc Run 25 integration.
+- Run 24: chuyen sang limit repeated-structure/wrong-match, train RSDH v2 tu `rsdh_v2_hard_negative_labels.csv` bang image-only patch/coordinate features. Ket qua da pass gate proxy: validation learned F1 0.6954 so voi best image-only baseline 0.6212, test learned F1 0.6596 so voi 0.5517.
+- Run 25: tich hop checkpoint Run 24 vao actual MV-DUSt3R reconstruction candidates, so fixed confidence voi RSDH threshold/ranking/combined policies, va chi chon learned policy neu validation reconstruction F-score thang.
 
 Output can gui lai sau khi Kaggle chay xong:
 
@@ -557,6 +559,7 @@ Output can gui lai sau khi Kaggle chay xong:
 - Run 22: `metrics.csv`, `summary.csv`, `gate_decision.csv`, `run_config.json`
 - Run 23: `candidate_label_summary.csv`, `training_history.csv`, `metrics.csv`, `summary.csv`, `gate_decision.csv`, `rcrh_candidate_head.pt`, `run_config.json`
 - Run 24: `split_metrics.csv`, `group_metrics.csv`, `training_history.csv`, `feature_summary.csv`, `gate_decision.csv`, `rsdh_v2_image_only_head.pt`, `run_config.json`
+- Run 25: `metrics.csv`, `summary.csv`, `gate_decision.csv`, `run_config.json`
 
 Nguyen tac dung:
 
