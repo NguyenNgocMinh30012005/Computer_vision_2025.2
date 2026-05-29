@@ -169,7 +169,7 @@ Do not enforce consistency through occluded views.
 | 23 | Reconstruction candidate calibration | Train reliability from actual MV-DUSt3R candidate points after Run 22 proxy-to-reconstruction failure |
 | 24 | RSDH v2 image-only features | Train match validity from MASt3R descriptors, margins, reciprocal flags, and cycle cues without GT-derived inference features |
 | 25 | RSDH v2 reconstruction integration | Use validated matches in reconstruction/fusion and evaluate repeated-structure held-out groups |
-| 26 | Joint learned pipeline | Combine OARH v2 and RSDH v2 and verify that overall F-score does not regress |
+| 26 | RSDH diagnostic gate | Compare RSDH against all-candidate and confidence top-k baselines with exact top-k masks |
 | 27 | Conditional light fine-tune | Fine-tune confidence/last decoder blocks only if Run 26 wins validation |
 | 28 | Final held-out evaluation | Compare B0, fixed-confidence final, and learned full pipeline on unseen scenes |
 
@@ -253,6 +253,10 @@ Current Phase 3 execution note:
   compares fixed confidence with RSDH threshold, RSDH top-ratio, and combined
   confidence/RSDH ranking policies, then keeps the learned policy only if
   validation reconstruction F-score wins.
+- Run 25 does not pass that gate: the validation gain is only +0.0035 F-score,
+  below the 0.005 margin, and the best test policies keep all candidates.
+- Run 26 therefore adds all-candidate and confidence top-k baselines with exact
+  top-k tie handling, then gates RSDH against the best non-learned baseline.
 - A strong final claim requires Runs 21--28 to show held-out reconstruction
   improvement on occlusion-heavy and repeated-structure subsets, not only high
   proxy classification F1.

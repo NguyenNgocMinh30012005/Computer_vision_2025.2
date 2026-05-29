@@ -355,6 +355,36 @@ margin. Otherwise, the project should report Run 24 as a strong image-only
 match-validity result but keep fixed confidence for the final reconstruction
 pipeline.
 
+The pasted Run 25 log does not clear that gate:
+
+| Split | Method | Mean F-score | Delta vs fixed confidence | Mean selected ratio |
+| --- | --- | ---: | ---: | ---: |
+| Val | Fixed confidence | 0.1507 | 0.0000 | 0.9874 |
+| Val | Best learned RSDH | 0.1542 | +0.0035 | 1.0000 |
+| Test | Fixed confidence | 0.2184 | 0.0000 | 0.9877 |
+| Test | Best learned RSDH/top-ratio | 0.2372 | +0.0189 | 1.0000 |
+
+Interpretation: RSDH v2 is not rejected as a match-validity model, but the
+reconstruction result is not clean enough to claim a solved repeated-structure
+module. The best validation learned policy is below the `0.005` margin, and the
+best test policies keep all candidates because top-ratio scoring ties collapse
+to a full keep mask. Run 26 therefore adds all-candidate and confidence top-k
+baselines plus exact top-k tie handling.
+
+## Run 26 RSDH v2 Diagnostic Gate
+
+Run 26 reruns the Run 25 reconstruction-integration setup but changes the
+decision test:
+
+- add `all_candidates` as a candidate-retention baseline,
+- add confidence top-k baselines at the same ratios used by RSDH,
+- use exact top-k masks with deterministic tie-breaking,
+- gate RSDH against the best non-learned baseline, not only fixed confidence.
+
+This run decides whether RSDH contributes a real learned ranking signal or
+whether the Run 25 gains are explained by simply keeping more reconstruction
+candidates.
+
 Expected outputs for the submitted remaining runs:
 
 - Run 15: `match_features.csv`, `feature_summary.csv`, `run_config.json`
@@ -368,6 +398,7 @@ Expected outputs for the submitted remaining runs:
 - Run 23: `candidate_label_summary.csv`, `training_history.csv`, `metrics.csv`, `summary.csv`, `gate_decision.csv`, `rcrh_candidate_head.pt`, `run_config.json`
 - Run 24: `split_metrics.csv`, `group_metrics.csv`, `training_history.csv`, `feature_summary.csv`, `gate_decision.csv`, `rsdh_v2_image_only_head.pt`, `run_config.json`
 - Run 25: `metrics.csv`, `summary.csv`, `gate_decision.csv`, `run_config.json`
+- Run 26: `metrics.csv`, `summary.csv`, `gate_decision.csv`, `run_config.json`
 
 ## Limitations
 
@@ -382,7 +413,7 @@ Expected outputs for the submitted remaining runs:
 
 - Replace the proxy evaluator with an official mesh/laser-scan geometry evaluator on ScanNet++ scenes with full 3D ground truth.
 - Improve OARH labels/features so point-label F1 translates into reconstruction F-score; Run 22 shows the Run 21 proxy head does not transfer, and Run 23 shows actual-candidate calibration is close but still not enough to beat fixed confidence.
-- Analyze the Run 25 reconstruction gate to decide whether the Run 24 RSDH v2 head becomes part of the final pipeline or remains a strong image-only match-validity result.
+- Analyze the Run 26 diagnostic gate to decide whether RSDH has a reconstruction-level ranking signal beyond all-candidate and confidence top-k baselines.
 - Redesign occlusion reasoning using camera geometry, z-buffer consistency, and supervised per-view visibility masks.
 - Revisit repeated-structure filtering as match validity learning, not as self-similarity suppression.
 - If OARH/RSDH improve validation in future data, lightly fine-tune MV-DUSt3R+ confidence layers and the last decoder blocks; Run 17 records the current decision gate instead of forcing a costly fine-tune.

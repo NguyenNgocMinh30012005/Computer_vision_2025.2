@@ -36,6 +36,7 @@ Run order:
 22. `kaggle_run23_reconstruction_candidate_calibration.py`
 23. `kaggle_run24_rsdh_v2_image_only.py`
 24. `kaggle_run25_rsdh_v2_reconstruction_integration.py`
+25. `kaggle_run26_rsdh_v2_diagnostic_gate.py`
 
 The final validation script uses fixed thresholds selected before test-time
 evaluation, rather than tuning on the final test rows. Run 11 prefers T4 x2,
@@ -85,6 +86,10 @@ train small MLP heads on proxy labels generated from ScanNet posed depth:
   thresholding, RSDH top-ratio ranking, and combined confidence/RSDH ranking on
   the Run 20 final-eval groups, then gates the result by validation
   reconstruction F-score.
+- Run 26 is a diagnostic follow-up to Run 25. It adds `all_candidates` and
+  confidence top-k baselines, uses exact top-k masks so score ties cannot
+  silently keep every candidate, and gates RSDH against the best non-learned
+  candidate-retention baseline.
 
 Latest pushed kernels:
 
@@ -99,3 +104,4 @@ Latest pushed kernels:
 - Run 23: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-23-candidate-calibration>
 - Run 24: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-24-rsdh-v2-image-only>
 - Run 25: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-25-rsdh-v2-integration>
+- Run 26: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-26-rsdh-v2-diagnostic-gate>
