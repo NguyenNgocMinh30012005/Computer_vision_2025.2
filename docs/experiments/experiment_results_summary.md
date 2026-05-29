@@ -385,6 +385,25 @@ This run decides whether RSDH contributes a real learned ranking signal or
 whether the Run 25 gains are explained by simply keeping more reconstruction
 candidates.
 
+The pasted Run 26 log answers that diagnostic: RSDH does not beat the
+candidate-retention baselines at reconstruction level.
+
+| Split | Method | Mean F-score | Delta vs fixed confidence | Delta vs best baseline | Mean selected ratio |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Val | Fixed confidence | 0.1455 | 0.0000 | -0.0008 | 0.9874 |
+| Val | All candidates / confidence top-ratio 1.0 | 0.1463 | +0.0008 | 0.0000 | 1.0000 |
+| Val | Best learned RSDH | 0.1463 | +0.0008 | 0.0000 | 1.0000 |
+| Test | Fixed confidence | 0.2271 | 0.0000 | -0.0135 | 0.9877 |
+| Test | All candidates / confidence top-ratio 1.0 | 0.2407 | +0.0135 | 0.0000 | 1.0000 |
+| Test | Best learned RSDH | 0.2407 | +0.0135 | 0.0000 | 1.0000 |
+
+Gate decision: select `all_candidates`; best baseline is `all_candidates`; best
+learned method is `combined_max_top_ratio_1.0000`; validation gain over the
+best baseline is `0.0000`, below the `0.005` margin. Interpretation: keep RSDH
+v2 out of the reconstruction pipeline. Its Run 24 image-only classifier remains
+a useful proxy result, but it does not yet solve repeated-structure ambiguity in
+actual geometry reconstruction.
+
 Expected outputs for the submitted remaining runs:
 
 - Run 15: `match_features.csv`, `feature_summary.csv`, `run_config.json`
@@ -413,7 +432,7 @@ Expected outputs for the submitted remaining runs:
 
 - Replace the proxy evaluator with an official mesh/laser-scan geometry evaluator on ScanNet++ scenes with full 3D ground truth.
 - Improve OARH labels/features so point-label F1 translates into reconstruction F-score; Run 22 shows the Run 21 proxy head does not transfer, and Run 23 shows actual-candidate calibration is close but still not enough to beat fixed confidence.
-- Analyze the Run 26 diagnostic gate to decide whether RSDH has a reconstruction-level ranking signal beyond all-candidate and confidence top-k baselines.
+- Treat Run 26 as the reconstruction-level stop gate for RSDH v2: redesign the repeated-structure head before using it in the final pipeline.
 - Redesign occlusion reasoning using camera geometry, z-buffer consistency, and supervised per-view visibility masks.
 - Revisit repeated-structure filtering as match validity learning, not as self-similarity suppression.
 - If OARH/RSDH improve validation in future data, lightly fine-tune MV-DUSt3R+ confidence layers and the last decoder blocks; Run 17 records the current decision gate instead of forcing a costly fine-tune.

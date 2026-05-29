@@ -257,6 +257,11 @@ Current Phase 3 execution note:
   below the 0.005 margin, and the best test policies keep all candidates.
 - Run 26 therefore adds all-candidate and confidence top-k baselines with exact
   top-k tie handling, then gates RSDH against the best non-learned baseline.
+- Run 26 confirms the reconstruction-level gain is not learned: validation
+  selects `all_candidates` at 0.1463 F-score, the best learned RSDH policy only
+  ties it by keeping all candidates, and the delta over the best baseline is
+  0.0000 below the 0.005 margin. Keep RSDH v2 out of the final reconstruction
+  policy.
 - A strong final claim requires Runs 21--28 to show held-out reconstruction
   improvement on occlusion-heavy and repeated-structure subsets, not only high
   proxy classification F1.

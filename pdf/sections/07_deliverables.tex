@@ -27,7 +27,7 @@
     \item Submitted Run 25 RSDH v2 reconstruction-integration kernel to test
     whether image-only match validity improves geometry F-score
     \item Submitted Run 26 RSDH v2 diagnostic-gate kernel with all-candidate
-    and confidence top-k baselines
+    and confidence top-k baselines; gate keeps RSDH out of reconstruction
     \item Clean GitHub repository with curated docs, proposal sources, and PDF
     deck
   \end{itemize}
@@ -43,8 +43,8 @@
     \item Practical guidance for follow-up work on robust 3D reconstruction
     \item An ablation record showing which proposed modules help and which fail
     \item A supervised follow-up plan with honest outcomes: gated OARH still
-    needs better labels/features, while RSDH is strong on a GT-depth-assisted
-    MASt3R proxy but not yet a final image-only ambiguity solution
+    needs better labels/features, while RSDH v2 is strong on proxy match
+    validity but fails the reconstruction-level gate
     \item A stricter Phase 3 protocol with label caching, subset mining, OARH
     v2 training, reconstruction-level integration checks, candidate-level
     calibration, and RSDH validation plus tie-controlled reconstruction

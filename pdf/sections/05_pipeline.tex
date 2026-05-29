@@ -68,9 +68,10 @@
     \item Run 25 integrates the Run 24 RSDH v2 head into reconstruction
     candidate scoring and keeps it only if validation geometry F-score wins.
     \item Run 26 adds all-candidate and confidence top-k baselines with exact
-    top-k masks to verify whether RSDH gives a real ranking gain.
-    \item If validation improves, unfreeze only the confidence head and last
-    decoder blocks for light fine-tuning.
+    top-k masks; validation selects all-candidate retention, so RSDH is kept
+    out of the final reconstruction policy.
+    \item Only if a future learned gate improves validation, unfreeze the
+    confidence head and last decoder blocks for light fine-tuning.
     \item Keep final test clean: no threshold tuning, no checkpoint selection
     on test scenes.
   \end{enumerate}

@@ -89,7 +89,9 @@ train small MLP heads on proxy labels generated from ScanNet posed depth:
 - Run 26 is a diagnostic follow-up to Run 25. It adds `all_candidates` and
   confidence top-k baselines, uses exact top-k masks so score ties cannot
   silently keep every candidate, and gates RSDH against the best non-learned
-  candidate-retention baseline.
+  candidate-retention baseline. The pasted Run 26 result selects
+  `all_candidates` and keeps RSDH v2 out of reconstruction because the best
+  learned method only ties the best baseline by keeping all candidates.
 
 Latest pushed kernels:
 

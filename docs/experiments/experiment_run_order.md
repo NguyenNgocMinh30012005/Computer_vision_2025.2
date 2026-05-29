@@ -544,7 +544,7 @@ Ket qua hien tai:
 - Run 23: sua dung nguyen nhan domain shift cua Run 22 bang cach train tren actual reconstruction candidates, gan nhan bang GT geometry, va chi chon learned ranking neu validation reconstruction F-score thang fixed confidence. Ket qua pasted log gan hon nhieu nhung van fail gate: val fixed confidence 0.6674 so voi RCRH top_ratio_0.995 la 0.6618; test fixed 0.6014 so voi 0.5923.
 - Run 24: chuyen sang limit repeated-structure/wrong-match, train RSDH v2 tu `rsdh_v2_hard_negative_labels.csv` bang image-only patch/coordinate features. Ket qua da pass gate proxy: validation learned F1 0.6954 so voi best image-only baseline 0.6212, test learned F1 0.6596 so voi 0.5517.
 - Run 25: tich hop checkpoint Run 24 vao actual MV-DUSt3R reconstruction candidates. Ket qua khong pass gate: validation fixed confidence 0.1507, best learned 0.1542, delta +0.0035 nho hon margin 0.005. Test co policy RSDH cao hon nhung selected_ratio = 1.0, nen chua chung minh learned ranking thang that.
-- Run 26: tiep tuc diagnostic bang cach them `all_candidates`, confidence top-k baselines, va exact top-k masks; gate learned RSDH against best non-learned baseline thay vi chi fixed confidence.
+- Run 26: diagnostic da xong. Validation chon `all_candidates`: F-score 0.1463 so voi fixed confidence 0.1455; best learned RSDH cung chi dat 0.1463 tai selected_ratio = 1.0, delta vs best baseline = 0.0000 < margin 0.005. Vi vay RSDH v2 khong duoc dung trong final reconstruction pipeline.
 
 Output can gui lai sau khi Kaggle chay xong:
 

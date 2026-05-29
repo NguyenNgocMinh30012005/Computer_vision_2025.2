@@ -42,7 +42,7 @@ analysis, supervised reliability proxies, and hard-case mining.
 | Baseline reliability | Fixed confidence thresholding remains the safest final policy. |
 | View selection | Diversity/overlap-aware selection is useful for sparse views. |
 | OARH proxy | Helps selected larger-view cases but can regress 2/3-view cases. |
-| RSDH proxy | Run 24 learned image-only match validity beats image-only baselines and is now being tested in reconstruction. |
+| RSDH proxy | Run 24 beats image-only match baselines, but Runs 25--26 show it should stay out of reconstruction because the geometry gain is matched by non-learned candidate retention. |
 | Final direction | Use validation-gated learned reliability instead of unconditional learned filtering. |
 
 ## Repository Layout
@@ -149,8 +149,12 @@ RSDH MLP reaches validation match F1 `0.6954` versus the best image-only patch
 baseline `0.6212`, and test F1 `0.6596` versus `0.5517`. Run 25 then tests
 that match-validity signal on actual MV-DUSt3R candidate points, but its
 validation gain is only `+0.0035`, below the `0.005` gate margin. Run 26
-therefore adds all-candidate and confidence top-k baselines to check whether
-the apparent RSDH gains are just candidate-retention effects.
+confirms the apparent reconstruction gain is a candidate-retention effect:
+validation selects `all_candidates` with F-score `0.1463`, while the best
+learned RSDH policy ties that score only at `selected_ratio = 1.0`. Therefore
+the final reconstruction policy should keep fixed confidence / candidate
+retention baselines and report RSDH v2 as a useful proxy result, not a solved
+image-only repeated-structure module.
 
 See `docs/experiments/experiment_results_summary.md` and
 `docs/method/supervised_extension_run_order.md`.
