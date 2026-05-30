@@ -170,7 +170,7 @@ Do not enforce consistency through occluded views.
 | 24 | RSDH v2 image-only features | Train match validity from MASt3R descriptors, margins, reciprocal flags, and cycle cues without GT-derived inference features |
 | 25 | RSDH v2 reconstruction integration | Use validated matches in reconstruction/fusion and evaluate repeated-structure held-out groups |
 | 26 | RSDH diagnostic gate | Compare RSDH against all-candidate and confidence top-k baselines with exact top-k masks |
-| 27 | Conditional light fine-tune | Fine-tune confidence/last decoder blocks only if Run 26 wins validation |
+| 27 | Joint candidate acceptance | Train one reconstruction-candidate head that combines confidence, self-geometry support, and RSDH image-match scores |
 | 28 | Final held-out evaluation | Compare B0, fixed-confidence final, and learned full pipeline on unseen scenes |
 
 Minimum viable version if time is short:
@@ -262,6 +262,11 @@ Current Phase 3 execution note:
   ties it by keeping all candidates, and the delta over the best baseline is
   0.0000 below the 0.005 margin. Keep RSDH v2 out of the final reconstruction
   policy.
+- Run 27 starts a new solver branch for the remaining occlusion and
+  repeated/wrong-match limits. It trains on actual MV-DUSt3R candidates and
+  uses only inference-available features: confidence, point layout,
+  cross-view self-support, and Run 24 image-only RSDH scores. It must beat the
+  best non-learned candidate-retention baseline to pass.
 - A strong final claim requires Runs 21--28 to show held-out reconstruction
   improvement on occlusion-heavy and repeated-structure subsets, not only high
   proxy classification F1.

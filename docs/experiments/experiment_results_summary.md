@@ -404,6 +404,24 @@ v2 out of the reconstruction pipeline. Its Run 24 image-only classifier remains
 a useful proxy result, but it does not yet solve repeated-structure ambiguity in
 actual geometry reconstruction.
 
+## Run 27 Joint Candidate Acceptance
+
+Run 27 is the new attempt to solve the two remaining limits together instead of
+continuing the failed Run 26 fine-tune path. It trains one reconstruction-level
+candidate acceptance head on actual MV-DUSt3R candidate points. Its inference
+features combine:
+
+- MV-DUSt3R confidence and normalized candidate layout,
+- cross-view self-support among predicted points,
+- image-only RSDH v2 match scores from Run 24,
+- no direct `candidate_type`, `visibility_label`, GT residual, or group-class
+  input features.
+
+The gate is deliberately strict: the learned joint head must beat the best
+non-learned candidate-retention baseline, including `all_candidates` and
+confidence top-k masks. This prevents the Run 25/26 failure mode where a learned
+method only appears better because it keeps every candidate.
+
 Expected outputs for the submitted remaining runs:
 
 - Run 15: `match_features.csv`, `feature_summary.csv`, `run_config.json`
@@ -418,6 +436,7 @@ Expected outputs for the submitted remaining runs:
 - Run 24: `split_metrics.csv`, `group_metrics.csv`, `training_history.csv`, `feature_summary.csv`, `gate_decision.csv`, `rsdh_v2_image_only_head.pt`, `run_config.json`
 - Run 25: `metrics.csv`, `summary.csv`, `gate_decision.csv`, `run_config.json`
 - Run 26: `metrics.csv`, `summary.csv`, `gate_decision.csv`, `run_config.json`
+- Run 27: `candidate_label_summary.csv`, `training_history.csv`, `metrics.csv`, `summary.csv`, `gate_decision.csv`, `joint_candidate_acceptance_head.pt`, `run_config.json`
 
 ## Limitations
 

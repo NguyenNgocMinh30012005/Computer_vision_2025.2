@@ -12,7 +12,7 @@ sparse-view indoor 3D reconstruction more reliable when only a few views are
 available and scenes contain occlusion, repeated structures, or weak overlap.
 
 The repository is organized as a staged experiment log rather than a single
-notebook dump. Runs 1-26 cover baseline evaluation, confidence thresholding,
+notebook dump. Runs 1-27 cover baseline evaluation, confidence thresholding,
 view selection, fusion ablations, occlusion filtering, repeated-structure
 analysis, supervised reliability proxies, and hard-case mining.
 
@@ -94,6 +94,7 @@ The staged Kaggle scripts live in `scripts/kaggle/`:
 - `kaggle_run24_rsdh_v2_image_only.py`: trains an image-only RSDH v2 match-validity head from Run 20 hard-negative labels
 - `kaggle_run25_rsdh_v2_reconstruction_integration.py`: integrates the Run 24 RSDH v2 checkpoint into reconstruction candidate scoring and gates it against fixed confidence
 - `kaggle_run26_rsdh_v2_diagnostic_gate.py`: reruns the RSDH integration with all-candidate and confidence top-k baselines plus exact top-k tie handling
+- `kaggle_run27_joint_candidate_acceptance.py`: trains a joint candidate acceptance head on actual MV-DUSt3R candidates using confidence, self-geometry support, and Run 24 image-only RSDH scores
 
 The notebook sanity check is in `notebooks/kaggle_run0_mvdust3r_sanity.ipynb`.
 
@@ -155,6 +156,10 @@ learned RSDH policy ties that score only at `selected_ratio = 1.0`. Therefore
 the final reconstruction policy should keep fixed confidence / candidate
 retention baselines and report RSDH v2 as a useful proxy result, not a solved
 image-only repeated-structure module.
+Run 27 starts the new attempt to solve the two remaining limits directly: it
+trains a joint candidate acceptance head on actual reconstruction candidates and
+gates it against `all_candidates` plus confidence top-k baselines, so it can
+only pass if it improves geometry beyond candidate retention.
 
 See `docs/experiments/experiment_results_summary.md` and
 `docs/method/supervised_extension_run_order.md`.
@@ -188,6 +193,7 @@ Latest Kaggle kernels:
 - [Run 24 RSDH v2 Image Only](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-24-rsdh-v2-image-only)
 - [Run 25 RSDH v2 Reconstruction Integration](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-25-rsdh-v2-integration)
 - [Run 26 RSDH v2 Diagnostic Gate](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-26-rsdh-v2-diagnostic-gate)
+- [Run 27 Joint Candidate Acceptance](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-27-joint-candidate-acceptance)
 
 ## Build The Slides
 

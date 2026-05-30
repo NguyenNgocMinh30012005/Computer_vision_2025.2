@@ -70,6 +70,8 @@
     \item Run 26 adds all-candidate and confidence top-k baselines with exact
     top-k masks; validation selects all-candidate retention, so RSDH is kept
     out of the final reconstruction policy.
+    \item Run 27 starts a new joint candidate-acceptance branch using
+    confidence, self-geometry support, and image-only RSDH scores together.
     \item Only if a future learned gate improves validation, unfreeze the
     confidence head and last decoder blocks for light fine-tuning.
     \item Keep final test clean: no threshold tuning, no checkpoint selection

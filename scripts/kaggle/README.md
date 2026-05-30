@@ -37,6 +37,7 @@ Run order:
 23. `kaggle_run24_rsdh_v2_image_only.py`
 24. `kaggle_run25_rsdh_v2_reconstruction_integration.py`
 25. `kaggle_run26_rsdh_v2_diagnostic_gate.py`
+26. `kaggle_run27_joint_candidate_acceptance.py`
 
 The final validation script uses fixed thresholds selected before test-time
 evaluation, rather than tuning on the final test rows. Run 11 prefers T4 x2,
@@ -92,6 +93,11 @@ train small MLP heads on proxy labels generated from ScanNet posed depth:
   candidate-retention baseline. The pasted Run 26 result selects
   `all_candidates` and keeps RSDH v2 out of reconstruction because the best
   learned method only ties the best baseline by keeping all candidates.
+- Run 27 starts a new branch for the two remaining limits. It trains a joint
+  candidate acceptance head on actual MV-DUSt3R candidates, using confidence,
+  self-geometry support, and Run 24 image-only RSDH scores as inference
+  features. It gates the learned policy against `all_candidates` and confidence
+  top-k baselines, so the head must beat candidate retention to pass.
 
 Latest pushed kernels:
 
@@ -107,3 +113,4 @@ Latest pushed kernels:
 - Run 24: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-24-rsdh-v2-image-only>
 - Run 25: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-25-rsdh-v2-integration>
 - Run 26: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-26-rsdh-v2-diagnostic-gate>
+- Run 27: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-27-joint-candidate-acceptance>
