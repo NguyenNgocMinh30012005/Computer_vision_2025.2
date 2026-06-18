@@ -199,7 +199,7 @@ Latest Kaggle kernels:
 - [Run 24 RSDH v2 Image Only](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-24-rsdh-v2-image-only)
 - [Run 25 RSDH v2 Reconstruction Integration](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-25-rsdh-v2-integration)
 - [Run 26 RSDH v2 Diagnostic Gate](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-26-rsdh-v2-diagnostic-gate)
-- [Run 27 Reconstruction-Aware Joint Acceptance](https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-27-reconstruction-aware-joint-acceptance)
+- [Run 27 Reconstruction-Aware Joint Acceptance](https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-27-reconstruction-aware)
 
 ## Build The Slides
 

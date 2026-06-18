@@ -530,7 +530,7 @@ Da submit cac kernel dau cho phase learned extension:
 | 24 | `mv-dust3r-run-24-rsdh-v2-image-only` | Train RSDH v2 image-only match-validity head tu Run 20 hard-negative labels |
 | 25 | `mv-dust3r-run-25-rsdh-v2-integration` | Tich hop Run 24 RSDH v2 vao reconstruction candidate scoring va gate bang validation reconstruction F-score |
 | 26 | `mv-dust3r-run-26-rsdh-v2-diagnostic-gate` | Them all-candidate/confidence top-k baselines va exact top-k de kiem tra RSDH co thang that khong |
-| 27 | `mv-dust3r-run-27-reconstruction-aware-joint-acceptance` | Self-contained training tren actual candidates: confidence residual + geometry support + raw patch consistency + GT-coverage F-score loss; scene-level ratio selection va two-limit gate |
+| 27 | `mv-dust3r-run-27-reconstruction-aware` | Self-contained training tren actual candidates: confidence residual + geometry support + raw patch consistency + GT-coverage F-score loss; scene-level ratio selection va two-limit gate |
 
 Ket qua hien tai:
 
