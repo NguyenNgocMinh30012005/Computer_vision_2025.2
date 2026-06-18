@@ -7,6 +7,7 @@ import sys
 import time
 import urllib.request
 import zlib
+from collections import Counter
 from pathlib import Path
 
 import numpy as np
@@ -35,24 +36,39 @@ base = ensure_helper_module("kaggle_run11_final_validation_3seeds", RAW_BASE)
 rsdh_utils = ensure_helper_module("kaggle_run26_rsdh_v2_diagnostic_gate", RAW_RSDH_UTILS)
 
 
-RUN_NAME = "run_27_joint_candidate_acceptance"
+RUN_NAME = "run_27_reconstruction_aware_joint_acceptance"
 RUN19_SEED = 1919
 SEED = 2727
-MAX_TRAIN_GROUPS = int(os.environ.get("RUN27_MAX_TRAIN_GROUPS", "24"))
-MAX_EVAL_GROUPS = int(os.environ.get("RUN27_MAX_EVAL_GROUPS", "32"))
-MAX_CANDIDATES_PER_GROUP = int(os.environ.get("RUN27_MAX_CANDIDATES_PER_GROUP", "8000"))
-MAX_TRAIN_ROWS_PER_GROUP = int(os.environ.get("RUN27_MAX_TRAIN_ROWS_PER_GROUP", "12000"))
+MAX_SCENES = int(os.environ.get("RUN27_MAX_SCENES", "30"))
+MAX_TRAIN_GROUPS = int(os.environ.get("RUN27_MAX_TRAIN_GROUPS", "48"))
+MAX_EVAL_GROUPS = int(os.environ.get("RUN27_MAX_EVAL_GROUPS", "36"))
+MAX_CANDIDATES_PER_GROUP = int(os.environ.get("RUN27_MAX_CANDIDATES_PER_GROUP", "3500"))
 MIN_SELECTED_POINTS = int(os.environ.get("RUN27_MIN_SELECTED_POINTS", "100"))
 GATE_MARGIN_F1 = float(os.environ.get("RUN27_GATE_MARGIN_F1", "0.005"))
-EPOCHS = int(os.environ.get("RUN27_EPOCHS", "24"))
-BATCH_SIZE = int(os.environ.get("RUN27_BATCH_SIZE", "8192"))
+EPOCHS = int(os.environ.get("RUN27_EPOCHS", "20"))
+BATCH_SIZE = int(os.environ.get("RUN27_BATCH_SIZE", "65536"))
 LR = float(os.environ.get("RUN27_LR", "0.001"))
 LABEL_POS_M = float(os.environ.get("RUN27_LABEL_POS_M", str(base.F_SCORE_THRESHOLD_M)))
 HARD_NEG_M = float(os.environ.get("RUN27_HARD_NEG_M", "0.15"))
-RANK_RATIOS = [0.85, 0.95, 0.97, 0.98, 0.9875, 0.995, 1.0]
+VIEW_COUNTS = [3, 4, 5]
+POLICIES = ["hybrid", "diversity_aware"]
+MODEL_SEEDS = [2727, 2728, 2729]
+TRAIN_RATIOS = [0.95, 0.98, 0.995]
+RANK_RATIOS = [0.90, 0.95, 0.97, 0.98, 0.9875, 0.995, 1.0]
+RESIDUAL_SCALE = float(os.environ.get("RUN27_RESIDUAL_SCALE", "2.0"))
+SOFT_TOPK_TEMPERATURE = float(os.environ.get("RUN27_SOFT_TOPK_TEMPERATURE", "0.20"))
+OCCLUSION_PROXY_THRESHOLD = float(os.environ.get("RUN27_OCCLUSION_PROXY_THRESHOLD", "0.05"))
+AMBIGUITY_PROXY_THRESHOLD = float(os.environ.get("RUN27_AMBIGUITY_PROXY_THRESHOLD", "0.10"))
+LOSS_WEIGHTS = {
+    "bce": 0.20,
+    "reconstruction_f1": 1.00,
+    "ranking": 0.35,
+    "ratio": 0.10,
+    "residual": 0.01,
+}
 BASELINE_METHODS = {"confidence_fixed_final", "all_candidates"}
 
-FEATURE_NAMES = [
+BASE_FEATURE_NAMES = [
     "log_conf",
     "conf_z",
     "conf_rank",
@@ -73,16 +89,39 @@ FEATURE_NAMES = [
     "support_frac_010",
     "support_frac_020",
     "same_view_conf_rank",
-    "rsdh_max_prob",
-    "rsdh_mean_prob",
-    "rsdh_valid_frac",
-    "rsdh_target_count_norm",
-    "conf_rank_times_rsdh_max",
-    "conf_rank_times_rsdh_mean",
-    "rsdh_pass_threshold",
-    "rsdh_has_projection",
-    "abs_conf_rank_minus_rsdh_max",
 ]
+
+PAIR_SIGNAL_NAMES = [
+    "pixel_distance",
+    "abs_rgb_mean_diff_r",
+    "abs_rgb_mean_diff_g",
+    "abs_rgb_mean_diff_b",
+    "abs_gray_mean_diff",
+    "gray_patch_corr",
+    "gray_patch_l1",
+    "gray_patch_l2",
+    "abs_grad_mean_diff",
+    "grad_patch_corr",
+    "grad_patch_l1",
+    "grad_patch_l2",
+]
+PAIR_AGGREGATIONS = ["mean", "std", "min", "max"]
+PHOTO_FEATURE_NAMES = [
+    f"photo_{signal}_{aggregation}"
+    for signal in PAIR_SIGNAL_NAMES
+    for aggregation in PAIR_AGGREGATIONS
+]
+PHOTO_FEATURE_NAMES += [
+    "photo_target_count_norm",
+    "photo_has_projection",
+    "photo_gray_corr_positive_frac",
+    "photo_grad_corr_positive_frac",
+    "photo_low_gray_l1_frac",
+]
+FEATURE_NAMES = BASE_FEATURE_NAMES + PHOTO_FEATURE_NAMES
+CONF_RANK_INDEX = FEATURE_NAMES.index("conf_rank")
+SUPPORT_FRAC_010_INDEX = FEATURE_NAMES.index("support_frac_010")
+PHOTO_TARGET_COUNT_INDEX = FEATURE_NAMES.index("photo_target_count_norm")
 
 
 class JointCandidateAcceptanceHead(nn.Module):
@@ -101,7 +140,7 @@ class JointCandidateAcceptanceHead(nn.Module):
         )
 
     def forward(self, x):
-        return self.net(x).squeeze(-1)
+        return RESIDUAL_SCALE * torch.tanh(self.net(x).squeeze(-1))
 
 
 def write_csv_union(path, rows):
@@ -118,11 +157,6 @@ def write_csv_union(path, rows):
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
-
-
-def read_csv(path):
-    with path.open(newline="") as f:
-        return list(csv.DictReader(f))
 
 
 def as_float(row, key, default=0.0):
@@ -143,33 +177,167 @@ def as_int(row, key, default=0):
         return default
 
 
-def row_classes(row):
-    return str(row.get("group_classes", "")).split("|")
-
-
 def stable_seed(text):
     return SEED + (zlib.crc32(str(text).encode("utf-8")) % 100000)
 
 
-def find_run20_dir():
-    root = Path("/kaggle/input")
-    candidates = sorted(root.rglob("subset_group_manifest.csv"))
-    for path in candidates:
-        text = str(path).lower()
-        if "run-20" in text or "run_20" in text or "subset-mining" in text:
-            print("Using Run 20 output:", path.parent)
-            return path.parent
-    if candidates:
-        print("Using first Run 20-like output:", candidates[0].parent)
-        return candidates[0].parent
-    raise FileNotFoundError("Cannot find Run 20 output. Add Run 20 as a Kaggle kernel source.")
+def validate_static_configuration():
+    if len(FEATURE_NAMES) != len(set(FEATURE_NAMES)):
+        raise RuntimeError("Run 27 feature names are not unique")
+    missing_pair_signals = [
+        name for name in PAIR_SIGNAL_NAMES if name not in rsdh_utils.FEATURE_NAMES
+    ]
+    if missing_pair_signals:
+        raise RuntimeError(f"Missing pair feature signals: {missing_pair_signals}")
+    if not all(0.0 < ratio <= 1.0 for ratio in TRAIN_RATIOS + RANK_RATIOS):
+        raise RuntimeError("All train/evaluation keep ratios must be in (0, 1]")
+    if sorted(MODEL_SEEDS) != MODEL_SEEDS or len(set(MODEL_SEEDS)) != len(MODEL_SEEDS):
+        raise RuntimeError("Model seeds must be unique and sorted")
+    print(
+        "Run 27 static preflight:",
+        {
+            "feature_dim": len(FEATURE_NAMES),
+            "base_feature_dim": len(BASE_FEATURE_NAMES),
+            "photo_feature_dim": len(PHOTO_FEATURE_NAMES),
+            "model_seeds": MODEL_SEEDS,
+            "train_ratios": TRAIN_RATIOS,
+        },
+    )
 
 
 def discover_scene_dirs(posed_root):
     scenes = sorted([p for p in posed_root.glob("scene*") if p.is_dir() and list(p.glob("*.jpg"))])
     if not scenes:
         raise FileNotFoundError(f"No scene directories with JPG frames under {posed_root}")
-    return scenes
+    return scenes[:MAX_SCENES]
+
+
+def scene_splits(scene_dirs):
+    n = len(scene_dirs)
+    if n <= 1:
+        return {scene_dirs[0].name: "train"} if scene_dirs else {}
+    if n == 2:
+        return {scene_dirs[0].name: "train", scene_dirs[1].name: "test"}
+    if n < 5:
+        return {
+            scene.name: ("train" if i == 0 else "val" if i == 1 else "test")
+            for i, scene in enumerate(scene_dirs)
+        }
+    train_cut = max(1, int(round(0.60 * n)))
+    val_cut = max(train_cut + 1, int(round(0.80 * n)))
+    val_cut = min(val_cut, n - 1)
+    return {
+        scene.name: "train" if i < train_cut else "val" if i < val_cut else "test"
+        for i, scene in enumerate(scene_dirs)
+    }
+
+
+def pairwise_baseline_stats(view_files):
+    centers = []
+    for path in view_files:
+        pose = base.parse_pose(str(path).replace(".jpg", ".txt"))
+        centers.append(pose[:3, 3].astype(np.float32))
+    distances = [
+        float(np.linalg.norm(centers[i] - centers[j]))
+        for i in range(len(centers))
+        for j in range(i + 1, len(centers))
+    ]
+    return {
+        "mean_baseline_m": float(np.mean(distances)) if distances else 0.0,
+        "max_baseline_m": float(np.max(distances)) if distances else 0.0,
+    }
+
+
+def select_unique_views(scene_dir, num_views, policy):
+    selected = base.choose_views(
+        scene_dir,
+        num_views,
+        policy,
+        seed=RUN19_SEED + num_views,
+    )
+    unique = []
+    seen = set()
+    for path in selected:
+        if path.name not in seen:
+            unique.append(path)
+            seen.add(path.name)
+    if len(unique) < num_views:
+        candidates = [path for path in sorted(scene_dir.glob("*.jpg")) if path.name not in seen]
+        if candidates:
+            fill_count = min(num_views - len(unique), len(candidates))
+            fill_indices = np.linspace(0, len(candidates) - 1, fill_count, dtype=int)
+            unique.extend(candidates[index] for index in fill_indices)
+    if len(unique) < num_views:
+        raise RuntimeError(
+            f"Scene {scene_dir.name} has only {len(unique)} unique views for requested num_views={num_views}"
+        )
+    return unique[:num_views]
+
+
+def build_group_manifest(scene_dirs, splits):
+    rows = []
+    for scene_dir in scene_dirs:
+        for num_views in VIEW_COUNTS:
+            for policy in POLICIES:
+                group_key = f"{scene_dir.name}_{num_views}_{policy}"
+                view_files = select_unique_views(scene_dir, num_views, policy)
+                rows.append(
+                    {
+                        "run": RUN_NAME,
+                        "split": splits[scene_dir.name],
+                        "scene": scene_dir.name,
+                        "num_views": num_views,
+                        "view_policy": policy,
+                        "group_key": group_key,
+                        "selected_images": "|".join(path.name for path in view_files),
+                        "group_classes": "self_contained_scene_group",
+                        **pairwise_baseline_stats(view_files),
+                    }
+                )
+    return rows
+
+
+def balanced_group_subset(rows, limit):
+    if len(rows) <= limit:
+        return sorted(rows, key=lambda r: (r["scene"], as_int(r, "num_views"), r["view_policy"]))
+    by_scene = {}
+    for row in rows:
+        by_scene.setdefault(row["scene"], []).append(row)
+    for scene_rows in by_scene.values():
+        scene_rows.sort(
+            key=lambda r: (
+                -as_float(r, "mean_baseline_m"),
+                as_int(r, "num_views"),
+                r["view_policy"],
+            )
+        )
+    selected = []
+    round_idx = 0
+    scene_names = sorted(by_scene)
+    while len(selected) < limit:
+        added = False
+        for scene_name in scene_names:
+            scene_rows = by_scene[scene_name]
+            if round_idx < len(scene_rows):
+                selected.append(scene_rows[round_idx])
+                added = True
+                if len(selected) >= limit:
+                    break
+        if not added:
+            break
+        round_idx += 1
+    return selected
+
+
+def split_internal_train_groups(train_groups):
+    scenes = sorted({row["scene"] for row in train_groups})
+    rng = np.random.default_rng(SEED)
+    shuffled = [scenes[i] for i in rng.permutation(len(scenes))]
+    num_val_scenes = max(2, int(round(0.25 * len(scenes))))
+    internal_val_scenes = set(shuffled[:num_val_scenes])
+    fit = [row for row in train_groups if row["scene"] not in internal_val_scenes]
+    val = [row for row in train_groups if row["scene"] in internal_val_scenes]
+    return fit, val, sorted(internal_val_scenes)
 
 
 def output_to_candidates(output):
@@ -199,7 +367,21 @@ def subsample_candidates(points, conf, xs, ys, view_ids, max_candidates, seed):
     if len(points) <= max_candidates or max_candidates <= 0:
         return points, conf, xs, ys, view_ids
     rng = np.random.default_rng(seed)
-    idx = rng.choice(len(points), max_candidates, replace=False)
+    conf_rank = rank_percentile(conf)
+    high = np.where(conf_rank >= 0.50)[0]
+    low = np.where(conf_rank < 0.50)[0]
+    n_high = min(len(high), int(max_candidates * 0.80))
+    n_low = min(len(low), max_candidates - n_high)
+    selected = []
+    if n_high:
+        selected.append(rng.choice(high, n_high, replace=False))
+    if n_low:
+        selected.append(rng.choice(low, n_low, replace=False))
+    idx = np.concatenate(selected) if selected else rng.choice(len(points), max_candidates, replace=False)
+    if len(idx) < max_candidates:
+        remaining = np.setdiff1d(np.arange(len(points)), idx, assume_unique=False)
+        fill = rng.choice(remaining, min(len(remaining), max_candidates - len(idx)), replace=False)
+        idx = np.concatenate([idx, fill])
     return points[idx], conf[idx], xs[idx], ys[idx], view_ids[idx]
 
 
@@ -290,47 +472,76 @@ def build_features(points, conf, xs, ys, view_ids, image_h, image_w, group_row):
     return features.astype(np.float32)
 
 
-def append_rsdh_features(base_features, points, conf, xs, ys, view_ids, view_files, group_row, image_h, image_w, rsdh_pack):
-    if rsdh_pack is None:
-        zeros = np.zeros((len(points), 9), dtype=np.float32)
-        return np.column_stack([base_features, zeros]).astype(np.float32), {
-            "num_pair_features": 0,
-            "mean_rsdh_max_prob": 0.0,
-            "mean_rsdh_mean_prob": 0.0,
-            "mean_rsdh_valid_frac": 0.0,
-            "mean_projected_targets": 0.0,
-        }
-    rsdh, threshold, mean, std = rsdh_pack
+def aggregate_image_pair_features(
+    base_features,
+    points,
+    conf,
+    xs,
+    ys,
+    view_ids,
+    view_files,
+    group_row,
+    image_h,
+    image_w,
+):
     pair_features, candidate_indices, target_counts = rsdh_utils.build_pair_features(
         points, xs, ys, view_ids, conf, view_files, group_row, image_h, image_w
     )
-    pair_prob = rsdh_utils.predict_prob(rsdh, pair_features, mean, std)
-    max_prob, mean_prob, valid_frac = rsdh_utils.aggregate_candidate_scores(
-        pair_prob, candidate_indices, target_counts, len(points), threshold
-    )
-    conf_rank = rank_percentile(conf)
+    n = len(points)
     num_views = max(as_float(group_row, "num_views"), 1.0)
-    rsdh_features = np.column_stack(
+    selected_indices = [rsdh_utils.FEATURE_NAMES.index(name) for name in PAIR_SIGNAL_NAMES]
+    selected = pair_features[:, selected_indices] if len(pair_features) else np.empty((0, len(selected_indices)), dtype=np.float32)
+    count = np.maximum(target_counts.astype(np.float32), 1.0)
+    aggregates = []
+    for column in range(len(selected_indices)):
+        values = selected[:, column] if len(selected) else np.empty((0,), dtype=np.float32)
+        sums = np.zeros(n, dtype=np.float32)
+        sums_sq = np.zeros(n, dtype=np.float32)
+        mins = np.full(n, np.inf, dtype=np.float32)
+        maxs = np.full(n, -np.inf, dtype=np.float32)
+        if len(values):
+            np.add.at(sums, candidate_indices, values)
+            np.add.at(sums_sq, candidate_indices, values * values)
+            np.minimum.at(mins, candidate_indices, values)
+            np.maximum.at(maxs, candidate_indices, values)
+        means = sums / count
+        variances = np.maximum(sums_sq / count - means * means, 0.0)
+        mins[~np.isfinite(mins)] = 0.0
+        maxs[~np.isfinite(maxs)] = 0.0
+        aggregates.extend([means, np.sqrt(variances), mins, maxs])
+
+    def candidate_fraction(signal_name, predicate):
+        out = np.zeros(n, dtype=np.float32)
+        if len(pair_features):
+            values = pair_features[:, rsdh_utils.FEATURE_NAMES.index(signal_name)]
+            np.add.at(out, candidate_indices, predicate(values).astype(np.float32))
+        return out / count
+
+    photo_features = np.column_stack(
         [
-            max_prob,
-            mean_prob,
-            valid_frac,
+            *aggregates,
             np.clip(target_counts / max(num_views - 1.0, 1.0), 0.0, 1.0),
-            conf_rank * max_prob,
-            conf_rank * mean_prob,
-            (max_prob >= threshold).astype(np.float32),
             (target_counts > 0).astype(np.float32),
-            np.abs(conf_rank - max_prob),
+            candidate_fraction("gray_patch_corr", lambda value: value > 0.0),
+            candidate_fraction("grad_patch_corr", lambda value: value > 0.0),
+            candidate_fraction("gray_patch_l1", lambda value: value < 0.15),
         ]
     ).astype(np.float32)
     stats = {
         "num_pair_features": int(len(pair_features)),
-        "mean_rsdh_max_prob": float(max_prob.mean()) if len(max_prob) else 0.0,
-        "mean_rsdh_mean_prob": float(mean_prob.mean()) if len(mean_prob) else 0.0,
-        "mean_rsdh_valid_frac": float(valid_frac.mean()) if len(valid_frac) else 0.0,
+        "mean_photo_gray_corr": float(
+            photo_features[:, PHOTO_FEATURE_NAMES.index("photo_gray_patch_corr_mean")].mean()
+        )
+        if n
+        else 0.0,
+        "mean_photo_gray_l1": float(
+            photo_features[:, PHOTO_FEATURE_NAMES.index("photo_gray_patch_l1_mean")].mean()
+        )
+        if n
+        else 0.0,
         "mean_projected_targets": float(target_counts.mean()) if len(target_counts) else 0.0,
     }
-    return np.column_stack([base_features, rsdh_features]).astype(np.float32), stats
+    return np.column_stack([base_features, photo_features]).astype(np.float32), stats
 
 
 def candidate_labels(points, gt):
@@ -339,32 +550,13 @@ def candidate_labels(points, gt):
     dists = dists.astype(np.float32)
     labels = (dists <= LABEL_POS_M).astype(np.float32)
     hard_negative = (dists >= HARD_NEG_M).astype(np.float32)
-    return labels, dists, hard_negative
-
-
-def sample_training_rows(features, labels, hard_negative, conf, limit, seed):
-    rng = np.random.default_rng(seed)
-    pos_idx = np.where(labels > 0.5)[0]
-    neg_idx = np.where(labels <= 0.5)[0]
-    hard_idx = np.where(hard_negative > 0.5)[0]
-    high_conf_neg = neg_idx[np.argsort(conf[neg_idx])[-min(len(neg_idx), limit) :]] if len(neg_idx) else neg_idx
-
-    buckets = []
-    per_bucket = max(limit // 4, 1)
-    if len(pos_idx):
-        buckets.append(rng.choice(pos_idx, size=min(len(pos_idx), limit // 2), replace=False))
-    if len(hard_idx):
-        buckets.append(rng.choice(hard_idx, size=min(len(hard_idx), per_bucket), replace=False))
-    if len(high_conf_neg):
-        buckets.append(rng.choice(high_conf_neg, size=min(len(high_conf_neg), per_bucket), replace=False))
-    if len(neg_idx):
-        buckets.append(rng.choice(neg_idx, size=min(len(neg_idx), per_bucket), replace=False))
-    if not buckets:
-        return np.empty((0, features.shape[1]), dtype=np.float32), np.empty((0,), dtype=np.float32)
-    idx = np.unique(np.concatenate(buckets))
-    if len(idx) > limit:
-        idx = rng.choice(idx, size=limit, replace=False)
-    return features[idx], labels[idx]
+    gt_dists, nearest_candidate = cKDTree(aligned).query(gt, k=1, workers=-1)
+    covered = gt_dists < LABEL_POS_M
+    coverage_mass = np.bincount(
+        nearest_candidate[covered],
+        minlength=len(points),
+    ).astype(np.float32)
+    return labels, dists, hard_negative, coverage_mass, int(len(gt))
 
 
 def choose_group_views(scene_lookup, group_row):
@@ -373,10 +565,10 @@ def choose_group_views(scene_lookup, group_row):
         raise FileNotFoundError(f"Scene {group_row['scene']} not found in posed_images")
     num_views = as_int(group_row, "num_views")
     policy = group_row.get("view_policy")
-    return base.choose_views(scene_dir, num_views, policy, seed=RUN19_SEED + num_views)
+    return select_unique_views(scene_dir, num_views, policy)
 
 
-def run_group(backbone, root, scene_lookup, group_row, out_dir, rsdh_pack=None):
+def run_group(backbone, root, scene_lookup, group_row, out_dir):
     view_files = choose_group_views(scene_lookup, group_row)
     print("Run 27 group views:", {"group": group_row.get("group_key"), "views": [p.name for p in view_files]})
     output, _glb, runtime = base.run_inference(backbone, root, view_files, out_dir)
@@ -392,10 +584,29 @@ def run_group(backbone, root, scene_lookup, group_row, out_dir, rsdh_pack=None):
         stable_seed(group_row.get("group_key", "")),
     )
     base_features = build_features(points, conf, xs, ys, view_ids, image_h, image_w, group_row)
-    features, rsdh_stats = append_rsdh_features(
-        base_features, points, conf, xs, ys, view_ids, view_files, group_row, image_h, image_w, rsdh_pack
+    features, photo_stats = aggregate_image_pair_features(
+        base_features,
+        points,
+        conf,
+        xs,
+        ys,
+        view_ids,
+        view_files,
+        group_row,
+        image_h,
+        image_w,
     )
-    labels, distances, hard_negative = candidate_labels(points, gt)
+    labels, distances, hard_negative, coverage_mass, num_gt_points = candidate_labels(points, gt)
+    conf_rank = rank_percentile(conf)
+    occluded_positive = (
+        (labels > 0.5)
+        & (features[:, SUPPORT_FRAC_010_INDEX] < 0.125)
+        & (features[:, PHOTO_TARGET_COUNT_INDEX] > 0.0)
+    ).astype(np.float32)
+    ambiguity_negative = (
+        (labels < 0.5)
+        & ((hard_negative > 0.5) | (conf_rank >= 0.75))
+    ).astype(np.float32)
     del output
     torch.cuda.empty_cache()
     return {
@@ -405,10 +616,14 @@ def run_group(backbone, root, scene_lookup, group_row, out_dir, rsdh_pack=None):
         "labels": labels,
         "distances": distances,
         "hard_negative": hard_negative,
+        "coverage_mass": coverage_mass,
+        "num_gt_points": num_gt_points,
+        "occluded_positive": occluded_positive,
+        "ambiguity_negative": ambiguity_negative,
         "gt": gt,
         "runtime_seconds": runtime,
         "view_files": view_files,
-        "rsdh_stats": rsdh_stats,
+        "photo_stats": photo_stats,
     }
 
 
@@ -426,15 +641,19 @@ def label_summary_row(group_row, pack, stage):
         "view_policy": group_row.get("view_policy"),
         "group_key": group_row.get("group_key"),
         "group_classes": group_row.get("group_classes"),
-        "priority_score": as_float(group_row, "priority_score"),
+        "mean_baseline_m": as_float(group_row, "mean_baseline_m"),
+        "max_baseline_m": as_float(group_row, "max_baseline_m"),
         "num_candidates": int(len(labels)),
         "candidate_positive_ratio": float(labels.mean()) if len(labels) else 0.0,
         "hard_negative_ratio": float(hard.mean()) if len(hard) else 0.0,
+        "occluded_positive_ratio": float(pack["occluded_positive"].mean()) if len(labels) else 0.0,
+        "ambiguity_negative_ratio": float(pack["ambiguity_negative"].mean()) if len(labels) else 0.0,
+        "covered_gt_ratio_all_candidates": float(pack["coverage_mass"].sum() / max(pack["num_gt_points"], 1)),
         "mean_distance_to_gt_m": float(distances.mean()) if len(distances) else 0.0,
         "median_distance_to_gt_m": float(np.median(distances)) if len(distances) else 0.0,
         "mean_conf": float(conf.mean()) if len(conf) else 0.0,
         "runtime_seconds": float(pack["runtime_seconds"]),
-        **pack.get("rsdh_stats", {}),
+        **pack.get("photo_stats", {}),
     }
 
 
@@ -460,63 +679,190 @@ def candidate_label_metrics(prob, labels, threshold):
     return {"label_precision": float(precision), "label_recall": float(recall), "label_f1": float(f1)}
 
 
-def best_label_threshold(prob, labels):
-    best = {"threshold": 0.5, "label_f1": -1.0}
-    for threshold in np.linspace(0.05, 0.95, 19):
-        metrics = candidate_label_metrics(prob, labels, threshold)
-        if metrics["label_f1"] > best["label_f1"]:
-            best = {"threshold": float(threshold), **metrics}
-    return best
+def feature_standardization(records):
+    features = np.concatenate([record["features"] for record in records], axis=0)
+    mean = features.mean(axis=0).astype(np.float32)
+    std = features.std(axis=0).astype(np.float32)
+    std[std < 1e-5] = 1.0
+    return mean, std
 
 
-def train_model(x_all, y_all):
-    rng = np.random.default_rng(SEED)
-    order = rng.permutation(len(y_all))
-    split = int(0.80 * len(order))
-    train_idx, val_idx = order[:split], order[split:]
-    x_train, y_train = x_all[train_idx], y_all[train_idx]
-    x_val, y_val = x_all[val_idx], y_all[val_idx]
-    device = safe_device()
-    model = JointCandidateAcceptanceHead(x_all.shape[1]).to(device)
-    opt = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=1e-4)
-    pos = float(y_train.sum())
-    neg = float(len(y_train) - pos)
-    pos_weight = torch.tensor([neg / max(pos, 1.0)], device=device)
-    x_train_t = torch.from_numpy(x_train).to(device)
-    y_train_t = torch.from_numpy(y_train).to(device)
-    x_val_t = torch.from_numpy(x_val).to(device)
-    history = []
-    for epoch in range(1, EPOCHS + 1):
-        model.train()
-        order = rng.permutation(len(y_train))
-        losses = []
-        for start in range(0, len(order), BATCH_SIZE):
-            idx = torch.from_numpy(order[start : start + BATCH_SIZE]).long().to(device)
-            logits = model(x_train_t[idx])
-            loss = F.binary_cross_entropy_with_logits(logits, y_train_t[idx], pos_weight=pos_weight)
-            opt.zero_grad(set_to_none=True)
-            loss.backward()
-            opt.step()
-            losses.append(float(loss.detach().cpu()))
-        model.eval()
-        with torch.no_grad():
-            prob = torch.sigmoid(model(x_val_t)).detach().cpu().numpy()
-        best = best_label_threshold(prob, y_val)
-        row = {"epoch": epoch, "train_loss": float(np.mean(losses)), **best}
-        history.append(row)
-        print("Run 27 train row:", row)
-    return model, history
+def score_logits(model, raw_features, mean_t, std_t):
+    normalized = (raw_features - mean_t) / std_t
+    residual = model(normalized)
+    conf_rank = raw_features[:, CONF_RANK_INDEX].clamp(1e-3, 1.0 - 1e-3)
+    confidence_logit = torch.log(conf_rank) - torch.log1p(-conf_rank)
+    return confidence_logit + residual, residual
 
 
-def predict_prob(model, features):
+def reconstruction_aware_group_loss(model, record, mean_t, std_t):
+    device = mean_t.device
+    raw = torch.from_numpy(record["features"]).float().to(device)
+    labels = torch.from_numpy(record["labels"]).float().to(device)
+    coverage = torch.from_numpy(record["coverage_mass"]).float().to(device)
+    occluded_positive = torch.from_numpy(record["occluded_positive"]).float().to(device)
+    ambiguity_negative = torch.from_numpy(record["ambiguity_negative"]).float().to(device)
+    logits, residual = score_logits(model, raw, mean_t, std_t)
+
+    sample_weight = 1.0 + 2.0 * occluded_positive + 2.0 * ambiguity_negative
+    bce = F.binary_cross_entropy_with_logits(logits, labels, weight=sample_weight)
+
+    soft_f1_losses = []
+    ratio_losses = []
+    for ratio in TRAIN_RATIOS:
+        threshold = torch.quantile(logits.detach(), 1.0 - ratio)
+        keep = torch.sigmoid((logits - threshold) / SOFT_TOPK_TEMPERATURE)
+        true_positive = torch.sum(keep * labels)
+        soft_precision = true_positive / (torch.sum(keep) + 1e-6)
+        soft_recall = torch.sum(keep * coverage) / max(float(record["num_gt_points"]), 1.0)
+        soft_recall = soft_recall.clamp(0.0, 1.0)
+        soft_f1 = 2.0 * soft_precision * soft_recall / (soft_precision + soft_recall + 1e-6)
+        soft_f1_losses.append(1.0 - soft_f1)
+        ratio_losses.append((keep.mean() - ratio) ** 2)
+
+    positive_priority = coverage + 5.0 * occluded_positive
+    negative_priority = (
+        5.0 * ambiguity_negative
+        + raw[:, CONF_RANK_INDEX] * (labels < 0.5).float()
+    )
+    positive_idx = torch.where(labels > 0.5)[0]
+    negative_idx = torch.where(labels < 0.5)[0]
+    pair_count = min(len(positive_idx), len(negative_idx), 1024)
+    if pair_count:
+        positive_idx = positive_idx[
+            torch.topk(positive_priority[positive_idx], pair_count, largest=True).indices
+        ]
+        negative_idx = negative_idx[
+            torch.topk(negative_priority[negative_idx], pair_count, largest=True).indices
+        ]
+        ranking = F.softplus(0.20 - logits[positive_idx] + logits[negative_idx]).mean()
+    else:
+        ranking = logits.new_tensor(0.0)
+
+    reconstruction_f1 = torch.stack(soft_f1_losses).mean()
+    ratio_loss = torch.stack(ratio_losses).mean()
+    residual_loss = torch.mean(residual * residual)
+    total = (
+        LOSS_WEIGHTS["bce"] * bce
+        + LOSS_WEIGHTS["reconstruction_f1"] * reconstruction_f1
+        + LOSS_WEIGHTS["ranking"] * ranking
+        + LOSS_WEIGHTS["ratio"] * ratio_loss
+        + LOSS_WEIGHTS["residual"] * residual_loss
+    )
+    return total, {
+        "bce_loss": float(bce.detach().cpu()),
+        "reconstruction_f1_loss": float(reconstruction_f1.detach().cpu()),
+        "ranking_loss": float(ranking.detach().cpu()),
+        "ratio_loss": float(ratio_loss.detach().cpu()),
+        "residual_loss": float(residual_loss.detach().cpu()),
+    }
+
+
+def predict_model_score(model, features, feature_mean, feature_std):
     device = next(model.parameters()).device
+    mean_t = torch.from_numpy(feature_mean).float().to(device)
+    std_t = torch.from_numpy(feature_std).float().to(device)
     chunks = []
     model.eval()
     with torch.no_grad():
-        for start in range(0, len(features), BATCH_SIZE * 4):
-            xb = torch.from_numpy(features[start : start + BATCH_SIZE * 4]).to(device)
-            chunks.append(torch.sigmoid(model(xb)).detach().cpu().numpy())
-    return np.concatenate(chunks)
+        for start in range(0, len(features), BATCH_SIZE):
+            raw = torch.from_numpy(features[start : start + BATCH_SIZE]).float().to(device)
+            logits, _residual = score_logits(model, raw, mean_t, std_t)
+            chunks.append(logits.detach().cpu().numpy())
+    return np.concatenate(chunks).astype(np.float32)
+
+
+def internal_reconstruction_validation(model, records, feature_mean, feature_std):
+    rows = []
+    for ratio in TRAIN_RATIOS:
+        fscores = []
+        for record in records:
+            score = predict_model_score(model, record["features"], feature_mean, feature_std)
+            mask, _threshold = exact_topk_mask(score, ratio, tie_breaker=record["conf"])
+            selected = base.downsample(record["points"][mask].astype(np.float32), base.MAX_POINTS)
+            fscores.append(base.compute_metrics(selected, record["gt"])["fscore"])
+        rows.append(
+            {
+                "ratio": ratio,
+                "mean_reconstruction_fscore": float(np.mean(fscores)) if fscores else 0.0,
+            }
+        )
+    return max(rows, key=lambda row: row["mean_reconstruction_fscore"])
+
+
+def train_model(fit_records, internal_val_records, feature_mean, feature_std, model_seed):
+    torch.manual_seed(model_seed)
+    np.random.seed(model_seed)
+    device = safe_device()
+    model = JointCandidateAcceptanceHead(len(FEATURE_NAMES)).to(device)
+    opt = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=1e-4)
+    mean_t = torch.from_numpy(feature_mean).float().to(device)
+    std_t = torch.from_numpy(feature_std).float().to(device)
+    rng = np.random.default_rng(model_seed)
+    history = []
+    best_state = None
+    best_validation = -1.0
+    best_ratio = TRAIN_RATIOS[-1]
+    for epoch in range(1, EPOCHS + 1):
+        model.train()
+        order = rng.permutation(len(fit_records))
+        losses = []
+        components = []
+        for record_idx in order:
+            loss, component = reconstruction_aware_group_loss(
+                model,
+                fit_records[int(record_idx)],
+                mean_t,
+                std_t,
+            )
+            opt.zero_grad(set_to_none=True)
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 5.0)
+            opt.step()
+            losses.append(float(loss.detach().cpu()))
+            components.append(component)
+        validation = internal_reconstruction_validation(
+            model,
+            internal_val_records,
+            feature_mean,
+            feature_std,
+        )
+        row = {
+            "model_seed": model_seed,
+            "epoch": epoch,
+            "train_loss": float(np.mean(losses)),
+            **{
+                key: float(np.mean([component[key] for component in components]))
+                for key in components[0]
+            },
+            "internal_val_best_ratio": validation["ratio"],
+            "internal_val_reconstruction_fscore": validation["mean_reconstruction_fscore"],
+        }
+        history.append(row)
+        print("Run 27 train row:", row)
+        if validation["mean_reconstruction_fscore"] > best_validation:
+            best_validation = validation["mean_reconstruction_fscore"]
+            best_ratio = validation["ratio"]
+            best_state = {
+                key: value.detach().cpu().clone()
+                for key, value in model.state_dict().items()
+            }
+    model.load_state_dict(best_state)
+    return model, history, {
+        "model_seed": model_seed,
+        "best_internal_val_reconstruction_fscore": best_validation,
+        "best_internal_val_ratio": best_ratio,
+    }
+
+
+def predict_ensemble(models, features, feature_mean, feature_std):
+    scores = [
+        predict_model_score(model, features, feature_mean, feature_std)
+        for model in models
+    ]
+    mean_score = np.mean(np.stack(scores, axis=0), axis=0).astype(np.float32)
+    probability = (1.0 / (1.0 + np.exp(-np.clip(mean_score, -20.0, 20.0)))).astype(np.float32)
+    return mean_score, probability
 
 
 def confidence_mask(conf, conf_percent):
@@ -550,7 +896,9 @@ def exact_topk_mask(score, ratio, tie_breaker=None):
 def method_family(method):
     if method in BASELINE_METHODS or method.startswith("confidence_"):
         return "baseline"
-    return "learned_joint_candidate"
+    if method == "rajah_internal_selected":
+        return "learned_gate_candidate"
+    return "learned_diagnostic"
 
 
 def score_selection(points, mask, gt, method, group_row, extra):
@@ -570,7 +918,8 @@ def score_selection(points, mask, gt, method, group_row, extra):
         "view_policy": group_row.get("view_policy"),
         "group_key": group_row.get("group_key"),
         "group_classes": group_row.get("group_classes"),
-        "priority_score": as_float(group_row, "priority_score"),
+        "mean_baseline_m": as_float(group_row, "mean_baseline_m"),
+        "max_baseline_m": as_float(group_row, "max_baseline_m"),
         "method_family": method_family(method),
         "selected_ratio": float(mask.mean()) if len(mask) else 0.0,
         "fallback_all_points": fallback,
@@ -579,10 +928,25 @@ def score_selection(points, mask, gt, method, group_row, extra):
     }
 
 
-def evaluate_group(model, backbone, root, scene_lookup, group_row, out_dir, label_threshold, rsdh_pack):
-    pack = run_group(backbone, root, scene_lookup, group_row, out_dir, rsdh_pack=rsdh_pack)
-    prob = predict_prob(model, pack["features"])
-    label_metrics = candidate_label_metrics(prob, pack["labels"], label_threshold)
+def evaluate_group(
+    models,
+    backbone,
+    root,
+    scene_lookup,
+    group_row,
+    out_dir,
+    feature_mean,
+    feature_std,
+    selected_internal_ratio,
+):
+    pack = run_group(backbone, root, scene_lookup, group_row, out_dir)
+    joint_score, prob = predict_ensemble(
+        models,
+        pack["features"],
+        feature_mean,
+        feature_std,
+    )
+    label_metrics = candidate_label_metrics(prob, pack["labels"], 0.5)
     num_views = as_int(group_row, "num_views")
     final_percent = base.FIXED_FINAL_CONF_BY_VIEW_COUNT.get(num_views, base.CONF_PERCENT)
     conf_final, conf_threshold = confidence_mask(pack["conf"], final_percent)
@@ -596,7 +960,16 @@ def evaluate_group(model, backbone, root, scene_lookup, group_row, out_dir, labe
         "jcah_threshold": "",
         "jcah_score_threshold": "",
         "mean_keep_prob": float(prob.mean()) if len(prob) else 0.0,
-        **pack.get("rsdh_stats", {}),
+        "selected_internal_ratio": selected_internal_ratio,
+        "occluded_positive_ratio": float(pack["occluded_positive"].mean()),
+        "ambiguity_negative_ratio": float(pack["ambiguity_negative"].mean()),
+        "is_occlusion_challenging": int(
+            float(pack["occluded_positive"].mean()) >= OCCLUSION_PROXY_THRESHOLD
+        ),
+        "is_ambiguity_challenging": int(
+            float(pack["ambiguity_negative"].mean()) >= AMBIGUITY_PROXY_THRESHOLD
+        ),
+        **pack.get("photo_stats", {}),
         **label_metrics,
     }
     rows = [
@@ -621,6 +994,26 @@ def evaluate_group(model, backbone, root, scene_lookup, group_row, out_dir, labe
             common_stats,
         ),
     ]
+    internal_mask, internal_threshold = exact_topk_mask(
+        joint_score,
+        selected_internal_ratio,
+        tie_breaker=pack["conf"],
+    )
+    rows.append(
+        score_selection(
+            pack["points"],
+            internal_mask,
+            pack["gt"],
+            "rajah_internal_selected",
+            group_row,
+            {
+                **common_stats,
+                "jcah_ratio": selected_internal_ratio,
+                "jcah_score_threshold": internal_threshold,
+                "target_selected_ratio": selected_internal_ratio,
+            },
+        )
+    )
     for ratio in RANK_RATIOS:
         conf_mask, conf_score_threshold = exact_topk_mask(pack["conf"], ratio)
         rows.append(
@@ -639,7 +1032,7 @@ def evaluate_group(model, backbone, root, scene_lookup, group_row, out_dir, labe
                 },
             )
         )
-        mask, score_threshold = exact_topk_mask(prob, ratio, tie_breaker=pack["conf"])
+        mask, score_threshold = exact_topk_mask(joint_score, ratio, tie_breaker=pack["conf"])
         rows.append(
             score_selection(
                 pack["points"],
@@ -672,7 +1065,7 @@ def evaluate_group(model, backbone, root, scene_lookup, group_row, out_dir, labe
             )
         )
     matched_ratio = float(conf_final.mean())
-    matched_mask, matched_threshold = exact_topk_mask(prob, matched_ratio, tie_breaker=pack["conf"])
+    matched_mask, matched_threshold = exact_topk_mask(joint_score, matched_ratio, tie_breaker=pack["conf"])
     rows.append(
         score_selection(
             pack["points"],
@@ -708,7 +1101,7 @@ def evaluate_group(model, backbone, root, scene_lookup, group_row, out_dir, labe
             },
         )
     )
-    threshold_mask = prob >= label_threshold
+    threshold_mask = prob >= 0.5
     rows.append(
         score_selection(
             pack["points"],
@@ -718,8 +1111,8 @@ def evaluate_group(model, backbone, root, scene_lookup, group_row, out_dir, labe
             group_row,
             {
                 **common_stats,
-                "jcah_threshold": label_threshold,
-                "jcah_score_threshold": label_threshold,
+                "jcah_threshold": 0.5,
+                "jcah_score_threshold": 0.5,
             },
         )
     )
@@ -735,8 +1128,8 @@ def evaluate_group(model, backbone, root, scene_lookup, group_row, out_dir, labe
                 **common_stats,
                 "conf_percent": final_percent,
                 "conf_threshold": conf_threshold,
-                "jcah_threshold": label_threshold,
-                "jcah_score_threshold": label_threshold,
+                "jcah_threshold": 0.5,
+                "jcah_score_threshold": 0.5,
             },
         )
     )
@@ -782,56 +1175,137 @@ def summarize(rows):
     return out
 
 
-def make_gate_decision(summary_rows):
-    val_rows = [r for r in summary_rows if r["split"] == "val"]
-    final = next((r for r in val_rows if r["method"] == "confidence_fixed_final"), None)
-    baselines = [r for r in val_rows if r.get("method_family") == "baseline"]
-    learned = [r for r in val_rows if r.get("method_family") == "learned_joint_candidate"]
-    if not final or not baselines or not learned:
+def summarize_limit_subsets(rows):
+    output = []
+    for split in sorted({row["split"] for row in rows}):
+        split_rows = [row for row in rows if row["split"] == split]
+        group_diagnostics = {}
+        for row in split_rows:
+            group_diagnostics[row["group_key"]] = {
+                "occlusion": float(row.get("occluded_positive_ratio", 0.0)),
+                "ambiguity": float(row.get("ambiguity_negative_ratio", 0.0)),
+            }
+        challenging_count = max(1, int(math.ceil(len(group_diagnostics) / 3.0)))
+        occlusion_keys = {
+            key
+            for key, _diag in sorted(
+                group_diagnostics.items(),
+                key=lambda item: (-item[1]["occlusion"], item[0]),
+            )[:challenging_count]
+        }
+        ambiguity_keys = {
+            key
+            for key, _diag in sorted(
+                group_diagnostics.items(),
+                key=lambda item: (-item[1]["ambiguity"], item[0]),
+            )[:challenging_count]
+        }
+        subset_specs = [
+            ("overall", lambda row: True),
+            ("occlusion_challenging", lambda row: row["group_key"] in occlusion_keys),
+            ("ambiguity_challenging", lambda row: row["group_key"] in ambiguity_keys),
+        ]
+        for subset_name, predicate in subset_specs:
+            subset_rows = [row for row in split_rows if predicate(row)]
+            for method in sorted({row["method"] for row in subset_rows}):
+                method_rows = [row for row in subset_rows if row["method"] == method]
+                output.append(
+                    {
+                        "run": RUN_NAME,
+                        "split": split,
+                        "limit_subset": subset_name,
+                        "method": method,
+                        "method_family": method_family(method),
+                        "num_groups": len(method_rows),
+                        "mean_fscore": float(np.mean([row["fscore"] for row in method_rows])),
+                        "mean_precision": float(np.mean([row["precision"] for row in method_rows])),
+                        "mean_recall": float(np.mean([row["recall"] for row in method_rows])),
+                        "mean_selected_ratio": float(np.mean([row["selected_ratio"] for row in method_rows])),
+                    }
+                )
+    return output
+
+
+def best_subset_comparison(limit_rows, subset_name):
+    rows = [
+        row
+        for row in limit_rows
+        if row["split"] == "val" and row["limit_subset"] == subset_name
+    ]
+    baselines = [row for row in rows if row["method_family"] == "baseline"]
+    learned = [row for row in rows if row["method_family"] == "learned_gate_candidate"]
+    if not baselines or not learned:
+        return None
+    best_baseline = max(baselines, key=lambda row: row["mean_fscore"])
+    learned_row = learned[0]
+    return {
+        "subset": subset_name,
+        "num_groups": learned_row["num_groups"],
+        "best_baseline_method": best_baseline["method"],
+        "best_baseline_fscore": best_baseline["mean_fscore"],
+        "learned_fscore": learned_row["mean_fscore"],
+        "delta": learned_row["mean_fscore"] - best_baseline["mean_fscore"],
+    }
+
+
+def make_gate_decision(summary_rows, limit_rows):
+    val_rows = [row for row in summary_rows if row["split"] == "val"]
+    final = next((row for row in val_rows if row["method"] == "confidence_fixed_final"), None)
+    overall = best_subset_comparison(limit_rows, "overall")
+    occlusion = best_subset_comparison(limit_rows, "occlusion_challenging")
+    ambiguity = best_subset_comparison(limit_rows, "ambiguity_challenging")
+    if not final or not overall or not occlusion or not ambiguity:
         return [
             {
                 "run": RUN_NAME,
                 "selected_method": "confidence_fixed_final",
-                "reason": "No validation rows available for the controlled learned-vs-baseline gate.",
+                "reason": "Missing validation evidence for the overall, occlusion, or ambiguity gate.",
             }
         ]
-    best_baseline = max(baselines, key=lambda r: r["mean_fscore"])
-    best_learned = max(learned, key=lambda r: r["mean_fscore"])
-    delta_vs_best_baseline = best_learned["mean_fscore"] - best_baseline["mean_fscore"]
-    delta_vs_fixed = best_learned["mean_fscore"] - final["mean_fscore"]
-    selected = best_learned["method"] if delta_vs_best_baseline >= GATE_MARGIN_F1 else best_baseline["method"]
+    overall_pass = overall["delta"] >= GATE_MARGIN_F1
+    occlusion_pass = occlusion["delta"] >= 0.0
+    ambiguity_pass = ambiguity["delta"] >= 0.0
+    pass_all_limits = overall_pass and occlusion_pass and ambiguity_pass
+    selected = "rajah_internal_selected" if pass_all_limits else overall["best_baseline_method"]
     return [
         {
             "run": RUN_NAME,
             "selected_method": selected,
-            "best_baseline_method": best_baseline["method"],
-            "best_learned_method": best_learned["method"],
+            "best_baseline_method": overall["best_baseline_method"],
+            "best_learned_method": "rajah_internal_selected",
             "validation_confidence_fixed_fscore": final["mean_fscore"],
-            "validation_best_baseline_fscore": best_baseline["mean_fscore"],
-            "validation_best_learned_fscore": best_learned["mean_fscore"],
-            "delta_vs_confidence_fixed": float(delta_vs_fixed),
-            "delta_vs_best_baseline": float(delta_vs_best_baseline),
+            "validation_best_baseline_fscore": overall["best_baseline_fscore"],
+            "validation_best_learned_fscore": overall["learned_fscore"],
+            "delta_vs_confidence_fixed": float(overall["learned_fscore"] - final["mean_fscore"]),
+            "delta_vs_best_baseline": float(overall["delta"]),
+            "occlusion_num_groups": occlusion["num_groups"],
+            "occlusion_delta_vs_best_baseline": float(occlusion["delta"]),
+            "ambiguity_num_groups": ambiguity["num_groups"],
+            "ambiguity_delta_vs_best_baseline": float(ambiguity["delta"]),
+            "overall_pass": int(overall_pass),
+            "occlusion_non_regression_pass": int(occlusion_pass),
+            "ambiguity_non_regression_pass": int(ambiguity_pass),
+            "pass_all_limits": int(pass_all_limits),
             "gate_margin_f1": GATE_MARGIN_F1,
             "recommendation": (
-                "Use the joint candidate acceptance head for the next held-out full run."
-                if method_family(selected) == "learned_joint_candidate"
-                else "Keep the best non-learned candidate-retention baseline; the joint head did not clear validation."
+                "Use the reconstruction-aware joint acceptance head on the untouched test split."
+                if pass_all_limits
+                else "Keep the best non-learned baseline; at least one overall/occlusion/ambiguity validation condition failed."
             ),
         }
     ]
 
 
-def split_group_selection(group_manifest, final_manifest):
-    train = [
-        r
-        for r in group_manifest
-        if r.get("split") == "train"
-        and any(c in row_classes(r) for c in ["occlusion_core", "occlusion_borderline", "low_overlap_far", "wrong_depth_hard_negative"])
-    ]
-    train = sorted(train, key=lambda r: (-as_float(r, "priority_score"), r.get("scene", ""), as_int(r, "num_views"), r.get("view_policy", "")))
-    eval_groups = [r for r in final_manifest if str(r.get("is_final_eval_candidate", "1")) in {"1", "True", "true"}]
-    eval_groups = sorted(eval_groups, key=lambda r: (r.get("split") != "val", -as_float(r, "priority_score"), r.get("scene", ""), as_int(r, "num_views")))
-    return train[:MAX_TRAIN_GROUPS], eval_groups[:MAX_EVAL_GROUPS]
+def split_group_selection(group_manifest):
+    train = balanced_group_subset(
+        [row for row in group_manifest if row["split"] == "train"],
+        MAX_TRAIN_GROUPS,
+    )
+    eval_groups = balanced_group_subset(
+        [row for row in group_manifest if row["split"] in {"val", "test"}],
+        MAX_EVAL_GROUPS,
+    )
+    return train, eval_groups
 
 
 def main():
@@ -842,128 +1316,201 @@ def main():
     out_dir = Path("/kaggle/working/outputs") / RUN_NAME
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    validate_static_configuration()
     base.require_t4x2()
-    run20_dir = find_run20_dir()
-    group_manifest = read_csv(run20_dir / "subset_group_manifest.csv")
-    final_manifest = read_csv(run20_dir / "final_eval_group_manifest.csv")
-    train_groups, eval_groups = split_group_selection(group_manifest, final_manifest)
-    print("Run 27 train groups:", len(train_groups))
-    for row in train_groups:
-        print("Run 27 selected train group:", row)
-    print("Run 27 eval groups:", len(eval_groups))
-    for row in eval_groups:
-        print("Run 27 selected eval group:", row)
-
     root = base.clone_repo()
     base.install_deps(root)
     posed_root = base.find_posed_images_root()
     scene_dirs = discover_scene_dirs(posed_root)
     scene_lookup = {p.name: p for p in scene_dirs}
+    splits = scene_splits(scene_dirs)
+    group_manifest = build_group_manifest(scene_dirs, splits)
+    train_groups, eval_groups = split_group_selection(group_manifest)
+    fit_groups, internal_val_groups, internal_val_scenes = split_internal_train_groups(train_groups)
+    if not fit_groups or not internal_val_groups or not eval_groups:
+        raise RuntimeError(
+            "Run 27 requires non-empty fit, internal-validation, and external-evaluation groups"
+        )
+    if not any(row["split"] == "val" for row in eval_groups):
+        raise RuntimeError("Run 27 external evaluation must include validation groups")
+    if not any(row["split"] == "test" for row in eval_groups):
+        raise RuntimeError("Run 27 external evaluation must include test groups")
     print("POSED_IMAGES:", posed_root)
     print("SCENE_DIRS:", [str(p) for p in scene_dirs])
+    print("SCENE_SPLITS:", splits)
+    print("Run 27 fit groups:", len(fit_groups))
+    print("Run 27 internal validation groups:", len(internal_val_groups))
+    print("Run 27 internal validation scenes:", internal_val_scenes)
+    print("Run 27 external evaluation groups:", len(eval_groups))
+    for row in fit_groups:
+        print("Run 27 selected fit group:", row)
+    for row in internal_val_groups:
+        print("Run 27 selected internal validation group:", row)
+    for row in eval_groups:
+        print("Run 27 selected external evaluation group:", row)
 
     ckpt_path = base.download_checkpoint(root)
     print("Checkpoint:", ckpt_path)
     backbone = base.load_model(root, ckpt_path)
-    run24_ckpt = rsdh_utils.find_file_from_kernel_source(
-        "rsdh_v2_image_only_head.pt",
-        ["run-24", "run_24", "rsdh-v2-image-only", "image-only"],
-    )
-    rsdh_pack = rsdh_utils.load_rsdh_model(run24_ckpt)
 
-    train_x_parts = []
-    train_y_parts = []
+    fit_records = []
+    internal_val_records = []
     label_summary_rows = []
     for group in train_groups:
-        pack = run_group(backbone, root, scene_lookup, group, out_dir / "train_groups" / group["group_key"], rsdh_pack=rsdh_pack)
-        x_part, y_part = sample_training_rows(
-            pack["features"],
-            pack["labels"],
-            pack["hard_negative"],
-            pack["conf"],
-            MAX_TRAIN_ROWS_PER_GROUP,
-            stable_seed("train-" + group.get("group_key", "")),
+        pack = run_group(
+            backbone,
+            root,
+            scene_lookup,
+            group,
+            out_dir / "train_groups" / group["group_key"],
         )
-        train_x_parts.append(x_part)
-        train_y_parts.append(y_part)
-        label_summary_rows.append(label_summary_row(group, pack, "train"))
+        record = {**pack, "group_row": group}
+        stage = "internal_val" if group["scene"] in internal_val_scenes else "fit"
+        if stage == "fit":
+            fit_records.append(record)
+        else:
+            internal_val_records.append(record)
+        label_summary_rows.append(label_summary_row(group, pack, stage))
         print(
-            "Run 27 train sample:",
+            "Run 27 training group cache:",
             {
                 "group": group.get("group_key"),
-                "rows": len(y_part),
-                "positive_ratio": float(y_part.mean()) if len(y_part) else 0.0,
+                "stage": stage,
+                "rows": len(pack["labels"]),
+                "positive_ratio": float(pack["labels"].mean()) if len(pack["labels"]) else 0.0,
+                "covered_gt_ratio": float(
+                    pack["coverage_mass"].sum() / max(pack["num_gt_points"], 1)
+                ),
             },
         )
-    x_train = np.concatenate(train_x_parts, axis=0)
-    y_train = np.concatenate(train_y_parts, axis=0)
-    if len(y_train) < 1000 or len(np.unique(y_train)) < 2:
-        raise RuntimeError(f"Insufficient Run 27 training rows: rows={len(y_train)} positives={float(y_train.sum())}")
-    print("Run 27 training matrix:", {"rows": len(y_train), "feature_dim": x_train.shape[1], "positive_ratio": float(y_train.mean())})
+    num_fit_rows = sum(len(record["labels"]) for record in fit_records)
+    fit_labels = np.concatenate([record["labels"] for record in fit_records])
+    if num_fit_rows < 1000 or len(np.unique(fit_labels)) < 2:
+        raise RuntimeError(
+            f"Insufficient Run 27 fit rows: rows={num_fit_rows} positives={float(fit_labels.sum())}"
+        )
+    feature_mean, feature_std = feature_standardization(fit_records)
+    print(
+        "Run 27 fit matrix:",
+        {
+            "rows": num_fit_rows,
+            "feature_dim": len(FEATURE_NAMES),
+            "positive_ratio": float(fit_labels.mean()),
+        },
+    )
 
-    model, history = train_model(x_train, y_train)
-    label_threshold = float(history[-1]["threshold"])
+    models = []
+    history = []
+    model_selection_rows = []
+    for model_seed in MODEL_SEEDS:
+        model, model_history, model_selection = train_model(
+            fit_records,
+            internal_val_records,
+            feature_mean,
+            feature_std,
+            model_seed,
+        )
+        models.append(model)
+        history.extend(model_history)
+        model_selection_rows.append(model_selection)
+    ratio_votes = Counter(
+        float(row["best_internal_val_ratio"])
+        for row in model_selection_rows
+    )
+    selected_internal_ratio = ratio_votes.most_common(1)[0][0]
+    print(
+        "Run 27 ensemble selection:",
+        {
+            "model_rows": model_selection_rows,
+            "selected_internal_ratio": selected_internal_ratio,
+        },
+    )
+
     metric_rows = []
     for group in eval_groups:
         rows, label_row = evaluate_group(
-            model,
+            models,
             backbone,
             root,
             scene_lookup,
             group,
             out_dir / "eval_groups" / group["group_key"],
-            label_threshold,
-            rsdh_pack,
+            feature_mean,
+            feature_std,
+            selected_internal_ratio,
         )
         metric_rows.extend(rows)
         label_summary_rows.append(label_row)
 
     summary_rows = summarize(metric_rows)
-    gate_rows = make_gate_decision(summary_rows)
+    limit_summary_rows = summarize_limit_subsets(metric_rows)
+    gate_rows = make_gate_decision(summary_rows, limit_summary_rows)
     write_csv_union(out_dir / "candidate_label_summary.csv", label_summary_rows)
     write_csv_union(out_dir / "training_history.csv", history)
     write_csv_union(out_dir / "metrics.csv", metric_rows)
     write_csv_union(out_dir / "summary.csv", summary_rows)
+    write_csv_union(out_dir / "limit_summary.csv", limit_summary_rows)
     write_csv_union(out_dir / "gate_decision.csv", gate_rows)
     write_csv_union(out_dir / "selected_train_groups.csv", train_groups)
     write_csv_union(out_dir / "selected_eval_groups.csv", eval_groups)
+    write_csv_union(out_dir / "model_selection.csv", model_selection_rows)
+    write_csv_union(
+        out_dir / "scene_split.csv",
+        [{"scene": scene, "split": split} for scene, split in sorted(splits.items())],
+    )
+    write_csv_union(out_dir / "view_group_manifest.csv", group_manifest)
     torch.save(
         {
-            "state_dict": model.state_dict(),
-            "feature_dim": int(x_train.shape[1]),
+            "state_dicts": [model.state_dict() for model in models],
+            "model_seeds": MODEL_SEEDS,
+            "feature_dim": len(FEATURE_NAMES),
             "feature_names": FEATURE_NAMES,
-            "label_threshold": label_threshold,
+            "feature_mean": feature_mean,
+            "feature_std": feature_std,
+            "selected_internal_ratio": selected_internal_ratio,
             "rank_ratios": RANK_RATIOS,
         },
         out_dir / "joint_candidate_acceptance_head.pt",
     )
     config = {
         "run": RUN_NAME,
-        "source_run20_dir": str(run20_dir),
-        "source_run24_checkpoint": str(run24_ckpt),
+        "self_contained": True,
+        "dataset_dependency": "tiantiansyrinx1102/scannet-data",
+        "private_kernel_dependencies": [],
+        "num_scenes": len(scene_dirs),
+        "scene_splits": splits,
         "num_train_groups": len(train_groups),
+        "num_fit_groups": len(fit_records),
+        "num_internal_val_groups": len(internal_val_records),
         "num_eval_groups": len(eval_groups),
         "max_train_groups": MAX_TRAIN_GROUPS,
         "max_eval_groups": MAX_EVAL_GROUPS,
         "max_candidates_per_group": MAX_CANDIDATES_PER_GROUP,
-        "max_train_rows_per_group": MAX_TRAIN_ROWS_PER_GROUP,
-        "num_train_rows": int(len(y_train)),
-        "feature_dim": int(x_train.shape[1]),
+        "num_fit_rows": num_fit_rows,
+        "feature_dim": len(FEATURE_NAMES),
         "feature_names": FEATURE_NAMES,
         "label_positive_threshold_m": LABEL_POS_M,
         "hard_negative_threshold_m": HARD_NEG_M,
+        "model_seeds": MODEL_SEEDS,
+        "train_ratios": TRAIN_RATIOS,
         "rank_ratios": RANK_RATIOS,
-        "label_threshold_from_internal_val": label_threshold,
+        "selected_internal_ratio": selected_internal_ratio,
+        "loss_weights": LOSS_WEIGHTS,
+        "residual_scale": RESIDUAL_SCALE,
+        "soft_topk_temperature": SOFT_TOPK_TEMPERATURE,
+        "occlusion_proxy_threshold": OCCLUSION_PROXY_THRESHOLD,
+        "ambiguity_proxy_threshold": AMBIGUITY_PROXY_THRESHOLD,
         "gate_margin_f1": GATE_MARGIN_F1,
         "runtime_seconds": time.time() - started,
         "note": (
-            "Run 27 is a new branch after the Run 26 stop gate. It jointly targets "
-            "occlusion and repeated/wrong-match failures by training on actual "
-            "MV-DUSt3R reconstruction candidates, using prediction confidence, point "
-            "layout, cross-view geometric support, and Run 24 image-only RSDH match "
-            "scores as inference features. It gates the learned policy against the "
-            "best non-learned candidate-retention baseline, including all-candidates "
-            "and confidence top-k masks."
+            "Run 27 is self-contained and removes the Run 20/24 private-kernel dependency. "
+            "It learns a bounded residual over MV-DUSt3R confidence from actual reconstruction "
+            "candidates using point layout, cross-view geometric support, and aggregated raw "
+            "image-patch consistency. Its differentiable soft-top-k objective approximates "
+            "reconstruction precision and GT-surface coverage recall, with extra ranking weight "
+            "for low-support valid occluded points and high-confidence wrong-depth negatives. "
+            "Scene-level internal validation selects the keep ratio before the external val/test "
+            "gate, and a three-seed ensemble reduces training variance."
         ),
     }
     (out_dir / "run_config.json").write_text(json.dumps(config, indent=2))
@@ -973,6 +1520,14 @@ def main():
     print("Run 27 summary:")
     for row in summary_rows:
         print(row)
+    print("Run 27 limit summary:")
+    for row in limit_summary_rows:
+        if row["method"] in {
+            "confidence_fixed_final",
+            "all_candidates",
+            "rajah_internal_selected",
+        }:
+            print(row)
     print("Run 27 gate decision:")
     for row in gate_rows:
         print(row)

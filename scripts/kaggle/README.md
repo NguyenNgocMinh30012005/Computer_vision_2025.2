@@ -93,11 +93,15 @@ train small MLP heads on proxy labels generated from ScanNet posed depth:
   candidate-retention baseline. The pasted Run 26 result selects
   `all_candidates` and keeps RSDH v2 out of reconstruction because the best
   learned method only ties the best baseline by keeping all candidates.
-- Run 27 starts a new branch for the two remaining limits. It trains a joint
-  candidate acceptance head on actual MV-DUSt3R candidates, using confidence,
-  self-geometry support, and Run 24 image-only RSDH scores as inference
-  features. It gates the learned policy against `all_candidates` and confidence
-  top-k baselines, so the head must beat candidate retention to pass.
+- Run 27 is the self-contained reconstruction-aware branch for the two
+  remaining limits. It does not depend on private Run 20/24 outputs. It learns
+  a bounded residual over MV-DUSt3R confidence from actual reconstruction
+  candidates, self-geometry support, and aggregated raw image-patch signals.
+  The loss combines candidate BCE, differentiable top-k precision/GT-coverage
+  F-score, hard-negative ranking, keep-ratio calibration, and residual
+  regularization. Scene-level internal validation fixes the keep ratio; the
+  external gate additionally requires non-regression on the hardest occlusion
+  and ambiguity thirds.
 
 Latest pushed kernels:
 
@@ -113,4 +117,4 @@ Latest pushed kernels:
 - Run 24: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-24-rsdh-v2-image-only>
 - Run 25: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-25-rsdh-v2-integration>
 - Run 26: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-26-rsdh-v2-diagnostic-gate>
-- Run 27: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-27-joint-candidate-acceptance>
+- Run 27: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-27-reconstruction-aware-joint-acceptance>

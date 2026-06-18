@@ -262,11 +262,15 @@ Current Phase 3 execution note:
   ties it by keeping all candidates, and the delta over the best baseline is
   0.0000 below the 0.005 margin. Keep RSDH v2 out of the final reconstruction
   policy.
-- Run 27 starts a new solver branch for the remaining occlusion and
-  repeated/wrong-match limits. It trains on actual MV-DUSt3R candidates and
-  uses only inference-available features: confidence, point layout,
-  cross-view self-support, and Run 24 image-only RSDH scores. It must beat the
-  best non-learned candidate-retention baseline to pass.
+- Run 27 is redesigned as a self-contained reconstruction-aware solver for the
+  remaining occlusion and repeated/wrong-match limits. It learns a bounded
+  residual over confidence from actual MV-DUSt3R candidates, point layout,
+  cross-view self-support, and aggregated raw image-patch consistency. Its
+  differentiable top-k objective optimizes candidate precision and GT-surface
+  coverage recall; low-support valid points and high-confidence wrong-depth
+  negatives receive targeted weights. Scene-level internal validation selects
+  the keep ratio, and the external gate requires both an overall gain and
+  non-regression on the hardest occlusion and ambiguity subsets.
 - A strong final claim requires Runs 21--28 to show held-out reconstruction
   improvement on occlusion-heavy and repeated-structure subsets, not only high
   proxy classification F1.

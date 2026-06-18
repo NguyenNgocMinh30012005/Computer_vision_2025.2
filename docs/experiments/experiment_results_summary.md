@@ -404,23 +404,55 @@ v2 out of the reconstruction pipeline. Its Run 24 image-only classifier remains
 a useful proxy result, but it does not yet solve repeated-structure ambiguity in
 actual geometry reconstruction.
 
-## Run 27 Joint Candidate Acceptance
+## Run 27 Reconstruction-Aware Joint Acceptance
 
-Run 27 is the new attempt to solve the two remaining limits together instead of
-continuing the failed Run 26 fine-tune path. It trains one reconstruction-level
-candidate acceptance head on actual MV-DUSt3R candidate points. Its inference
-features combine:
+Run 27 is redesigned to remove both failure sources exposed by Runs 22--26:
+proxy-to-reconstruction domain shift and private upstream kernel dependencies.
+It is self-contained apart from the public ScanNet dataset and MV-DUSt3R
+checkpoint. It creates deterministic scene-level train/validation/test splits
+and trains directly on actual reconstruction candidates.
 
-- MV-DUSt3R confidence and normalized candidate layout,
-- cross-view self-support among predicted points,
-- image-only RSDH v2 match scores from Run 24,
-- no direct `candidate_type`, `visibility_label`, GT residual, or group-class
-  input features.
+The inference features combine:
 
-The gate is deliberately strict: the learned joint head must beat the best
-non-learned candidate-retention baseline, including `all_candidates` and
-confidence top-k masks. This prevents the Run 25/26 failure mode where a learned
-method only appears better because it keeps every candidate.
+- MV-DUSt3R confidence, candidate layout, and cross-view point support;
+- aggregated source/target RGB, grayscale, gradient, correlation, and patch
+  disagreement signals computed directly from the selected images;
+- no Run 20 labels, Run 24 checkpoint, GT residual, candidate type, or
+  scene/group class as an inference feature.
+
+The learned score is a bounded residual over the confidence logit:
+
+```text
+score_i = logit(confidence_rank_i) + 2 tanh(MLP(feature_i))
+```
+
+For each training keep ratio, a differentiable top-k mask `k_i` optimizes a
+soft reconstruction F-score:
+
+```text
+soft_precision = sum(k_i y_i) / sum(k_i)
+soft_recall = sum(k_i coverage_i) / number_of_GT_points
+soft_F1 = 2 soft_precision soft_recall / (soft_precision + soft_recall)
+```
+
+`coverage_i` counts GT surface points for which candidate `i` is the nearest
+valid reconstruction point. The complete objective also includes candidate
+BCE, hard-negative ranking, keep-ratio calibration, and a residual penalty.
+Valid low-support points receive extra weight so occluded geometry is not
+discarded, while high-confidence wrong-depth candidates receive extra negative
+ranking weight.
+
+The keep ratio is selected on held-out training scenes, before external
+validation. Three independently trained heads are ensembled. The final gate
+passes only when the fixed learned policy:
+
+1. beats the best non-learned validation baseline by at least `0.005` F-score;
+2. does not regress on the most occlusion-challenging validation third;
+3. does not regress on the most ambiguity-challenging validation third.
+
+This design prevents both previous false successes: improving proxy labels
+without improving geometry, and matching the baseline only by retaining every
+candidate.
 
 Expected outputs for the submitted remaining runs:
 
@@ -436,7 +468,7 @@ Expected outputs for the submitted remaining runs:
 - Run 24: `split_metrics.csv`, `group_metrics.csv`, `training_history.csv`, `feature_summary.csv`, `gate_decision.csv`, `rsdh_v2_image_only_head.pt`, `run_config.json`
 - Run 25: `metrics.csv`, `summary.csv`, `gate_decision.csv`, `run_config.json`
 - Run 26: `metrics.csv`, `summary.csv`, `gate_decision.csv`, `run_config.json`
-- Run 27: `candidate_label_summary.csv`, `training_history.csv`, `metrics.csv`, `summary.csv`, `gate_decision.csv`, `joint_candidate_acceptance_head.pt`, `run_config.json`
+- Run 27: `candidate_label_summary.csv`, `training_history.csv`, `model_selection.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `scene_split.csv`, `view_group_manifest.csv`, `joint_candidate_acceptance_head.pt`, `run_config.json`
 
 ## Limitations
 

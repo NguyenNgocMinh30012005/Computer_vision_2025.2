@@ -50,7 +50,7 @@ Config nay nen ghi ro:
   run_24_rsdh_v2_image_only/
   run_25_rsdh_v2_reconstruction/
   run_26_rsdh_v2_diagnostic_gate/
-  run_27_joint_candidate_acceptance/
+  run_27_reconstruction_aware_joint_acceptance/
   run_28_final_heldout_learned_eval/
 ```
 
@@ -491,7 +491,7 @@ Run 23 - Train reconstruction-candidate calibration head
 Run 24 - Train RSDH v2 from image-only patch/coordinate features
 Run 25 - Integrate RSDH v2 into reconstruction
 Run 26 - Diagnostic RSDH gate against candidate-retention baselines
-Run 27 - Joint candidate acceptance for occlusion and repeated ambiguity
+Run 27 - Reconstruction-aware joint acceptance for occlusion and repeated ambiguity
 Run 28 - Final held-out learned evaluation
 ```
 
@@ -530,7 +530,7 @@ Da submit cac kernel dau cho phase learned extension:
 | 24 | `mv-dust3r-run-24-rsdh-v2-image-only` | Train RSDH v2 image-only match-validity head tu Run 20 hard-negative labels |
 | 25 | `mv-dust3r-run-25-rsdh-v2-integration` | Tich hop Run 24 RSDH v2 vao reconstruction candidate scoring va gate bang validation reconstruction F-score |
 | 26 | `mv-dust3r-run-26-rsdh-v2-diagnostic-gate` | Them all-candidate/confidence top-k baselines va exact top-k de kiem tra RSDH co thang that khong |
-| 27 | `mv-dust3r-run-27-joint-candidate-acceptance` | Train joint head tren actual candidates voi confidence, self-geometry support, va RSDH scores; gate voi all-candidates/confidence top-k |
+| 27 | `mv-dust3r-run-27-reconstruction-aware-joint-acceptance` | Self-contained training tren actual candidates: confidence residual + geometry support + raw patch consistency + GT-coverage F-score loss; scene-level ratio selection va two-limit gate |
 
 Ket qua hien tai:
 
@@ -546,7 +546,7 @@ Ket qua hien tai:
 - Run 24: chuyen sang limit repeated-structure/wrong-match, train RSDH v2 tu `rsdh_v2_hard_negative_labels.csv` bang image-only patch/coordinate features. Ket qua da pass gate proxy: validation learned F1 0.6954 so voi best image-only baseline 0.6212, test learned F1 0.6596 so voi 0.5517.
 - Run 25: tich hop checkpoint Run 24 vao actual MV-DUSt3R reconstruction candidates. Ket qua khong pass gate: validation fixed confidence 0.1507, best learned 0.1542, delta +0.0035 nho hon margin 0.005. Test co policy RSDH cao hon nhung selected_ratio = 1.0, nen chua chung minh learned ranking thang that.
 - Run 26: diagnostic da xong. Validation chon `all_candidates`: F-score 0.1463 so voi fixed confidence 0.1455; best learned RSDH cung chi dat 0.1463 tai selected_ratio = 1.0, delta vs best baseline = 0.0000 < margin 0.005. Vi vay RSDH v2 khong duoc dung trong final reconstruction pipeline.
-- Run 27: mo nhanh moi de giai quyet dong thoi occlusion va repeated/wrong-match. Run nay train joint candidate acceptance head tren actual MV-DUSt3R candidates, dung confidence, self-geometry support, va Run 24 image-only RSDH scores; chi pass neu validation reconstruction F-score thang best non-learned baseline.
+- Run 27: duoc thiet ke lai thanh kernel self-contained, khong dung private output Run 20/24. Head hoc residual tren confidence tu actual candidates, self-geometry support va raw image-patch consistency. Loss toi uu candidate precision cung GT-surface coverage recall, tang trong so cho occluded positives va high-confidence wrong-depth negatives. Keep ratio duoc chon tren held-out train scenes; gate chi pass neu thang baseline tong the va khong regression tren ca occlusion/ambiguity subsets.
 
 Output can gui lai sau khi Kaggle chay xong:
 
@@ -565,7 +565,7 @@ Output can gui lai sau khi Kaggle chay xong:
 - Run 24: `split_metrics.csv`, `group_metrics.csv`, `training_history.csv`, `feature_summary.csv`, `gate_decision.csv`, `rsdh_v2_image_only_head.pt`, `run_config.json`
 - Run 25: `metrics.csv`, `summary.csv`, `gate_decision.csv`, `run_config.json`
 - Run 26: `metrics.csv`, `summary.csv`, `gate_decision.csv`, `run_config.json`
-- Run 27: `candidate_label_summary.csv`, `training_history.csv`, `metrics.csv`, `summary.csv`, `gate_decision.csv`, `joint_candidate_acceptance_head.pt`, `run_config.json`
+- Run 27: `candidate_label_summary.csv`, `training_history.csv`, `model_selection.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `scene_split.csv`, `view_group_manifest.csv`, `joint_candidate_acceptance_head.pt`, `run_config.json`
 
 Nguyen tac dung:
 
