@@ -9,31 +9,16 @@
     \texttt{scripts/kaggle}
     \item Final validation rerun script with a P100-compatible Torch fallback
     for unstable Kaggle GPU allocation
-    \item Submitted supervised-extension kernels for Run 12--18, including
-    reliability, match-disambiguation, reciprocal-feature, fine-tune-gate, and
-    learned-summary runs
-    \item Submitted Phase 3 label-cache kernel for Run 19 to support stricter
-    occlusion and ambiguity supervision
-    \item Submitted Run 20 subset-mining kernel to prepare balanced OARH v2 and
-    RSDH v2 training/evaluation manifests
-    \item Submitted Run 21 OARH v2 multitask training kernel for keep,
-    visibility, and depth-residual prediction from mined labels
-    \item Submitted Run 22 OARH v2 reconstruction-integration kernel to compare
-    learned candidate filtering against fixed confidence
-    \item Submitted Run 23 reconstruction-candidate calibration kernel after
-    Run 22 showed proxy-to-reconstruction domain shift
-    \item Submitted Run 24 RSDH v2 image-only kernel for repeated-structure
-    match-validity learning
-    \item Submitted Run 25 RSDH v2 reconstruction-integration kernel to test
-    whether image-only match validity improves geometry F-score
-    \item Submitted Run 26 RSDH v2 diagnostic-gate kernel with all-candidate
-    and confidence top-k baselines; gate keeps RSDH out of reconstruction
-    \item Redesigned Run 27 as a self-contained reconstruction-aware ensemble
-    with confidence residual learning, GT-coverage loss, and separate
-    occlusion/ambiguity validation safeguards
-    \item Run 27 gate selects all-candidate retention; added the Run 28
-    source-ray correction plan to repair wrong depth without deleting valid
-    occluded geometry
+    \item Submitted supervised-extension kernels for Run 12--18 and Phase 3
+    label/subset kernels for Runs 19--20
+    \item Submitted OARH v2 reconstruction path for Runs 21--23, exposing
+    proxy-to-geometry transfer limits
+    \item Submitted RSDH v2 reconstruction path for Runs 24--26, where proxy
+    match validity fails the geometry gate
+    \item Redesigned Run 27 as a reconstruction-aware ensemble; its gate selects
+    all-candidate retention over learned filtering
+    \item Added Run 28 source-ray correction to repair wrong depth without
+    deleting valid occluded geometry
     \item Clean GitHub repository with curated docs, proposal sources, and PDF
     deck
   \end{itemize}

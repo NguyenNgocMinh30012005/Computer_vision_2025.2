@@ -55,29 +55,14 @@
     occlusion, floating/wrong-depth, and match labels.
     \item Mine occlusion-heavy, low-overlap, and hard-negative subsets before
     training the learned heads.
-    \item Freeze MV-DUSt3R+ and train small reliability / match heads on
-    generated GT labels; Run 21 trains the first OARH v2 multitask head from
-    Run 20 labels without direct target-label leakage features.
-    \item Run 22 applies the learned OARH v2 head to reconstruction candidates;
-    the validation gate keeps fixed confidence because proxy labels do not
-    transfer to geometry F-score.
-    \item Run 23 retrains reliability on actual MV-DUSt3R candidate points and
-    nearly recovers fixed confidence only when keeping almost all candidates.
-    \item Run 24 trains RSDH v2 from image-only match features and passes its
-    proxy gate for repeated-structure / wrong-match ambiguity.
-    \item Run 25 integrates the Run 24 RSDH v2 head into reconstruction
-    candidate scoring and keeps it only if validation geometry F-score wins.
-    \item Run 26 adds all-candidate and confidence top-k baselines with exact
-    top-k masks; validation selects all-candidate retention, so RSDH is kept
-    out of the final reconstruction policy.
+    \item Freeze MV-DUSt3R+ and train small OARH / RSDH heads from generated
+    labels, excluding direct target-label leakage features.
+    \item Runs 22--26 move the heads into reconstruction-level validation gates
+    with fixed-confidence, top-k, and all-candidate baselines.
     \item Run 27 is self-contained and learns a bounded confidence residual
-    from actual candidates, self-geometry support, and raw image-patch
-    consistency with a precision--GT-coverage reconstruction objective.
-    \item Its gate requires an overall validation gain and no regression on
-    the hardest occlusion and ambiguity subsets.
-    \item Completed Run 27 still selects all candidates: learned filtering
-    improves over fixed confidence but loses completeness against full
-    retention.
+    from actual candidates, self-geometry support, and raw image-patch cues.
+    \item Completed Run 27 still selects all candidates: learned filtering beats
+    fixed confidence but loses completeness against full retention.
     \item Run 28 therefore preserves candidate count and learns source-ray
     3D corrections from training depth and poses, using no depth at inference.
     \item Only if a future learned gate improves validation, unfreeze the
