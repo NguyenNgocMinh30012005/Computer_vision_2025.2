@@ -271,6 +271,16 @@ Current Phase 3 execution note:
   negatives receive targeted weights. Scene-level internal validation selects
   the keep ratio, and the external gate requires both an overall gain and
   non-regression on the hardest occlusion and ambiguity subsets.
+- Completed Run 27 still selects `all_candidates`: validation F-score is
+  0.1226 for all candidates, 0.1211 for the learned fixed policy, and 0.1149
+  for fixed confidence. This shows that candidate filtering is the wrong
+  operation: removing points loses completeness, and fixed confidence also
+  removes disproportionately valid points.
+- Run 28 therefore preserves candidate count and learns a 3D correction target
+  from the source pixel's ScanNet depth and camera pose. The correction head is
+  supervised on train scenes only and receives no depth at inference. It aims
+  to repair repeated/wrong-depth candidates while retaining valid geometry
+  that appears unsupported in other views because of occlusion.
 - A strong final claim requires Runs 21--28 to show held-out reconstruction
   improvement on occlusion-heavy and repeated-structure subsets, not only high
   proxy classification F1.

@@ -75,6 +75,11 @@
     consistency with a precision--GT-coverage reconstruction objective.
     \item Its gate requires an overall validation gain and no regression on
     the hardest occlusion and ambiguity subsets.
+    \item Completed Run 27 still selects all candidates: learned filtering
+    improves over fixed confidence but loses completeness against full
+    retention.
+    \item Run 28 therefore preserves candidate count and learns source-ray
+    3D corrections from training depth and poses, using no depth at inference.
     \item Only if a future learned gate improves validation, unfreeze the
     confidence head and last decoder blocks for light fine-tuning.
     \item Keep final test clean: no threshold tuning, no checkpoint selection

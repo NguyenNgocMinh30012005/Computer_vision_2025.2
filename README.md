@@ -95,6 +95,7 @@ The staged Kaggle scripts live in `scripts/kaggle/`:
 - `kaggle_run25_rsdh_v2_reconstruction_integration.py`: integrates the Run 24 RSDH v2 checkpoint into reconstruction candidate scoring and gates it against fixed confidence
 - `kaggle_run26_rsdh_v2_diagnostic_gate.py`: reruns the RSDH integration with all-candidate and confidence top-k baselines plus exact top-k tie handling
 - `kaggle_run27_joint_candidate_acceptance.py`: runs a self-contained, reconstruction-aware joint acceptance experiment using confidence residuals, geometry support, raw image-patch consistency, GT-surface coverage loss, scene-level validation, and a three-seed ensemble
+- `kaggle_run28_ray_depth_correction.py`: preserves all candidates and learns source-ray 3D corrections from train-only depth/pose targets, with an inference-only RGB/geometry feature contract and an oracle headroom diagnostic
 
 The notebook sanity check is in `notebooks/kaggle_run0_mvdust3r_sanity.ipynb`.
 
@@ -166,6 +167,14 @@ validation fixes the keep ratio before the external validation/test gate. The
 gate passes only when the learned method beats the best candidate-retention
 baseline overall and does not regress on the hardest occlusion and ambiguity
 subsets.
+
+The completed gate still selects `all_candidates`: validation F-score is
+`0.1226` for all candidates, `0.1211` for the learned policy, and `0.1149` for
+fixed confidence. Test follows the same ordering (`0.1825`, `0.1797`,
+`0.1753`). The result rules out further aggressive candidate filtering.
+Run 28 therefore keeps the candidate count and learns source-ray 3D correction
+targets from training depth/poses, with RGB/multi-view features only at
+inference.
 
 See `docs/experiments/experiment_results_summary.md` and
 `docs/method/supervised_extension_run_order.md`.

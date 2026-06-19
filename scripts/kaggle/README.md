@@ -38,6 +38,7 @@ Run order:
 24. `kaggle_run25_rsdh_v2_reconstruction_integration.py`
 25. `kaggle_run26_rsdh_v2_diagnostic_gate.py`
 26. `kaggle_run27_joint_candidate_acceptance.py`
+27. `kaggle_run28_ray_depth_correction.py`
 
 The final validation script uses fixed thresholds selected before test-time
 evaluation, rather than tuning on the final test rows. Run 11 prefers T4 x2,
@@ -102,6 +103,16 @@ train small MLP heads on proxy labels generated from ScanNet posed depth:
   regularization. Scene-level internal validation fixes the keep ratio; the
   external gate additionally requires non-regression on the hardest occlusion
   and ambiguity thirds.
+- Completed Run 27 selects `all_candidates`. Learned ranking improves over
+  fixed confidence but loses to full retention on validation and test, so Run
+  28 changes the operation from rejection to source-ray supervised 3D
+  correction while preserving candidate count.
+- Run 28 uses source depth and poses only to construct train targets. It aligns
+  those targets into the prediction coordinate system, trains a three-seed
+  residual/trust ensemble, selects correction strength on held-out train
+  scenes, and gates corrected geometry against `all_candidates` on overall,
+  occlusion, and ambiguity validation subsets. The source-depth oracle is
+  diagnostic only and cannot enter model selection.
 
 Latest pushed kernels:
 
@@ -118,3 +129,4 @@ Latest pushed kernels:
 - Run 25: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-25-rsdh-v2-integration>
 - Run 26: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-26-rsdh-v2-diagnostic-gate>
 - Run 27: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-27-reconstruction-aware>
+- Run 28: pending submission under the `nguynnminh` account

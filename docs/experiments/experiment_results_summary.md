@@ -454,6 +454,32 @@ This design prevents both previous false successes: improving proxy labels
 without improving geometry, and matching the baseline only by retaining every
 candidate.
 
+The completed Run 27 gate is negative:
+
+| Split | Method | Mean F-score | Delta vs fixed confidence | Delta vs best baseline | Mean selected ratio |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Val | Fixed confidence | 0.1149 | 0.0000 | -0.0077 | 0.9835 |
+| Val | All candidates | 0.1226 | +0.0077 | 0.0000 | 1.0000 |
+| Val | RAJAH selected ratio | 0.1211 | +0.0062 | -0.0015 | 0.9951 |
+| Test | Fixed confidence | 0.1753 | 0.0000 | -0.0073 | 0.9877 |
+| Test | All candidates | 0.1825 | +0.0073 | 0.0000 | 1.0000 |
+| Test | RAJAH selected ratio | 0.1797 | +0.0044 | -0.0029 | 0.9951 |
+
+Validation selects `all_candidates`. The learned head fails all three strict
+conditions: overall delta `-0.0015`, occlusion-subset delta `-0.0005`, and
+ambiguity-subset delta `-0.0018` against each subset's best baseline. The
+learned ranking is useful relative to fixed confidence and wins strongly on a
+few individual hard groups, but it cannot remove even `0.5%` of candidates
+without losing more recall than it gains in precision.
+
+The main diagnosis is stronger than another failed classifier result:
+`all_candidates` has both higher F-score and higher mean precision than fixed
+confidence. Candidate rejection is therefore the wrong operation for this
+benchmark. The next experiment should preserve candidate count and learn a
+per-candidate 3D correction from the source-pixel depth supervision available
+during training. This can correct repeated/wrong-depth geometry without
+discarding valid points that lack cross-view support because of occlusion.
+
 Expected outputs for the submitted remaining runs:
 
 - Run 15: `match_features.csv`, `feature_summary.csv`, `run_config.json`
@@ -469,6 +495,7 @@ Expected outputs for the submitted remaining runs:
 - Run 25: `metrics.csv`, `summary.csv`, `gate_decision.csv`, `run_config.json`
 - Run 26: `metrics.csv`, `summary.csv`, `gate_decision.csv`, `run_config.json`
 - Run 27: `candidate_label_summary.csv`, `training_history.csv`, `model_selection.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `scene_split.csv`, `view_group_manifest.csv`, `joint_candidate_acceptance_head.pt`, `run_config.json`
+- Run 28: `correction_label_summary.csv`, `training_history.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `ray_depth_correction_head.pt`, `run_config.json`
 
 ## Limitations
 
