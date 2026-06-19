@@ -493,6 +493,7 @@ Run 25 - Integrate RSDH v2 into reconstruction
 Run 26 - Diagnostic RSDH gate against candidate-retention baselines
 Run 27 - Reconstruction-aware joint acceptance for occlusion and repeated ambiguity
 Run 28 - Source-ray supervised 3D correction
+Run 29 - Monodepth source-ray correction
 ```
 
 Chi tiet nam trong:
@@ -532,6 +533,7 @@ Da submit cac kernel dau cho phase learned extension:
 | 26 | `mv-dust3r-run-26-rsdh-v2-diagnostic-gate` | Them all-candidate/confidence top-k baselines va exact top-k de kiem tra RSDH co thang that khong |
 | 27 | `mv-dust3r-run-27-reconstruction-aware` | Self-contained training tren actual candidates: confidence residual + geometry support + raw patch consistency + GT-coverage F-score loss; scene-level ratio selection va two-limit gate |
 | 28 | `mv-dust3r-run-28-ray-depth-correction` | Giu candidate count, hoc residual 3D/depth theo GT source pixel; sua wrong-depth thay vi filtering, gate voi all-candidates tren overall/occlusion/ambiguity |
+| 29 | `mv-dust3r-run-29-monodepth-ray-correction` | Dung pretrained RGB-only monocular depth + known input poses/intrinsics de xap xi source-depth oracle; thu raw/inverse/inv-disparity depth va gate voi all-candidates |
 
 Ket qua hien tai:
 
@@ -550,6 +552,8 @@ Ket qua hien tai:
 - Run 27: duoc thiet ke lai thanh kernel self-contained, khong dung private output Run 20/24. Head hoc residual tren confidence tu actual candidates, self-geometry support va raw image-patch consistency. Loss toi uu candidate precision cung GT-surface coverage recall, tang trong so cho occluded positives va high-confidence wrong-depth negatives. Keep ratio duoc chon tren held-out train scenes; gate chi pass neu thang baseline tong the va khong regression tren ca occlusion/ambiguity subsets.
 - Run 27 result: fail gate co kiem soat. Val all-candidates 0.1226, learned 0.1211, fixed confidence 0.1149; test all-candidates 0.1825, learned 0.1797, fixed 0.1753. Learned thang fixed confidence nhung khong thang candidate retention; ca overall, occlusion va ambiguity conditions deu fail. Vi all-candidates con co precision cao hon fixed confidence, filtering dang loai nham valid points.
 - Run 28: doi bai toan tu point rejection sang source-ray supervised 3D correction. Moi candidate duoc gan target 3D tu depth cua source pixel va camera pose trong train; inference chi dung RGB/multi-view features. Output giu du so diem de bao toan completeness nhung sua depth/position cua wrong matches.
+- Run 28 result: fail gate nhung co oracle headroom lon. Val all-candidates 0.1194, learned ray-depth 0.1139, fixed confidence 0.1123; oracle source-depth 0.1936 overall, 0.2759 occlusion va 0.3263 ambiguity. Learned correction giup ambiguity validation +0.0085 nhung lam occlusion -0.0210, nen chua the claim solved.
+- Run 29: xap xi oracle source-depth bang pretrained monocular depth tu RGB dau vao, khong dung GT depth de sua candidate. Kernel thu raw, inverse va inverse-disparity depth, align qua pose/intrinsics vao he MV-DUSt3R, chon policy tren held-out train scenes va gate tren val/test nhu Run 28.
 
 Output can gui lai sau khi Kaggle chay xong:
 
@@ -570,6 +574,7 @@ Output can gui lai sau khi Kaggle chay xong:
 - Run 26: `metrics.csv`, `summary.csv`, `gate_decision.csv`, `run_config.json`
 - Run 27: `candidate_label_summary.csv`, `training_history.csv`, `model_selection.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `scene_split.csv`, `view_group_manifest.csv`, `joint_candidate_acceptance_head.pt`, `run_config.json`
 - Run 28: `correction_label_summary.csv`, `training_history.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `ray_depth_correction_head.pt`, `run_config.json`
+- Run 29: `correction_label_summary.csv`, `policy_selection.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `run_config.json`
 
 Nguyen tac dung:
 

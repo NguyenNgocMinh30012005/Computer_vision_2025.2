@@ -63,8 +63,18 @@
     from actual candidates, self-geometry support, and raw image-patch cues.
     \item Completed Run 27 still selects all candidates: learned filtering beats
     fixed confidence but loses completeness against full retention.
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}{Limit-Driven Runs}
+  \footnotesize
+  \begin{enumerate}
     \item Run 28 therefore preserves candidate count and learns source-ray
     3D corrections from training depth and poses, using no depth at inference.
+    \item Completed Run 28 still fails the gate, but its source-depth oracle
+    shows large occlusion and ambiguity headroom.
+    \item Run 29 approximates that oracle with RGB-only monocular depth aligned
+    through the input poses and intrinsics.
     \item Only if a future learned gate improves validation, unfreeze the
     confidence head and last decoder blocks for light fine-tuning.
     \item Keep final test clean: no threshold tuning, no checkpoint selection

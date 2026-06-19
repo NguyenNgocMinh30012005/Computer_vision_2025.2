@@ -39,6 +39,7 @@ Run order:
 25. `kaggle_run26_rsdh_v2_diagnostic_gate.py`
 26. `kaggle_run27_joint_candidate_acceptance.py`
 27. `kaggle_run28_ray_depth_correction.py`
+28. `kaggle_run29_monodepth_ray_correction.py`
 
 The final validation script uses fixed thresholds selected before test-time
 evaluation, rather than tuning on the final test rows. Run 11 prefers T4 x2,
@@ -113,6 +114,13 @@ train small MLP heads on proxy labels generated from ScanNet posed depth:
   scenes, and gates corrected geometry against `all_candidates` on overall,
   occlusion, and ambiguity validation subsets. The source-depth oracle is
   diagnostic only and cannot enter model selection.
+- Completed Run 28 keeps `all_candidates`: validation all-candidate F-score is
+  `0.1194`, learned ray-depth correction is `0.1139`, and fixed confidence is
+  `0.1123`. The source-depth oracle is much stronger (`0.1936` overall,
+  `0.2759` occlusion, `0.3263` ambiguity), so Run 29 replaces the small learned
+  correction head with pretrained RGB-only monocular depth aligned through known
+  input poses/intrinsics. It tries raw, inverse, and inverse-disparity variants
+  and gates the selected monodepth correction against the same baselines.
 
 Latest pushed kernels:
 
@@ -129,4 +137,5 @@ Latest pushed kernels:
 - Run 25: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-25-rsdh-v2-integration>
 - Run 26: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-26-rsdh-v2-diagnostic-gate>
 - Run 27: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-27-reconstruction-aware>
-- Run 28: pending submission under the `nguynnminh` account
+- Run 28: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-28-ray-depth-correction>
+- Run 29: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-29-monodepth-ray-correction>

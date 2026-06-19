@@ -480,6 +480,26 @@ per-candidate 3D correction from the source-pixel depth supervision available
 during training. This can correct repeated/wrong-depth geometry without
 discarding valid points that lack cross-view support because of occlusion.
 
+Completed Run 28 is also negative, but it reveals strong correction headroom:
+
+| Split | Method | Mean F-score | Delta vs all candidates |
+| --- | --- | ---: | ---: |
+| Val | Fixed confidence | 0.1123 | -0.0071 |
+| Val | All candidates | 0.1194 | 0.0000 |
+| Val | Learned ray-depth correction | 0.1139 | -0.0056 |
+| Val | Oracle source-depth correction | 0.1936 | +0.0742 |
+| Test | Fixed confidence | 0.1662 | -0.0096 |
+| Test | All candidates | 0.1758 | 0.0000 |
+| Test | Learned ray-depth correction | 0.1700 | -0.0058 |
+| Test | Oracle source-depth correction | 0.2886 | +0.1128 |
+
+The learned correction improves the ambiguity validation subset by `+0.0085`
+against all candidates, but it regresses occlusion by `-0.0210`, so the overall
+gate fails. In contrast, the oracle improves validation occlusion by `+0.1695`
+and ambiguity by `+0.1640`. Run 29 therefore tests pretrained RGB-only
+monocular depth aligned through input poses/intrinsics as a non-GT inference
+approximation to the source-depth oracle.
+
 Expected outputs for the submitted remaining runs:
 
 - Run 15: `match_features.csv`, `feature_summary.csv`, `run_config.json`
@@ -496,6 +516,7 @@ Expected outputs for the submitted remaining runs:
 - Run 26: `metrics.csv`, `summary.csv`, `gate_decision.csv`, `run_config.json`
 - Run 27: `candidate_label_summary.csv`, `training_history.csv`, `model_selection.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `scene_split.csv`, `view_group_manifest.csv`, `joint_candidate_acceptance_head.pt`, `run_config.json`
 - Run 28: `correction_label_summary.csv`, `training_history.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `ray_depth_correction_head.pt`, `run_config.json`
+- Run 29: `correction_label_summary.csv`, `policy_selection.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `run_config.json`
 
 ## Limitations
 

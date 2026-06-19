@@ -96,6 +96,7 @@ The staged Kaggle scripts live in `scripts/kaggle/`:
 - `kaggle_run26_rsdh_v2_diagnostic_gate.py`: reruns the RSDH integration with all-candidate and confidence top-k baselines plus exact top-k tie handling
 - `kaggle_run27_joint_candidate_acceptance.py`: runs a self-contained, reconstruction-aware joint acceptance experiment using confidence residuals, geometry support, raw image-patch consistency, GT-surface coverage loss, scene-level validation, and a three-seed ensemble
 - `kaggle_run28_ray_depth_correction.py`: preserves all candidates and learns source-ray 3D corrections from train-only depth/pose targets, with an inference-only RGB/geometry feature contract and an oracle headroom diagnostic
+- `kaggle_run29_monodepth_ray_correction.py`: approximates the Run 28 source-depth oracle with pretrained RGB-only monocular depth plus input poses/intrinsics, then gates raw/inverse/inverse-disparity correction variants
 
 The notebook sanity check is in `notebooks/kaggle_run0_mvdust3r_sanity.ipynb`.
 
@@ -175,6 +176,14 @@ fixed confidence. Test follows the same ordering (`0.1825`, `0.1797`,
 Run 28 therefore keeps the candidate count and learns source-ray 3D correction
 targets from training depth/poses, with RGB/multi-view features only at
 inference.
+
+Run 28 also fails the validation gate: all candidates reaches `0.1194`, learned
+ray-depth correction reaches `0.1139`, and fixed confidence reaches `0.1123`.
+However, the diagnostic source-depth oracle reaches `0.1936` overall, `0.2759`
+on occlusion-challenging groups, and `0.3263` on ambiguity-challenging groups.
+Run 29 therefore tries to approximate that oracle at inference with pretrained
+RGB-only monocular depth plus known input poses/intrinsics, testing raw,
+inverse, and inverse-disparity depth variants under the same validation gate.
 
 See `docs/experiments/experiment_results_summary.md` and
 `docs/method/supervised_extension_run_order.md`.

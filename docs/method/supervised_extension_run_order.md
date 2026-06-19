@@ -281,7 +281,17 @@ Current Phase 3 execution note:
   supervised on train scenes only and receives no depth at inference. It aims
   to repair repeated/wrong-depth candidates while retaining valid geometry
   that appears unsupported in other views because of occlusion.
-- A strong final claim requires Runs 21--28 to show held-out reconstruction
+- Completed Run 28 does not pass the gate: validation all-candidate F-score is
+  0.1194, learned ray-depth correction is 0.1139, and fixed confidence is
+  0.1123. The learned correction improves ambiguity but regresses occlusion.
+  The source-depth oracle is much stronger at 0.1936 overall, 0.2759 on
+  occlusion, and 0.3263 on ambiguity.
+- Run 29 therefore approximates the oracle with pretrained RGB-only monocular
+  depth at inference. It uses known input camera poses/intrinsics to lift
+  monodepth samples onto source rays, aligns them to the MV-DUSt3R prediction
+  frame, tries raw/inverse/inverse-disparity variants, and gates the selected
+  correction against all-candidate and fixed-confidence baselines.
+- A strong final claim requires Runs 21--29 to show held-out reconstruction
   improvement on occlusion-heavy and repeated-structure subsets, not only high
   proxy classification F1.
 
