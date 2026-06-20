@@ -75,6 +75,10 @@
     shows large occlusion and ambiguity headroom.
     \item Run 29 approximates that oracle with RGB-only monocular depth aligned
     through the input poses and intrinsics.
+    \item Completed Run 29 regresses both occlusion and ambiguity, so RGB-only
+    monodepth is not enough.
+    \item Run 30 makes source depth an explicit RGB-D input and gates
+    full/selective source-ray correction policies.
     \item Only if a future learned gate improves validation, unfreeze the
     confidence head and last decoder blocks for light fine-tuning.
     \item Keep final test clean: no threshold tuning, no checkpoint selection

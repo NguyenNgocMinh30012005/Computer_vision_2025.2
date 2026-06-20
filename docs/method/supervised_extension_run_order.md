@@ -291,7 +291,16 @@ Current Phase 3 execution note:
   monodepth samples onto source rays, aligns them to the MV-DUSt3R prediction
   frame, tries raw/inverse/inverse-disparity variants, and gates the selected
   correction against all-candidate and fixed-confidence baselines.
-- A strong final claim requires Runs 21--29 to show held-out reconstruction
+- Completed Run 29 also fails: validation all-candidate F-score is 0.1208,
+  selected monodepth correction is 0.0949, and fixed confidence is 0.1131.
+  It regresses occlusion by -0.0338 and ambiguity by -0.0520, while the
+  source-depth diagnostic remains much stronger at 0.1979 overall.
+- Run 30 changes the assumption instead of pretending the RGB-only route is
+  solved. It allows source depth maps from the input RGB-D frames at inference,
+  then gates full/selective source-ray correction against all-candidate
+  retention. A pass would solve the two limits under an explicit RGB-D/resource
+  expansion, not under the original RGB-only contract.
+- A strong RGB-only final claim would still require a no-depth run to show held-out reconstruction
   improvement on occlusion-heavy and repeated-structure subsets, not only high
   proxy classification F1.
 

@@ -97,6 +97,7 @@ The staged Kaggle scripts live in `scripts/kaggle/`:
 - `kaggle_run27_joint_candidate_acceptance.py`: runs a self-contained, reconstruction-aware joint acceptance experiment using confidence residuals, geometry support, raw image-patch consistency, GT-surface coverage loss, scene-level validation, and a three-seed ensemble
 - `kaggle_run28_ray_depth_correction.py`: preserves all candidates and learns source-ray 3D corrections from train-only depth/pose targets, with an inference-only RGB/geometry feature contract and an oracle headroom diagnostic
 - `kaggle_run29_monodepth_ray_correction.py`: approximates the Run 28 source-depth oracle with pretrained RGB-only monocular depth plus input poses/intrinsics, then gates raw/inverse/inverse-disparity correction variants
+- `kaggle_run30_rgbd_source_depth_correction.py`: promotes source depth to an explicit RGB-D inference input and gates full/selective source-ray correction policies
 
 The notebook sanity check is in `notebooks/kaggle_run0_mvdust3r_sanity.ipynb`.
 
@@ -184,6 +185,14 @@ on occlusion-challenging groups, and `0.3263` on ambiguity-challenging groups.
 Run 29 therefore tries to approximate that oracle at inference with pretrained
 RGB-only monocular depth plus known input poses/intrinsics, testing raw,
 inverse, and inverse-disparity depth variants under the same validation gate.
+
+Run 29 also fails: selected monodepth correction reaches only `0.0949` on
+validation versus `0.1208` for all candidates, with regressions on occlusion
+(`-0.0338`) and ambiguity (`-0.0520`). The diagnostic source-depth correction
+still reaches `0.1979` validation F-score and improves both limit subsets. Run
+30 therefore tests the resource-expanded solution directly: use input RGB-D
+source depth maps plus poses/intrinsics at inference, then apply full or
+selective source-ray correction without claiming an RGB-only method.
 
 See `docs/experiments/experiment_results_summary.md` and
 `docs/method/supervised_extension_run_order.md`.

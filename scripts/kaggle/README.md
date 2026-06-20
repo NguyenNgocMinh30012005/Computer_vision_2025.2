@@ -40,6 +40,7 @@ Run order:
 26. `kaggle_run27_joint_candidate_acceptance.py`
 27. `kaggle_run28_ray_depth_correction.py`
 28. `kaggle_run29_monodepth_ray_correction.py`
+29. `kaggle_run30_rgbd_source_depth_correction.py`
 
 The final validation script uses fixed thresholds selected before test-time
 evaluation, rather than tuning on the final test rows. Run 11 prefers T4 x2,
@@ -121,6 +122,13 @@ train small MLP heads on proxy labels generated from ScanNet posed depth:
   correction head with pretrained RGB-only monocular depth aligned through known
   input poses/intrinsics. It tries raw, inverse, and inverse-disparity variants
   and gates the selected monodepth correction against the same baselines.
+- Completed Run 29 also keeps `all_candidates`: validation all-candidate
+  F-score is `0.1208`, selected monodepth correction is `0.0949`, and fixed
+  confidence is `0.1131`. The monodepth route regresses occlusion by `-0.0338`
+  and ambiguity by `-0.0520`, while the source-depth diagnostic remains strong
+  at `0.1979`. Run 30 therefore makes the extra resource explicit: input RGB-D
+  source depth maps are allowed at inference, and full/selective source-ray
+  correction policies are gated against all-candidate retention.
 
 Latest pushed kernels:
 
@@ -139,3 +147,4 @@ Latest pushed kernels:
 - Run 27: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-27-reconstruction-aware>
 - Run 28: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-28-ray-depth-correction>
 - Run 29: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-29-monodepth-ray-correction>
+- Run 30: pending submission under the `nguynnminh` account

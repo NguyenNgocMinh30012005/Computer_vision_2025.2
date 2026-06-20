@@ -500,6 +500,27 @@ and ambiguity by `+0.1640`. Run 29 therefore tests pretrained RGB-only
 monocular depth aligned through input poses/intrinsics as a non-GT inference
 approximation to the source-depth oracle.
 
+Completed Run 29 is a stronger negative RGB-only result:
+
+| Split | Method | Mean F-score | Delta vs all candidates |
+| --- | --- | ---: | ---: |
+| Val | All candidates | 0.1208 | 0.0000 |
+| Val | Fixed confidence | 0.1131 | -0.0078 |
+| Val | Selected monodepth correction | 0.0949 | -0.0260 |
+| Val | Source-depth diagnostic | 0.1979 | +0.0771 |
+| Test | All candidates | 0.1786 | 0.0000 |
+| Test | Fixed confidence | 0.1669 | -0.0117 |
+| Test | Selected monodepth correction | 0.1528 | -0.0258 |
+| Test | Source-depth diagnostic | 0.2726 | +0.0940 |
+
+The selected RGB-only monodepth correction regresses validation occlusion by
+`-0.0338` and ambiguity by `-0.0520`. The best diagnostic monodepth variant is
+closer but still below all candidates. Run 30 therefore tests the direct
+resource-expanded solution: allow source depth maps from the input RGB-D frames
+at inference, then gate full/selective source-ray correction policies. Passing
+Run 30 would solve the two remaining limits only under an explicit RGB-D
+assumption, not as an RGB-only claim.
+
 Expected outputs for the submitted remaining runs:
 
 - Run 15: `match_features.csv`, `feature_summary.csv`, `run_config.json`
@@ -517,6 +538,7 @@ Expected outputs for the submitted remaining runs:
 - Run 27: `candidate_label_summary.csv`, `training_history.csv`, `model_selection.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `scene_split.csv`, `view_group_manifest.csv`, `joint_candidate_acceptance_head.pt`, `run_config.json`
 - Run 28: `correction_label_summary.csv`, `training_history.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `ray_depth_correction_head.pt`, `run_config.json`
 - Run 29: `correction_label_summary.csv`, `policy_selection.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `run_config.json`
+- Run 30: `correction_label_summary.csv`, `policy_selection.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `run_config.json`
 
 ## Limitations
 
