@@ -147,4 +147,4 @@ Latest pushed kernels:
 - Run 27: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-27-reconstruction-aware>
 - Run 28: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-28-ray-depth-correction>
 - Run 29: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-29-monodepth-ray-correction>
-- Run 30: pending submission under the `nguynnminh` account
+- Run 30: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-30-rgbd-source-depth-correction>
