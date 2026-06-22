@@ -204,6 +204,7 @@ Do not enforce consistency through occluded views.
 | 29 | Monodepth source-ray correction | Approximate the source-depth oracle with RGB-only monodepth and input poses/intrinsics |
 | 30 | RGB-D source-depth correction | Make source depth an explicit inference input and gate full/selective source-ray correction |
 | 31 | RGB-D coverage stress test | Freeze the Run 30 policy and test more 3/4/5-view groups per scene without dense-frame inference |
+| 32 | Direct RGB-D backprojection | Back-project source depth without MV-DUSt3R+ and compare against Run 30 on identical groups |
 
 Minimum viable version if time is short:
 
@@ -338,6 +339,8 @@ Current Phase 3 execution note:
 - Run 31 is a post-method coverage check. It does not train a head or select a
   policy; it measures whether the fixed Run 30 gain persists over 360
   sparse-view groups.
+- Run 32 is a no-learning depth baseline. It tests whether source depth itself,
+  rather than MV-DUSt3R+ candidate correction, dominates the final result.
 
 ## Dataset Split
 

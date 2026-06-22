@@ -26,6 +26,14 @@ mv-dust3r-run-31-rgbd-coverage-stress-test
 It freezes the Run 30 policy and evaluates more sparse-view groups. It must not
 be used to retune the method.
 
+Run 32 is the direct source-depth baseline:
+
+```text
+mv-dust3r-run-32-direct-rgbd-backprojection
+```
+
+It does not use MV-DUSt3R+ and mounts Run 30 outputs for an exact comparison.
+
 ## 1. Trang thai setup local
 
 Credential Kaggle da duoc copy vao:
@@ -249,7 +257,7 @@ Output folder:
 /kaggle/working/outputs/run_01_evaluation_pipeline/
 ```
 
-## 7. Run 2-31 mapping
+## 7. Run 2-32 mapping
 
 Dung dung thu tu trong `docs/experiments/experiment_run_order.md`. Runs 2-11
 create the strong RGB-only baseline; Runs 12-29 are diagnostic learned/RGB-only
@@ -272,6 +280,7 @@ experiments; Run 30 is the accepted final RGB-D result.
 | 12-29 | RGB-only learned diagnostics | see `scripts/kaggle/README.md` |
 | 30 | Final RGB-D source-depth correction | `run_30_rgbd_source_depth_correction` |
 | 31 | Frozen-policy RGB-D coverage stress test | `run_31_rgbd_coverage_stress_test` |
+| 32 | Direct RGB-D backprojection baseline | `run_32_direct_rgbd_backprojection_baseline` |
 
 Moi run nen sinh it nhat:
 
@@ -337,3 +346,20 @@ run_config.json
 The expected default coverage is 360 groups over 30 scenes. Review
 `gate_decision.csv` and `stability_summary.csv` before making any stability
 claim.
+
+## 11. Run 32 Direct RGB-D Baseline Output
+
+Run 32 should produce:
+
+```text
+metrics.csv
+summary.csv
+limit_summary.csv
+gate_decision.csv
+qualitative_manifest.csv
+run_config.json
+```
+
+Review the circularity warning in `run_config.json`: current GT clouds and the
+direct baseline use the same selected input depth maps. Do not convert a strong
+Run 32 number into an official benchmark claim.

@@ -630,6 +630,29 @@ outputs are paired F-score deltas versus `all_candidates`, view-count
 breakdowns, and scene-cluster bootstrap 95% confidence intervals. Status:
 submitted/pending result.
 
+## Run 32 Direct RGB-D Backprojection Baseline
+
+Run 32 is a no-MV-DUSt3R+ baseline. For each Run 30 sparse-view group it:
+
+1. reads input RGB, depth, intrinsics, and camera poses;
+2. back-projects every valid source depth pixel into the first-camera frame;
+3. attaches source RGB colors;
+4. applies a fixed 2 cm voxel downsample and 3,500-point cap;
+5. evaluates the same metrics and hard subsets as Run 30.
+
+Direct RGB-D backprojection is not source-depth correction. It is a
+depth-only/RGB-D baseline. Source-depth correction specifically refers to
+correcting MV-DUSt3R+ candidate points using source depth residuals.
+
+The script mounts Run 30 outputs and reports direct-minus-Run-30 deltas. Status:
+submitted/pending result. The final claim remains unchanged until these metrics
+are reviewed.
+
+Evaluation warning: `build_gt_cloud` uses depth PNGs from the same selected
+input views. Direct backprojection and the evaluation target therefore share a
+depth source, so this diagnostic is not an independent full-ScanNet or official
+mesh benchmark.
+
 ## Limitations
 
 - The final solved setting is RGB-D/source-depth, not RGB-only.

@@ -14,7 +14,8 @@ Final status: Run 30 is the final recommended script and final technical
 contribution. It switches the project to sparse posed RGB-D/source-depth
 inference and passes the overall, occlusion, and ambiguity gates. Runs 12-29
 are kept as RGB-only learned diagnostics and negative evidence. Run 31 is a
-coverage stress test of the frozen Run 30 method, not a new method.
+coverage stress test of the frozen Run 30 method. Run 32 is a direct RGB-D
+backprojection baseline without MV-DUSt3R+.
 
 Run order:
 
@@ -48,6 +49,7 @@ Run order:
 28. `kaggle_run29_monodepth_ray_correction.py`
 29. `kaggle_run30_rgbd_source_depth_correction.py`
 30. `kaggle_run31_rgbd_coverage_stress_test.py`
+31. `kaggle_run32_direct_rgbd_backprojection_baseline.py`
 
 The final validation script uses fixed thresholds selected before test-time
 evaluation, rather than tuning on the final test rows. Run 11 prefers T4 x2,
@@ -173,6 +175,26 @@ gate_decision.csv
 run_config.json
 ```
 
+Run 32 directly lifts valid source depth pixels with intrinsics/poses, attaches
+RGB colors, and uses fixed voxel/sampled downsampling at the 3,500-point budget.
+It mounts Run 30 output to compare the same validation/test groups and hard
+subsets without test tuning.
+
+Direct RGB-D backprojection is not source-depth correction. It is a
+depth-only/RGB-D baseline. Source-depth correction specifically refers to
+correcting MV-DUSt3R+ candidate points using source depth residuals.
+
+Run 32 expected outputs:
+
+```text
+metrics.csv
+summary.csv
+limit_summary.csv
+gate_decision.csv
+qualitative_manifest.csv
+run_config.json
+```
+
 Latest pushed kernels:
 
 - Run 15: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-15-mast3r-reciprocal-features>
@@ -192,3 +214,4 @@ Latest pushed kernels:
 - Run 29: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-29-monodepth-ray-correction>
 - Run 30: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-30-rgbd-source-depth-correction>
 - Run 31: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-31-rgbd-coverage-stress-test>
+- Run 32: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-32-direct-rgbd-backprojection>

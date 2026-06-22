@@ -153,3 +153,28 @@
     Submitted/pending result. No additional stability claim is made yet.
   \end{alertblock}
 \end{frame}
+
+\begin{frame}{Direct RGB-D Backprojection Baseline}
+  \footnotesize
+  \begin{block}{Run 32 question}
+    How well does direct depth backprojection reconstruct the same sparse-view
+    groups without MV-DUSt3R+?
+  \end{block}
+
+  \begin{itemize}
+    \item Back-project valid depth with known intrinsics/poses and attach RGB.
+    \item Apply fixed 2 cm voxel downsampling and cap at 3,500 points.
+    \item Reuse Run 30 groups, metrics, and hard subsets; no policy tuning.
+  \end{itemize}
+
+  \begin{alertblock}{Required caution}
+    Direct RGB-D backprojection is not source-depth correction. It is a
+    depth-only/RGB-D baseline. Source-depth correction specifically refers to
+    correcting MV-DUSt3R+ candidate points using source depth residuals.
+  \end{alertblock}
+
+  \begin{block}{Evaluator warning}
+    GT uses the selected input depth maps, so this is not an independent
+    mesh/laser-scan benchmark. Status: submitted/pending result.
+  \end{block}
+\end{frame}

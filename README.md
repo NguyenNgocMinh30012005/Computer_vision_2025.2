@@ -14,10 +14,11 @@ sparse posed RGB-D views
    repeated/wrong-depth ambiguity
 ```
 
-Runs 0-31 are the full experiment history. RGB-only experiments are kept as a
+Runs 0-32 are the full experiment history. RGB-only experiments are kept as a
 strong baseline and negative-analysis track, not as the final solved setting.
 Run 30 is the final technical contribution. Run 31 is a coverage stress test of
-that frozen method, not a new reconstruction method.
+that frozen method. Run 32 adds a direct RGB-D backprojection baseline to test
+whether Run 30 adds value beyond source depth alone.
 
 ## Project Summary
 
@@ -164,6 +165,8 @@ history:
 - Run 30: RGB-D source-depth correction, final accepted contribution.
 - Run 31: frozen-policy coverage stress test with 12 sparse-view groups per
   scene across all 30 scenes.
+- Run 32: direct RGB-D source-depth backprojection without MV-DUSt3R+;
+  comparison against Run 30 is pending.
 
 Final script:
 
@@ -176,6 +179,29 @@ Coverage validation script:
 ```text
 scripts/kaggle/kaggle_run31_rgbd_coverage_stress_test.py
 ```
+
+Direct RGB-D baseline script:
+
+```text
+scripts/kaggle/kaggle_run32_direct_rgbd_backprojection_baseline.py
+```
+
+## Direct RGB-D Backprojection Baseline
+
+Run 32 directly lifts valid input depth pixels into 3D with camera intrinsics
+and poses, attaches source RGB colors, voxel-downsamples to the same 3,500-point
+budget, and evaluates the same Run 30 validation/test groups. It does not use
+MV-DUSt3R+.
+
+Direct RGB-D backprojection is not source-depth correction. It is a
+depth-only/RGB-D baseline. Source-depth correction specifically refers to
+correcting MV-DUSt3R+ candidate points using source depth residuals.
+
+Run 32 also records an evaluator warning: the controlled GT cloud is currently
+built from the same selected input depth maps. Direct backprojection therefore
+shares its depth source with the evaluation target and is not an independent
+mesh/laser-scan benchmark. No claim that Run 30 beats direct RGB-D
+backprojection is made before Run 32 results are reviewed.
 
 Key final-result documents:
 
@@ -209,6 +235,7 @@ Latest final Kaggle kernel:
 
 - [Run 30 RGB-D Source-Depth Correction](https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-30-rgbd-source-depth-correction)
 - [Run 31 RGB-D Coverage Stress Test](https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-31-rgbd-coverage-stress-test)
+- [Run 32 Direct RGB-D Backprojection](https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-32-direct-rgbd-backprojection)
 
 ## Build The Slides
 

@@ -1,4 +1,4 @@
-# Sparse-View RGB-D 3D Reconstruction Project Report Through Run 31
+# Sparse-View RGB-D 3D Reconstruction Project Report Through Run 32
 
 Ngay cap nhat: 2026-06-22
 
@@ -511,6 +511,28 @@ frames and does not tune on the larger evaluation set.
 Run 31 outputs paired per-group deltas and scene-cluster bootstrap confidence
 intervals. Its result is pending and must not be described as passing until the
 Kaggle output is reviewed.
+
+### Direct RGB-D Backprojection Baseline
+
+Run 32 directly back-projects input depth pixels into the first-camera frame,
+attaches RGB colors, and applies a fixed 2 cm voxel downsample with a 3,500-point
+cap. It does not use MV-DUSt3R+ and does not tune on test scenes. Its purpose is
+to determine whether the MV-DUSt3R+ candidate prior plus source-depth correction
+adds value beyond direct source-depth reconstruction.
+
+Direct RGB-D backprojection is not source-depth correction. It is a
+depth-only/RGB-D baseline. Source-depth correction specifically refers to
+correcting MV-DUSt3R+ candidate points using source depth residuals.
+
+Run 32 mounts the Run 30 output and compares `all_candidates`,
+`confidence_fixed_final`, `rgbd_source_depth_selected`, and
+`direct_rgbd_backprojection` on the same groups and hard subsets. Status:
+submitted/pending result. No Run 30-versus-direct claim is made yet.
+
+The present evaluator builds its GT cloud from the depth maps of the same
+selected input views. This creates a circularity advantage for direct
+backprojection and must be reported alongside its metrics. An independent
+mesh/laser-scan target is still required for an official generalization claim.
 
 Possible future work, outside the current final claim:
 

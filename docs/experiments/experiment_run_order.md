@@ -21,6 +21,10 @@ ambiguity gates.
 Run 31 follows as a coverage stress test only. It freezes the Run 30 policy and
 adds more sparse-view groups per scene; it does not search for a new method.
 
+Run 32 adds a direct RGB-D backprojection baseline without MV-DUSt3R+. It tests
+whether Run 30 improves over source depth alone and does not replace Run 30
+before the comparison is reviewed.
+
 ## Global Protocol
 
 Truoc khi chay baseline chinh thuc, can chot mot file config co dinh, vi du:
@@ -506,6 +510,7 @@ Run 28 - Source-ray supervised 3D correction
 Run 29 - RGB-only monodepth source-ray correction
 Run 30 - RGB-D source-depth correction final result
 Run 31 - RGB-D coverage stress test with frozen Run 30 policy
+Run 32 - Direct RGB-D backprojection baseline
 ```
 
 ## Phase 2 - Supervised Learned Extension
@@ -544,6 +549,7 @@ Run 28 - Source-ray supervised 3D correction
 Run 29 - Monodepth source-ray correction
 Run 30 - RGB-D source-depth correction
 Run 31 - RGB-D coverage stress test
+Run 32 - Direct RGB-D backprojection baseline
 ```
 
 Chi tiet nam trong:
@@ -586,6 +592,7 @@ Da submit cac kernel dau cho phase learned extension:
 | 29 | `mv-dust3r-run-29-monodepth-ray-correction` | Dung pretrained RGB-only monocular depth + known input poses/intrinsics de xap xi source-depth oracle; thu raw/inverse/inv-disparity depth va gate voi all-candidates |
 | 30 | `mv-dust3r-run-30-rgbd-source-depth-correction` | Cho phep source depth RGB-D o inference de bien oracle thanh method resource-expanded; gate full/selective source-ray correction voi all-candidates |
 | 31 | `mv-dust3r-run-31-rgbd-coverage-stress-test` | Co dinh policy Run 30, tang len 12 sparse-view groups moi scene tren 30 scenes, va do paired delta + scene-cluster bootstrap CI |
+| 32 | `mv-dust3r-run-32-direct-rgbd-backprojection` | Back-project source depth truc tiep khong dung MV-DUSt3R+, so sanh voi Run 30 tren cung groups, metrics va hard subsets |
 
 Ket qua hien tai:
 
@@ -616,6 +623,10 @@ Ket qua hien tai:
   `rgbd_residual_ge_0.30`, dung 3/4/5 views, hybrid/diversity-aware va hai frame
   variants moi cau hinh. Tong cong 360 groups tren 30 scenes; khong tune policy
   tren coverage set. Status: submitted/pending result.
+- Run 32: direct RGB-D baseline, khong dung MV-DUSt3R+. Depth pixel duoc
+  back-project bang intrinsics/pose, voxel-downsample va cap 3,500 points.
+  Script so sanh truc tiep voi Run 30 neu mounted output san sang. Status:
+  submitted/pending result; khong doi final claim truoc khi doc output.
 
 Output can gui lai sau khi Kaggle chay xong:
 
@@ -639,6 +650,7 @@ Output can gui lai sau khi Kaggle chay xong:
 - Run 29: `correction_label_summary.csv`, `policy_selection.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `run_config.json`
 - Run 30: `correction_label_summary.csv`, `policy_selection.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `run_config.json`
 - Run 31: `group_manifest.csv`, `coverage_summary.csv`, `correction_label_summary.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `paired_group_deltas.csv`, `stability_summary.csv`, `view_count_stability.csv`, `gate_decision.csv`, `run_config.json`
+- Run 32: `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `qualitative_manifest.csv`, `run_config.json`
 
 Nguyen tac dung:
 

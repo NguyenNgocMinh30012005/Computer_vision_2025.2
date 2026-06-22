@@ -128,3 +128,22 @@ Run 31 does not introduce or select a new method. It freezes the Run 30 policy
 The run reports paired F-score deltas against `all_candidates` and
 scene-cluster bootstrap confidence intervals. Results remain pending until the
 Kaggle output is reviewed.
+
+## Direct RGB-D Backprojection Baseline
+
+Run 32 tests whether Run 30 adds value beyond source depth alone. It directly
+back-projects valid depth pixels with intrinsics and camera poses, attaches RGB
+colors, and evaluates a fixed voxel-downsampled cloud without MV-DUSt3R+.
+
+Direct RGB-D backprojection is not source-depth correction. It is a
+depth-only/RGB-D baseline. Source-depth correction specifically refers to
+correcting MV-DUSt3R+ candidate points using source depth residuals.
+
+The comparison uses the same Run 30 validation/test groups and hard subsets.
+Status: submitted/pending result. The final claim is unchanged until the Run 32
+output is reviewed.
+
+Important evaluator limitation: the current controlled GT cloud is built from
+the same selected input depth maps. Direct backprojection therefore shares its
+depth source with the target; this is not an independent official mesh or
+laser-scan evaluation.
