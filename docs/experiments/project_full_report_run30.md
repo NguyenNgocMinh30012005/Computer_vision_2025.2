@@ -1,4 +1,4 @@
-# Sparse-View RGB-D 3D Reconstruction Project Report Through Run 32
+# Sparse-View RGB-D 3D Reconstruction Project Report Through Run 33
 
 Ngay cap nhat: 2026-06-22
 
@@ -26,6 +26,9 @@ Ket luan ngan gon sau Run 30:
   pass reconstruction gate o Run 25/26.
 - Run 30 pass ca hai limit con lai trong final RGB-D/source-depth inference
   setting. Day la final technical contribution, khong phai claim RGB-only.
+- Run 33 tach rieng MV-DUSt3R+ RGB-only baseline tu cac row Run 30 sach
+  (`all_candidates`, `confidence_fixed_final`) va xac nhan Run 30 co gain thuc
+  su so voi MV-DUSt3R+ only.
 
 Noi cach khac: final framing dung la:
 
@@ -464,14 +467,9 @@ source-depth correction passes the overall, occlusion, and ambiguity gates on
 held-out scenes.
 ```
 
-Avoid this wording:
-
-```text
-We solved occlusion and repeated structures in RGB-only sparse-view
-reconstruction.
-```
-
-That stronger claim is not supported by Runs 22-29.
+Avoid claiming a full RGB-only solution for the occlusion and repeated/wrong-depth
+limits. That stronger claim is not supported by Runs 22-29 or by the Run 33
+MV-DUSt3R+ only baseline.
 
 ## 9. Files Used For Latest Result
 
@@ -494,6 +492,18 @@ Run 30 Kaggle kernel:
 
 ```text
 mv-dust3r-run-30-rgbd-source-depth-correction
+```
+
+Latest local Run 33 output folder:
+
+```text
+downloads/kaggle_run33_mvdust3r_only_rgb_baseline/outputs/run_33_mvdust3r_only_rgb_baseline
+```
+
+Run 33 Kaggle kernel:
+
+```text
+mv-dust3r-run-33-mvdust3r-only-rgb-baseline
 ```
 
 ## 10. Final Status And Coverage Follow-Up
@@ -548,6 +558,31 @@ from the same input-depth distribution used to build the proxy target. This is
 evaluator-circularity evidence, not a new official benchmark result. An
 independent mesh/laser-scan target is still required for an official
 generalization claim.
+
+### MV-DUSt3R+ Only RGB Baseline
+
+Run 33 is a no-rerun diagnostic baseline. It reuses the clean RGB-only rows
+already present in Run 30:
+
+- `all_candidates` -> `mvdust3r_raw_all_candidates`;
+- `confidence_fixed_final` -> `mvdust3r_confidence_fixed`.
+
+Run 33 does not use source depth for inference, source-depth correction, or
+direct RGB-D backprojection. Its `run_config.json` records those flags as
+false and sets the input contract to selected sparse RGB views only.
+
+| Split / subset | MV-DUSt3R+ RGB-only | Run 30 selected | Run 30 - RGB-only |
+| --- | ---: | ---: | ---: |
+| Val overall | 0.1194 | 0.1753 | +0.0559 |
+| Val occlusion | 0.1064 | 0.2522 | +0.1458 |
+| Val ambiguity | 0.1623 | 0.3000 | +0.1377 |
+| Test overall | 0.1758 | 0.2764 | +0.1007 |
+| Test occlusion | 0.2111 | 0.3146 | +0.1035 |
+| Test ambiguity | 0.1621 | 0.2948 | +0.1327 |
+
+Gate outcome: `run30_adds_value_over_mvdust3r_only`. This supports the final
+Run 30 RGB-D/source-depth contribution while keeping the RGB-only limitation
+explicit.
 
 Possible future work, outside the current final claim:
 

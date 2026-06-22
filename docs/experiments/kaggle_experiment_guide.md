@@ -36,6 +36,16 @@ It does not use MV-DUSt3R+ and mounts Run 30 outputs for an exact comparison.
 The completed primary voxel baseline is below Run 30, but the sampled direct
 diagnostic exposes circularity in the controlled depth-derived proxy target.
 
+Run 33 is the MV-DUSt3R+ only RGB baseline diagnostic:
+
+```text
+mv-dust3r-run-33-mvdust3r-only-rgb-baseline
+```
+
+It reuses Run 30 `all_candidates` and `confidence_fixed_final` rows instead of
+rerunning MV-DUSt3R+ inference. Source-depth inference, correction, and direct
+RGB-D backprojection are all disabled in the run config.
+
 ## 1. Trang thai setup local
 
 Credential Kaggle da duoc copy vao:
@@ -259,7 +269,7 @@ Output folder:
 /kaggle/working/outputs/run_01_evaluation_pipeline/
 ```
 
-## 7. Run 2-32 mapping
+## 7. Run 2-33 mapping
 
 Dung dung thu tu trong `docs/experiments/experiment_run_order.md`. Runs 2-11
 create the strong RGB-only baseline; Runs 12-29 are diagnostic learned/RGB-only
@@ -283,6 +293,7 @@ experiments; Run 30 is the accepted final RGB-D result.
 | 30 | Final RGB-D source-depth correction | `run_30_rgbd_source_depth_correction` |
 | 31 | Frozen-policy RGB-D coverage stress test | `run_31_rgbd_coverage_stress_test` |
 | 32 | Direct RGB-D backprojection baseline | `run_32_direct_rgbd_backprojection_baseline` |
+| 33 | MV-DUSt3R+ only RGB baseline | `run_33_mvdust3r_only_rgb_baseline` |
 
 Moi run nen sinh it nhat:
 
@@ -382,3 +393,33 @@ validation overall and `0.8666` test overall because it samples from nearly the
 same depth distribution used to build the proxy target. Treat that as a warning
 that independent mesh/laser-scan GT is required for a fair direct-depth
 benchmark.
+
+## 12. Run 33 MV-DUSt3R+ Only RGB Baseline Output
+
+Run 33 should produce:
+
+```text
+metrics.csv
+summary.csv
+limit_summary.csv
+gate_decision.csv
+run_config.json
+qualitative_manifest.csv
+```
+
+Completed Run 33 result:
+
+| Split / subset | MV-DUSt3R+ RGB-only | Run 30 selected | Run 30 - RGB-only |
+| --- | ---: | ---: | ---: |
+| Val overall | 0.1194 | 0.1753 | +0.0559 |
+| Val occlusion | 0.1064 | 0.2522 | +0.1458 |
+| Val ambiguity | 0.1623 | 0.3000 | +0.1377 |
+| Test overall | 0.1758 | 0.2764 | +0.1007 |
+| Test occlusion | 0.2111 | 0.3146 | +0.1035 |
+| Test ambiguity | 0.1621 | 0.2948 | +0.1327 |
+
+Review `run_config.json` for the source-depth flags. They must remain false:
+Run 33 is selected sparse RGB views only, with MV-DUSt3R+ confidence and no
+source-depth correction. The gate outcome is
+`run30_adds_value_over_mvdust3r_only`; the final claim remains Run 30 RGB-D,
+not RGB-only.

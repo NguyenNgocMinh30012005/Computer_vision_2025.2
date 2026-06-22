@@ -15,7 +15,8 @@ contribution. It switches the project to sparse posed RGB-D/source-depth
 inference and passes the overall, occlusion, and ambiguity gates. Runs 12-29
 are kept as RGB-only learned diagnostics and negative evidence. Run 31 is a
 coverage stress test of the frozen Run 30 method. Run 32 is a direct RGB-D
-backprojection diagnostic without MV-DUSt3R+.
+backprojection diagnostic without MV-DUSt3R+. Run 33 is a final MV-DUSt3R+
+only RGB baseline extraction from clean Run 30 rows.
 
 Run order:
 
@@ -50,6 +51,7 @@ Run order:
 29. `kaggle_run30_rgbd_source_depth_correction.py`
 30. `kaggle_run31_rgbd_coverage_stress_test.py`
 31. `kaggle_run32_direct_rgbd_backprojection_baseline.py`
+32. `kaggle_run33_mvdust3r_only_rgb_baseline.py`
 
 The final validation script uses fixed thresholds selected before test-time
 evaluation, rather than tuning on the final test rows. Run 11 prefers T4 x2,
@@ -210,6 +212,33 @@ qualitative_manifest.csv
 run_config.json
 ```
 
+Run 33 is a no-rerun RGB-only diagnostic. It reuses Run 30
+`all_candidates` and `confidence_fixed_final` metrics, renames them to
+`mvdust3r_raw_all_candidates` and `mvdust3r_confidence_fixed`, and writes
+explicit flags showing no source-depth inference, no source-depth correction,
+and no direct RGB-D backprojection. The best RGB-only MV-DUSt3R+ baseline is
+`mvdust3r_raw_all_candidates`; Run 30 selected still wins:
+
+| Split / subset | MV-DUSt3R+ RGB-only | Run 30 selected | Run 30 - RGB-only |
+| --- | ---: | ---: | ---: |
+| Val overall | 0.1194 | 0.1753 | +0.0559 |
+| Val occlusion | 0.1064 | 0.2522 | +0.1458 |
+| Val ambiguity | 0.1623 | 0.3000 | +0.1377 |
+| Test overall | 0.1758 | 0.2764 | +0.1007 |
+| Test occlusion | 0.2111 | 0.3146 | +0.1035 |
+| Test ambiguity | 0.1621 | 0.2948 | +0.1327 |
+
+Run 33 expected outputs:
+
+```text
+metrics.csv
+summary.csv
+limit_summary.csv
+gate_decision.csv
+run_config.json
+qualitative_manifest.csv
+```
+
 Latest pushed kernels:
 
 - Run 15: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-15-mast3r-reciprocal-features>
@@ -230,3 +259,4 @@ Latest pushed kernels:
 - Run 30: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-30-rgbd-source-depth-correction>
 - Run 31: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-31-rgbd-coverage-stress-test>
 - Run 32: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-32-direct-rgbd-backprojection>
+- Run 33: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-33-mvdust3r-only-rgb-baseline>

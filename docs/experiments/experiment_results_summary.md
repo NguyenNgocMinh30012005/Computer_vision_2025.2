@@ -592,6 +592,7 @@ Expected outputs for the submitted remaining runs:
 - Run 30: `correction_label_summary.csv`, `policy_selection.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `run_config.json`
 - Run 31: `group_manifest.csv`, `coverage_summary.csv`, `correction_label_summary.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `paired_group_deltas.csv`, `stability_summary.csv`, `view_count_stability.csv`, `gate_decision.csv`, `run_config.json`
 - Run 32: `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `qualitative_manifest.csv`, `run_config.json`
+- Run 33: `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `run_config.json`, optional `qualitative_manifest.csv`
 
 ## Run 30 Final RGB-D Source-Depth Correction
 
@@ -667,6 +668,35 @@ scores `0.8500` validation overall and `0.8666` test overall, which confirms
 that direct depth sampling can exploit the proxy-target construction. Do not
 turn that sampled diagnostic into a final method claim without independent
 mesh/laser-scan ground truth.
+
+## Run 33 MV-DUSt3R+ Only RGB Baseline
+
+Run 33 is a final diagnostic baseline for the original RGB-only backbone. It
+does not rerun MV-DUSt3R+ inference. Instead, it reuses the Run 30 rows that do
+not touch source depth:
+
+- `all_candidates` -> `mvdust3r_raw_all_candidates`;
+- `confidence_fixed_final` -> `mvdust3r_confidence_fixed`.
+
+The script writes explicit zero/false flags for source-depth inference,
+source-depth correction, and direct RGB-D backprojection. This makes the input
+contract unambiguous: selected sparse RGB views only, MV-DUSt3R+ confidence,
+and the existing project evaluator.
+
+The best RGB-only MV-DUSt3R+ baseline is `mvdust3r_raw_all_candidates`.
+
+| Split / subset | MV-DUSt3R+ RGB-only | Run 30 selected | Run 30 - RGB-only |
+| --- | ---: | ---: | ---: |
+| Val overall | 0.1194 | 0.1753 | +0.0559 |
+| Val occlusion | 0.1064 | 0.2522 | +0.1458 |
+| Val ambiguity | 0.1623 | 0.3000 | +0.1377 |
+| Test overall | 0.1758 | 0.2764 | +0.1007 |
+| Test occlusion | 0.2111 | 0.3146 | +0.1035 |
+| Test ambiguity | 0.1621 | 0.2948 | +0.1327 |
+
+Run 33 gate outcome is `run30_adds_value_over_mvdust3r_only`. The final claim
+does not change: the project still claims a Run 30 RGB-D/source-depth result,
+not an RGB-only solution for occlusion or repeated/wrong-depth ambiguity.
 
 ## Limitations
 

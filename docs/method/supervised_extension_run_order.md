@@ -4,7 +4,7 @@ This document records the supervised RGB-only experiment phase that followed
 the heuristic ablations. It is retained as diagnostic history; the accepted
 final method is the Run 30 RGB-D/source-depth pipeline.
 
-## Final Status After Run 30
+## Final Status After Run 33
 
 The supervised/RGB-only extension path is now a diagnostic history, not the
 final target. Runs 22-29 showed that RGB-only filtering/correction was
@@ -47,6 +47,11 @@ Sparse posed RGB-D views
 -> Run 30 source-ray correction
 -> refined point cloud
 ```
+
+Run 33 later isolates the MV-DUSt3R+ only RGB baseline by reusing clean Run 30
+`all_candidates` and `confidence_fixed_final` rows. It does not change the
+final status: RGB-only remains diagnostic/baseline evidence, and Run 30 remains
+the accepted RGB-D/source-depth contribution.
 
 Because `Run 11` is already used for final fixed-threshold validation in this repo, this phase starts at `Run 12`.
 
@@ -205,6 +210,7 @@ Do not enforce consistency through occluded views.
 | 30 | RGB-D source-depth correction | Make source depth an explicit inference input and gate full/selective source-ray correction |
 | 31 | RGB-D coverage stress test | Freeze the Run 30 policy and test more 3/4/5-view groups per scene without dense-frame inference |
 | 32 | Direct RGB-D backprojection | Back-project source depth without MV-DUSt3R+ and compare against Run 30 on identical groups |
+| 33 | MV-DUSt3R+ only RGB baseline | Reuse Run 30 RGB-only rows to measure MV-DUSt3R+ without source-depth correction |
 
 Minimum viable version if time is short:
 
@@ -347,6 +353,13 @@ Current Phase 3 execution note:
   test overall because it shares the input-depth source with the proxy target.
   Treat Run 32 as an evaluator-circularity warning unless an independent
   mesh/laser-scan target is used.
+- Run 33 is a no-rerun RGB-only baseline extraction. It confirms that best
+  MV-DUSt3R+ only RGB output (`mvdust3r_raw_all_candidates`) is below Run 30
+  selected on validation overall (0.1194 vs 0.1753), validation occlusion
+  (0.1064 vs 0.2522), validation ambiguity (0.1623 vs 0.3000), test overall
+  (0.1758 vs 0.2764), test occlusion (0.2111 vs 0.3146), and test ambiguity
+  (0.1621 vs 0.2948). This supports the RGB-D/source-depth final claim without
+  turning RGB-only into a solved claim.
 
 ## Dataset Split
 

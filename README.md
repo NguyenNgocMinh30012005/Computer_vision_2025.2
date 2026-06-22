@@ -14,11 +14,13 @@ sparse posed RGB-D views
    repeated/wrong-depth ambiguity
 ```
 
-Runs 0-32 are the full experiment history. RGB-only experiments are kept as a
+Runs 0-33 are the full experiment history. RGB-only experiments are kept as a
 strong baseline and negative-analysis track, not as the final solved setting.
 Run 30 is the final technical contribution. Run 31 is a coverage stress test of
 that frozen method. Run 32 adds a direct RGB-D backprojection diagnostic to test
 the boundary between source-depth correction and depth-only reconstruction.
+Run 33 isolates the MV-DUSt3R+ RGB-only baseline by reusing clean Run 30
+all-candidate and fixed-confidence outputs without source-depth correction.
 
 ## Project Summary
 
@@ -145,7 +147,7 @@ Kaggle Secrets (`HF_TOKEN`) for runs that download from the Hub.
 
 ## Experiment History
 
-The staged Kaggle scripts live in `scripts/kaggle/`. Runs 0-32 are the complete
+The staged Kaggle scripts live in `scripts/kaggle/`. Runs 0-33 are the complete
 history:
 
 - Runs 0-11: baseline, view selection, confidence thresholding, heuristic
@@ -167,6 +169,9 @@ history:
   scene across all 30 scenes.
 - Run 32: direct RGB-D source-depth backprojection without MV-DUSt3R+;
   completed diagnostic baseline and evaluator-circularity check.
+- Run 33: MV-DUSt3R+ only RGB baseline extraction from Run 30 all-candidate
+  and fixed-confidence rows; no source-depth inference, correction, or direct
+  RGB-D backprojection.
 
 Final script:
 
@@ -185,6 +190,40 @@ Direct RGB-D baseline script:
 ```text
 scripts/kaggle/kaggle_run32_direct_rgbd_backprojection_baseline.py
 ```
+
+MV-DUSt3R+ only RGB baseline script:
+
+```text
+scripts/kaggle/kaggle_run33_mvdust3r_only_rgb_baseline.py
+```
+
+## MV-DUSt3R+ Only RGB Baseline
+
+Run 33 is a final diagnostic baseline, not a new reconstruction method. It
+reuses existing Run 30 rows that are already clean MV-DUSt3R+ RGB-only
+outputs:
+
+- `all_candidates` -> `mvdust3r_raw_all_candidates`
+- `confidence_fixed_final` -> `mvdust3r_confidence_fixed`
+
+Run 33 explicitly sets source-depth inference, source-depth correction, and
+direct RGB-D backprojection flags to false in `run_config.json`. It reruns no
+MV-DUSt3R+ inference; it extracts the baseline numbers from Run 30 output so
+the comparison uses the same groups, metrics, and hard subsets.
+
+| Split/subset | Best MV-DUSt3R+ RGB-only | Run 30 RGB-D selected | Delta |
+| --- | ---: | ---: | ---: |
+| Val overall | 0.1194 | 0.1753 | +0.0559 |
+| Val occlusion | 0.1064 | 0.2522 | +0.1458 |
+| Val ambiguity | 0.1623 | 0.3000 | +0.1377 |
+| Test overall | 0.1758 | 0.2764 | +0.1007 |
+| Test occlusion | 0.2111 | 0.3146 | +0.1035 |
+| Test ambiguity | 0.1621 | 0.2948 | +0.1327 |
+
+Gate outcome: `run30_adds_value_over_mvdust3r_only`. This confirms that the
+final RGB-D source-depth correction adds value over MV-DUSt3R+ candidate
+reconstruction alone under the controlled evaluator. It does not change the
+final claim and does not claim the RGB-only setting is solved.
 
 ## Direct RGB-D Backprojection Baseline
 
@@ -255,6 +294,7 @@ Latest final Kaggle kernel:
 - [Run 30 RGB-D Source-Depth Correction](https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-30-rgbd-source-depth-correction)
 - [Run 31 RGB-D Coverage Stress Test](https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-31-rgbd-coverage-stress-test)
 - [Run 32 Direct RGB-D Backprojection](https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-32-direct-rgbd-backprojection)
+- [Run 33 MV-DUSt3R+ Only RGB Baseline](https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-33-mvdust3r-only-rgb-baseline)
 
 ## Build The Slides
 

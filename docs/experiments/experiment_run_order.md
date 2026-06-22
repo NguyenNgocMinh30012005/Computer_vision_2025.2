@@ -2,7 +2,7 @@
 
 File nay quy dinh thu tu chay thi nghiem cho de tai sparse-view 3D reconstruction dua tren MV-DUSt3R+. Muc tieu la chay theo tung lop: dau tien kiem tra pipeline co hoat dong, sau do tao baseline manh, roi moi them view selection, fusion, occlusion va repeated-structure filtering.
 
-## Final Status After Run 30
+## Final Status After Run 33
 
 Run 30 is the final recommended run and the final technical contribution. The
 project now uses a sparse posed RGB-D/source-depth setting:
@@ -25,6 +25,11 @@ Run 32 adds a direct RGB-D backprojection diagnostic without MV-DUSt3R+. Its
 primary voxelized direct baseline is below Run 30, while its sampled diagnostic
 exposes evaluator circularity from sharing the same input-depth source as the
 proxy target. It does not replace Run 30 or create an official benchmark claim.
+
+Run 33 adds a clean MV-DUSt3R+ only RGB baseline by reusing Run 30
+`all_candidates` and `confidence_fixed_final` rows. It reruns no inference and
+uses no source depth for inference, correction, or direct RGB-D backprojection.
+Its gate confirms Run 30 adds value over MV-DUSt3R+ RGB-only outputs.
 
 ## Global Protocol
 
@@ -78,6 +83,9 @@ Config nay nen ghi ro:
   run_28_ray_depth_correction/
   run_29_monodepth_ray_correction/
   run_30_rgbd_source_depth_correction/
+  run_31_rgbd_coverage_stress_test/
+  run_32_direct_rgbd_backprojection_baseline/
+  run_33_mvdust3r_only_rgb_baseline/
 ```
 
 Chi thay doi dung bien dang duoc test trong tung run. Cac thanh phan khac phai giu nguyen de ket qua ablation co y nghia.
@@ -488,7 +496,7 @@ Run 11 - Final validation with fixed thresholds
 
 This creates the strong RGB-only baseline. The full experiment history then
 continues through the learned/diagnostic phase, reaches the final method at Run
-30, and adds coverage validation at Run 31:
+30, then adds coverage and final diagnostic baselines through Run 33:
 
 ```text
 Run 12 - OARH proxy
@@ -512,6 +520,7 @@ Run 29 - RGB-only monodepth source-ray correction
 Run 30 - RGB-D source-depth correction final result
 Run 31 - RGB-D coverage stress test with frozen Run 30 policy
 Run 32 - Direct RGB-D backprojection baseline
+Run 33 - MV-DUSt3R+ only RGB baseline
 ```
 
 ## Phase 2 - Supervised Learned Extension
@@ -551,6 +560,7 @@ Run 29 - Monodepth source-ray correction
 Run 30 - RGB-D source-depth correction
 Run 31 - RGB-D coverage stress test
 Run 32 - Direct RGB-D backprojection baseline
+Run 33 - MV-DUSt3R+ only RGB baseline
 ```
 
 Chi tiet nam trong:
@@ -594,6 +604,7 @@ Da submit cac kernel dau cho phase learned extension:
 | 30 | `mv-dust3r-run-30-rgbd-source-depth-correction` | Cho phep source depth RGB-D o inference de bien oracle thanh method resource-expanded; gate full/selective source-ray correction voi all-candidates |
 | 31 | `mv-dust3r-run-31-rgbd-coverage-stress-test` | Co dinh policy Run 30, tang len 12 sparse-view groups moi scene tren 30 scenes, va do paired delta + scene-cluster bootstrap CI |
 | 32 | `mv-dust3r-run-32-direct-rgbd-backprojection` | Back-project source depth truc tiep khong dung MV-DUSt3R+, so sanh voi Run 30 tren cung groups, metrics va hard subsets |
+| 33 | `mv-dust3r-run-33-mvdust3r-only-rgb-baseline` | Reuse Run 30 all-candidate/fixed-confidence rows de do MV-DUSt3R+ RGB-only baseline khong dung source depth |
 
 Ket qua hien tai:
 
@@ -631,6 +642,12 @@ Ket qua hien tai:
   diagnostic sampled direct dat 0.8500 val overall va 0.8666 test overall vi
   no chia se depth source voi proxy GT; day la canh bao circularity, khong phai
   official benchmark claim.
+- Run 33: MV-DUSt3R+ only RGB baseline, khong rerun inference. Script trich
+  `all_candidates` va `confidence_fixed_final` tu Run 30, doi ten thanh
+  `mvdust3r_raw_all_candidates` va `mvdust3r_confidence_fixed`, va set tat ca
+  source-depth/direct-RGB-D inference flags ve false. Completed gate cho thay
+  Run 30 selected thang best RGB-only MV-DUSt3R+: val overall 0.1753 vs 0.1194,
+  test overall 0.2764 vs 0.1758; occlusion/ambiguity cung tang manh.
 
 Output can gui lai sau khi Kaggle chay xong:
 
@@ -655,6 +672,7 @@ Output can gui lai sau khi Kaggle chay xong:
 - Run 30: `correction_label_summary.csv`, `policy_selection.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `run_config.json`
 - Run 31: `group_manifest.csv`, `coverage_summary.csv`, `correction_label_summary.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `paired_group_deltas.csv`, `stability_summary.csv`, `view_count_stability.csv`, `gate_decision.csv`, `run_config.json`
 - Run 32: `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `qualitative_manifest.csv`, `run_config.json`
+- Run 33: `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `run_config.json`, optional `qualitative_manifest.csv`
 
 Nguyen tac dung:
 

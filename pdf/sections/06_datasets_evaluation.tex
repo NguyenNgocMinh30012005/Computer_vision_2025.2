@@ -1,6 +1,6 @@
 \begin{frame}{Evaluation Data Used}
   \begin{block}{Controlled ScanNet-style RGB-D subset}
-    The reported Runs 19--31 use posed indoor RGB-D scenes with source images,
+    The reported Runs 19--33 use posed indoor RGB-D scenes with source images,
     depth maps, and known camera intrinsics/extrinsics.
   \end{block}
 
@@ -44,6 +44,8 @@
     \item Run 11 remains the strongest RGB-only baseline.
     \item Runs 12--29 are diagnostic and negative evidence.
     \item Run 30 is the final RGB-D/source-depth method.
+    \item Run 33 isolates MV-DUSt3R+ RGB-only outputs as the final backbone
+    baseline.
   \end{itemize}
 \end{frame}
 
@@ -185,5 +187,41 @@
     The sampled diagnostic is very high because GT uses the same selected input
     depth maps; treat it as evaluator-circularity evidence, not an official
     mesh/laser-scan benchmark result.
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Run 33: MV-DUSt3R+ Only RGB Baseline}
+  \scriptsize
+  \begin{block}{Question}
+    How much does MV-DUSt3R+ alone achieve using selected sparse RGB views,
+    without source-depth correction or direct RGB-D backprojection?
+  \end{block}
+
+  \begin{itemize}
+    \item Reuses clean Run 30 \texttt{all\_candidates} and
+    \texttt{confidence\_fixed\_final} rows; no expensive rerun.
+    \item Source-depth inference, correction, and direct RGB-D flags are false.
+    \item Best RGB-only method is \texttt{mvdust3r\_raw\_all\_candidates}.
+  \end{itemize}
+
+  \centering
+  \begin{tabular}{lrrr}
+    \toprule
+    \textbf{Split/subset} & \textbf{RGB-only} & \textbf{Run 30} &
+    \textbf{Delta} \\
+    \midrule
+    Val overall & 0.1194 & 0.1753 & +0.0559 \\
+    Val occlusion & 0.1064 & 0.2522 & +0.1458 \\
+    Val ambiguity & 0.1623 & 0.3000 & +0.1377 \\
+    Test overall & 0.1758 & 0.2764 & +0.1007 \\
+    Test occlusion & 0.2111 & 0.3146 & +0.1035 \\
+    Test ambiguity & 0.1621 & 0.2948 & +0.1327 \\
+    \bottomrule
+  \end{tabular}
+
+  \vspace{0.08cm}
+  \begin{alertblock}{Interpretation}
+    Run 30 adds value over MV-DUSt3R+ RGB-only outputs. The final claim remains
+    RGB-D/source-depth; RGB-only stays a baseline and negative-evidence setting.
   \end{alertblock}
 \end{frame}

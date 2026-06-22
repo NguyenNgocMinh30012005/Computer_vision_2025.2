@@ -10,5 +10,5 @@ scripts.
 Current final project reports:
 
 - `experiments/final_rgbd_result.md`: concise final RGB-D/source-depth result
-- `experiments/project_full_report_run30.md`: project overview, Runs 0-32,
+- `experiments/project_full_report_run30.md`: project overview, Runs 0-33,
   solved limits, RGB-only negative evidence, and the Run 30 RGB-D result

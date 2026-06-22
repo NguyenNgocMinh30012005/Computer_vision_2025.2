@@ -162,3 +162,39 @@ laser-scan evaluation. This warning is concrete in Run 32: the additional
 overall and `0.8666` test overall because the sampled depth cloud is too close
 to the proxy target. Treat that as evaluator-circularity evidence, not as a
 new final method claim.
+
+## MV-DUSt3R+ Only RGB Baseline
+
+Run 33 is complete and answers a narrower baseline question: how much of the
+Run 30 result comes from MV-DUSt3R+ candidate reconstruction alone, without any
+source-depth correction or direct RGB-D backprojection?
+
+It does not rerun expensive inference. It reuses two clean Run 30 RGB-only rows
+on the same validation/test groups:
+
+- `all_candidates` as `mvdust3r_raw_all_candidates`;
+- `confidence_fixed_final` as `mvdust3r_confidence_fixed`.
+
+`run_config.json` explicitly records:
+
+- `uses_source_depth_for_inference = false`;
+- `uses_source_depth_for_correction = false`;
+- `uses_direct_rgbd_backprojection = false`;
+- `backbone = MV-DUSt3R+`;
+- `input_contract = selected sparse RGB views only`.
+
+The best Run 33 RGB-only method is `mvdust3r_raw_all_candidates`.
+
+| Split / subset | MV-DUSt3R+ RGB-only | Run 30 selected | Run 30 - RGB-only |
+| --- | ---: | ---: | ---: |
+| Val overall | 0.1194 | 0.1753 | +0.0559 |
+| Val occlusion | 0.1064 | 0.2522 | +0.1458 |
+| Val ambiguity | 0.1623 | 0.3000 | +0.1377 |
+| Test overall | 0.1758 | 0.2764 | +0.1007 |
+| Test occlusion | 0.2111 | 0.3146 | +0.1035 |
+| Test ambiguity | 0.1621 | 0.2948 | +0.1327 |
+
+Gate outcome: `run30_adds_value_over_mvdust3r_only`. Final claim unchanged:
+RGB-only remains a baseline/diagnostic setting, and Run 30 remains the final
+RGB-D/source-depth result. The evaluator still uses depth-derived proxy targets,
+so this is not a full official benchmark claim.
