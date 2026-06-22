@@ -291,7 +291,7 @@ The pasted Run 21 log shows a strong proxy result:
 Interpretation rule: this is a necessary but not sufficient result. It says the
 OARH v2 head learned the Run 20 labels well on held-out groups. It does not yet
 prove reconstruction improvement, so Run 22 compares OARH-filtered point clouds
-against the fixed-confidence final policy using geometry metrics.
+against the then-current Run 11 RGB-only baseline using geometry metrics.
 
 ## Run 22 OARH v2 Reconstruction Integration
 
@@ -590,6 +590,7 @@ Expected outputs for the submitted remaining runs:
 - Run 28: `correction_label_summary.csv`, `training_history.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `ray_depth_correction_head.pt`, `run_config.json`
 - Run 29: `correction_label_summary.csv`, `policy_selection.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `run_config.json`
 - Run 30: `correction_label_summary.csv`, `policy_selection.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `run_config.json`
+- Run 31: `group_manifest.csv`, `coverage_summary.csv`, `correction_label_summary.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `paired_group_deltas.csv`, `stability_summary.csv`, `view_count_stability.csv`, `gate_decision.csv`, `run_config.json`
 
 ## Run 30 Final RGB-D Source-Depth Correction
 
@@ -610,6 +611,24 @@ The RGB-D gate passes all required conditions:
 - overall validation delta is above `0.005`;
 - occlusion delta is non-negative and large;
 - ambiguity delta is non-negative and large.
+
+## Run 31 RGB-D Coverage Stress Test
+
+Run 31 is a validation-only follow-up. It freezes the selected Run 30 policy
+and increases coverage to 360 sparse-view groups over the same 30 scenes:
+
+```text
+30 scenes
+x 3 view counts (3/4/5)
+x 2 view policies (hybrid/diversity-aware)
+x 2 deterministic frame variants
+= 360 sparse-view groups
+```
+
+No training, policy search, or method selection is performed. The primary
+outputs are paired F-score deltas versus `all_candidates`, view-count
+breakdowns, and scene-cluster bootstrap 95% confidence intervals. Status:
+submitted/pending result.
 
 ## Limitations
 

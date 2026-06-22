@@ -13,7 +13,8 @@ the MV-DUSt3R+ checkpoint.
 Final status: Run 30 is the final recommended script and final technical
 contribution. It switches the project to sparse posed RGB-D/source-depth
 inference and passes the overall, occlusion, and ambiguity gates. Runs 12-29
-are kept as RGB-only learned diagnostics and negative evidence.
+are kept as RGB-only learned diagnostics and negative evidence. Run 31 is a
+coverage stress test of the frozen Run 30 method, not a new method.
 
 Run order:
 
@@ -46,6 +47,7 @@ Run order:
 27. `kaggle_run28_ray_depth_correction.py`
 28. `kaggle_run29_monodepth_ray_correction.py`
 29. `kaggle_run30_rgbd_source_depth_correction.py`
+30. `kaggle_run31_rgbd_coverage_stress_test.py`
 
 The final validation script uses fixed thresholds selected before test-time
 evaluation, rather than tuning on the final test rows. Run 11 prefers T4 x2,
@@ -69,8 +71,8 @@ train small MLP heads on proxy labels generated from ScanNet posed depth:
   expensive MASt3R extraction pass.
 - Run 17 records a validation-based decision on whether light MV-DUSt3R+
   fine-tuning is justified before spending GPU time on backbone updates.
-- Run 18 writes a final learned-extension summary comparing the verified
-  confidence-only final policy against the learned/gated extensions.
+- Run 18 writes a learned-extension summary comparing the then-current Run 11
+  RGB-only baseline against the learned/gated extensions.
 - Run 19 starts the stricter Phase 3 path. It creates a scalable supervised
   label cache with per-view visibility, occlusion, floating/wrong-depth, and
   geometry-consistent match labels for OARH v2 and RSDH v2.
@@ -81,8 +83,8 @@ train small MLP heads on proxy labels generated from ScanNet posed depth:
   predicts point keep/reject, visibility class, and clipped depth residual while
   excluding direct target-label leakage features from the input.
 - Run 22 uses the Run 21 checkpoint on MV-DUSt3R reconstruction candidates and
-  compares OARH v2 filtering against the fixed-confidence final policy on the
-  Run 20 final-eval groups.
+  compares OARH v2 filtering against the Run 11-style fixed-confidence
+  RGB-only baseline on the Run 20 final-eval groups.
 - Run 23 responds to the Run 22 regression by training a reconstruction-candidate
   reliability head on actual MV-DUSt3R candidate points labeled by GT geometry.
   It evaluates learned ranking ratios against fixed confidence and gates the
@@ -150,6 +152,27 @@ gate_decision.csv
 run_config.json
 ```
 
+Run 31 freezes `rgbd_residual_ge_0.30` and evaluates 360 sparse-view groups:
+12 per scene across 30 scenes. It keeps 3/4/5 views, hybrid and
+diversity-aware policies, and two deterministic frame variants per
+configuration. It does not train, tune, or select a new method.
+
+Run 31 expected outputs:
+
+```text
+group_manifest.csv
+coverage_summary.csv
+correction_label_summary.csv
+metrics.csv
+summary.csv
+limit_summary.csv
+paired_group_deltas.csv
+stability_summary.csv
+view_count_stability.csv
+gate_decision.csv
+run_config.json
+```
+
 Latest pushed kernels:
 
 - Run 15: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-15-mast3r-reciprocal-features>
@@ -168,3 +191,4 @@ Latest pushed kernels:
 - Run 28: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-28-ray-depth-correction>
 - Run 29: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-29-monodepth-ray-correction>
 - Run 30: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-30-rgbd-source-depth-correction>
+- Run 31: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-31-rgbd-coverage-stress-test>

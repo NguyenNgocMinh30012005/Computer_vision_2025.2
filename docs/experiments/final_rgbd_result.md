@@ -112,3 +112,19 @@ limit_summary.csv
 gate_decision.csv
 run_config.json
 ```
+
+## Run 31 Coverage Validation
+
+Run 31 does not introduce or select a new method. It freezes the Run 30 policy
+`rgbd_residual_ge_0.30` and increases sparse-view coverage to:
+
+- 30 scenes;
+- 12 groups per scene;
+- 360 groups total;
+- 3, 4, and 5 views;
+- hybrid and diversity-aware selection;
+- two deterministic frame variants per configuration.
+
+The run reports paired F-score deltas against `all_candidates` and
+scene-cluster bootstrap confidence intervals. Results remain pending until the
+Kaggle output is reviewed.

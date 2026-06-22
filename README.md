@@ -1,7 +1,9 @@
-# Sparse-View RGB-D 3D Reconstruction with MV-DUSt3R+ and Source-Depth Correction
+# Sparse-View RGB-D 3D Reconstruction
 
 This repository contains the Computer Vision 2025.2 project on sparse-view
-indoor 3D reconstruction. The final project setting is now RGB-D/source-depth:
+indoor 3D reconstruction. The final technical contribution is Run 30:
+MV-DUSt3R+ candidate reconstruction + input RGB-D source depth maps + known
+camera poses/intrinsics + source-ray correction.
 
 ```text
 sparse posed RGB-D views
@@ -12,23 +14,26 @@ sparse posed RGB-D views
    repeated/wrong-depth ambiguity
 ```
 
-Runs 0-30 are the full experiment history. RGB-only experiments are kept as a
+Runs 0-31 are the full experiment history. RGB-only experiments are kept as a
 strong baseline and negative-analysis track, not as the final solved setting.
-Run 30 is the final technical contribution.
+Run 30 is the final technical contribution. Run 31 is a coverage stress test of
+that frozen method, not a new reconstruction method.
 
-## Portfolio Summary
+## Project Summary
 
 This is my main computer vision research project. The goal is to make
 sparse-view indoor 3D reconstruction more reliable when only a few posed views
 are available and scenes contain occlusion, repeated structures, or weak
 overlap.
 
-The project first builds a strong MV-DUSt3R+ sparse-view baseline with view
-selection and fixed confidence thresholding. It then stress-tests RGB-only
-learned reliability, match-disambiguation, candidate filtering, and monodepth
-correction. Those RGB-only learned extensions do not pass reconstruction-level
-gates. The final Run 30 switches the inference contract to RGB-D/source-depth
-and passes the overall, occlusion, and ambiguity gates.
+The project first builds a strong MV-DUSt3R+ RGB-only baseline with view
+selection and fixed confidence thresholding. Run 11 is the strongest supported
+RGB-only baseline, but it is not the final project method. Runs 12-29 test
+learned heads, match disambiguation, candidate filtering, source-ray
+correction, and monodepth as diagnostics. Those RGB-only extensions do not pass
+the required reconstruction-level gates. Run 30 switches the inference
+contract to RGB-D/source-depth and passes the overall, occlusion, and ambiguity
+gates.
 
 ## Final Supported Claim
 
@@ -97,15 +102,16 @@ Main evidence:
 - Run 30 makes source depth an explicit input and turns that headroom into a
   validated method.
 
-## What Is Still Not Claimed
+## What Is Not Claimed
 
 This repository does not claim:
 
-- RGB-only learned extensions solve occlusion or repeated structures.
+- RGB-only reconstruction solved occlusion or repeated/wrong-depth ambiguity.
 - OARH/RSDH/RAJAH are final reconstruction modules.
 - generic RGB-only monodepth is enough for source-ray correction.
 - full MV-DUSt3R+ backbone fine-tuning was proven useful.
-- the controlled ScanNet-style subset is a definitive full benchmark.
+- full ScanNet++ or official-benchmark generality from the controlled
+  ScanNet-style subset.
 
 Correct limitation framing:
 
@@ -138,12 +144,13 @@ Kaggle Secrets (`HF_TOKEN`) for runs that download from the Hub.
 
 ## Experiment History
 
-The staged Kaggle scripts live in `scripts/kaggle/`. Runs 0-30 are the complete
+The staged Kaggle scripts live in `scripts/kaggle/`. Runs 0-31 are the complete
 history:
 
 - Runs 0-11: baseline, view selection, confidence thresholding, heuristic
   fusion/filtering ablations, final fixed-threshold baseline.
-- Runs 12-18: first OARH/RSDH proxy and validation-gated learned extensions.
+- Runs 12-18: first RGB-only OARH/RSDH diagnostic experiments; no final method
+  was selected from this phase.
 - Runs 19-20: supervised label cache and hard subset mining.
 - Runs 21-23: OARH v2 and reconstruction-candidate calibration, both negative
   at reconstruction level.
@@ -155,11 +162,19 @@ history:
   but strong source-depth oracle headroom.
 - Run 29: RGB-only monodepth correction, negative gate.
 - Run 30: RGB-D source-depth correction, final accepted contribution.
+- Run 31: frozen-policy coverage stress test with 12 sparse-view groups per
+  scene across all 30 scenes.
 
 Final script:
 
 ```text
 scripts/kaggle/kaggle_run30_rgbd_source_depth_correction.py
+```
+
+Coverage validation script:
+
+```text
+scripts/kaggle/kaggle_run31_rgbd_coverage_stress_test.py
 ```
 
 Key final-result documents:
@@ -193,6 +208,7 @@ run_config.json
 Latest final Kaggle kernel:
 
 - [Run 30 RGB-D Source-Depth Correction](https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-30-rgbd-source-depth-correction)
+- [Run 31 RGB-D Coverage Stress Test](https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-31-rgbd-coverage-stress-test)
 
 ## Build The Slides
 

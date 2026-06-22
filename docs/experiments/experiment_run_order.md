@@ -18,6 +18,9 @@ Runs 22-29 showed that RGB-only filtering/correction was insufficient. Run 30
 changes the inference contract to RGB-D and passes the overall, occlusion, and
 ambiguity gates.
 
+Run 31 follows as a coverage stress test only. It freezes the Run 30 policy and
+adds more sparse-view groups per scene; it does not search for a new method.
+
 ## Global Protocol
 
 Truoc khi chay baseline chinh thuc, can chot mot file config co dinh, vi du:
@@ -479,7 +482,8 @@ Run 11 - Final validation with fixed thresholds
 ```
 
 This creates the strong RGB-only baseline. The full experiment history then
-continues through the learned/diagnostic phase and ends at Run 30:
+continues through the learned/diagnostic phase, reaches the final method at Run
+30, and adds coverage validation at Run 31:
 
 ```text
 Run 12 - OARH proxy
@@ -501,6 +505,7 @@ Run 27 - Reconstruction-aware joint acceptance
 Run 28 - Source-ray supervised 3D correction
 Run 29 - RGB-only monodepth source-ray correction
 Run 30 - RGB-D source-depth correction final result
+Run 31 - RGB-D coverage stress test with frozen Run 30 policy
 ```
 
 ## Phase 2 - Supervised Learned Extension
@@ -538,6 +543,7 @@ Run 27 - Reconstruction-aware joint acceptance for occlusion and repeated ambigu
 Run 28 - Source-ray supervised 3D correction
 Run 29 - Monodepth source-ray correction
 Run 30 - RGB-D source-depth correction
+Run 31 - RGB-D coverage stress test
 ```
 
 Chi tiet nam trong:
@@ -579,12 +585,17 @@ Da submit cac kernel dau cho phase learned extension:
 | 28 | `mv-dust3r-run-28-ray-depth-correction` | Giu candidate count, hoc residual 3D/depth theo GT source pixel; sua wrong-depth thay vi filtering, gate voi all-candidates tren overall/occlusion/ambiguity |
 | 29 | `mv-dust3r-run-29-monodepth-ray-correction` | Dung pretrained RGB-only monocular depth + known input poses/intrinsics de xap xi source-depth oracle; thu raw/inverse/inv-disparity depth va gate voi all-candidates |
 | 30 | `mv-dust3r-run-30-rgbd-source-depth-correction` | Cho phep source depth RGB-D o inference de bien oracle thanh method resource-expanded; gate full/selective source-ray correction voi all-candidates |
+| 31 | `mv-dust3r-run-31-rgbd-coverage-stress-test` | Co dinh policy Run 30, tang len 12 sparse-view groups moi scene tren 30 scenes, va do paired delta + scene-cluster bootstrap CI |
 
 Ket qua hien tai:
 
 - Run 12: OARH co validation label F1 cao nhung reconstruction F-score chi tang nhe o 4/5 views va giam manh o 2/3 views. Vi vay khong duoc claim OARH unconditional la thanh cong.
 - Run 13: RSDH proxy dat match F1 tren 0.99 tren held-out scene, nhung day van la proxy label/feature, chua phai full MASt3R repeated-structure solution.
-- Run 14: validation gate tranh duoc cac regression lon o 2/3/5 views, nhung gate 4-view hoi overfit validation proxy va thua confidence-only nhe tren held-out scene. Vi vay final policy van nen la confidence-only fixed threshold; OARH la partial/failed learned ablation can cai tien.
+- Run 14: validation gate tranh duoc cac regression lon o 2/3/5 views, nhung
+  gate 4-view hoi overfit validation proxy va thua confidence-only nhe tren
+  held-out scene. Tai thoi diem nay, Run 11 confidence-only fixed threshold van
+  la RGB-only baseline duoc uu tien; OARH la partial/failed learned ablation can
+  cai tien.
 - Run 15--18: da submit de chay not phase learned extension. Run 15/16 kiem tra reciprocal feature va descriptor/cycle RSDH; Run 17 khong fine-tune mu quang neu validation chua ung ho; Run 18 tao summary cuoi cho bao cao.
 - Run 19: bat dau phase nghiem ngat hon de giai quyet occlusion va repeated structures. Run nay tao label cache truoc, chua train model, de cac run sau khong con dua vao heuristic/proxy mong.
 - Run 20: doc output Run 19 lam kernel source, tao balanced labels/manifests cho OARH v2 va RSDH v2 de train dung vao cac case kho.
@@ -601,6 +612,10 @@ Ket qua hien tai:
 - Run 29: xap xi oracle source-depth bang pretrained monocular depth tu RGB dau vao, khong dung GT depth de sua candidate. Kernel thu raw, inverse va inverse-disparity depth, align qua pose/intrinsics vao he MV-DUSt3R, chon policy tren held-out train scenes va gate tren val/test nhu Run 28.
 - Run 29 result: fail gate ro rang. Val all-candidates 0.1208, selected monodepth 0.0949, fixed confidence 0.1131; occlusion delta -0.0338 va ambiguity delta -0.0520. Source-depth diagnostic van manh: 0.1979 val overall, +0.1263 tren occlusion va +0.1680 tren ambiguity so voi all-candidates.
 - Run 30: chuyen sang RGB-D/resource-expanded setting. Depth map cua input posed frames duoc phep dung o inference de sua source ray; policy duoc chon tren internal train scenes roi gate tren val/test. Completed Run 30 pass gate va la final technical contribution: hai limit con lai duoc giai quyet khi them depth input, khong phai RGB-only.
+- Run 31: coverage stress test, khong phai method moi. Co dinh
+  `rgbd_residual_ge_0.30`, dung 3/4/5 views, hybrid/diversity-aware va hai frame
+  variants moi cau hinh. Tong cong 360 groups tren 30 scenes; khong tune policy
+  tren coverage set. Status: submitted/pending result.
 
 Output can gui lai sau khi Kaggle chay xong:
 
@@ -623,6 +638,7 @@ Output can gui lai sau khi Kaggle chay xong:
 - Run 28: `correction_label_summary.csv`, `training_history.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `ray_depth_correction_head.pt`, `run_config.json`
 - Run 29: `correction_label_summary.csv`, `policy_selection.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `run_config.json`
 - Run 30: `correction_label_summary.csv`, `policy_selection.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `run_config.json`
+- Run 31: `group_manifest.csv`, `coverage_summary.csv`, `correction_label_summary.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `paired_group_deltas.csv`, `stability_summary.csv`, `view_count_stability.csv`, `gate_decision.csv`, `run_config.json`
 
 Nguyen tac dung:
 

@@ -1,4 +1,4 @@
-# Sparse-View RGB-D 3D Reconstruction Project Report Through Run 30
+# Sparse-View RGB-D 3D Reconstruction Project Report Through Run 31
 
 Ngay cap nhat: 2026-06-22
 
@@ -496,15 +496,25 @@ Run 30 Kaggle kernel:
 mv-dust3r-run-30-rgbd-source-depth-correction
 ```
 
-## 10. Final Direction And Possible Follow-Up
+## 10. Final Status And Coverage Follow-Up
 
-Run 30 is the final recommended experiment and the final technical
+Run 30 is the final method-defining experiment and the final technical
 contribution. The report/slides should package it as the accepted RGB-D
-solution for the two hard limits.
+solution for the two hard limits. Run 31 only expands coverage for validation.
+
+Run 31 is a coverage stress test, not a new method. It keeps the Run 30 policy
+fixed and evaluates 12 sparse-view groups per scene over all 30 scenes, for 360
+groups total. Each scene keeps 3/4/5-view groups, hybrid/diversity-aware
+selection, and two frame variants per configuration. It does not use full dense
+frames and does not tune on the larger evaluation set.
+
+Run 31 outputs paired per-group deltas and scene-cluster bootstrap confidence
+intervals. Its result is pending and must not be described as passing until the
+Kaggle output is reviewed.
 
 Possible future work, outside the current final claim:
 
-1. Add qualitative figures for Run 30 source-depth correction.
+1. Add qualitative figures for Run 30/31 source-depth correction.
 2. If the project later returns to RGB-only, design a new metric depth
    calibration or indoor-depth fine-tuning run, because Run 29 shows generic
    monodepth is not enough.

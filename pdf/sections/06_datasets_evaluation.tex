@@ -1,45 +1,50 @@
-\begin{frame}{Datasets}
+\begin{frame}{Evaluation Data Used}
+  \begin{block}{Controlled ScanNet-style RGB-D subset}
+    The reported Runs 19--31 use posed indoor RGB-D scenes with source images,
+    depth maps, and known camera intrinsics/extrinsics.
+  \end{block}
+
+  \vspace{0.18cm}
   \begin{columns}[T]
-    \column{0.42\textwidth}
-    \begin{block}{Primary dataset: ScanNet++}
-      High-fidelity indoor scenes with registered DSLR images and commodity
-      iPhone captures.
-    \end{block}
-
-    \begin{block}{Secondary dataset: DTU}
-      Controlled object-centric scenes for supplementary evaluation and
-      sanity checks in a cleaner setting.
-    \end{block}
-
-    \small If compute is limited, we will use curated subsets rather than the
-    full datasets.
-
-    \column{0.58\textwidth}
-    \centering
-    \includegraphics[width=\linewidth]{scannetpp_overview_crop.png}
-  \end{columns}
-
-  \vspace{0.08cm}
-  \figsource{Yeshwanth et al., ScanNet++, ICCV 2023, Figure 1}
-\end{frame}
-
-\begin{frame}{Why ScanNet++?}
-  \begin{columns}[T]
-    \column{0.63\textwidth}
-    \centering
-    \includegraphics[width=\linewidth]{scannetpp_table_crop.png}
-
-    \column{0.37\textwidth}
+    \column{0.48\textwidth}
+    \textbf{Scene-level split}
     \begin{itemize}
-      \item 460 indoor scenes with high-fidelity geometry
-      \item DSLR images support stronger geometric supervision
-      \item Commodity captures make sparse-view testing realistic
-      \item Dense semantics and NVS setup make the benchmark richer
+      \item 18 train scenes
+      \item 6 validation scenes
+      \item 6 held-out test scenes
+      \item No test scene used for training or policy selection
+    \end{itemize}
+
+    \column{0.48\textwidth}
+    \textbf{Sparse-view protocol}
+    \begin{itemize}
+      \item 3, 4, and 5 selected views
+      \item Hybrid and diversity-aware view groups
+      \item Geometry metrics at a 0.05 m threshold
+      \item Hard occlusion and ambiguity subsets
     \end{itemize}
   \end{columns}
+\end{frame}
 
-  \vspace{0.08cm}
-  \figsource{Yeshwanth et al., ScanNet++, ICCV 2023, Table 1}
+\begin{frame}{Evaluation Scope}
+  \begin{block}{What the current evidence supports}
+    Held-out comparison of Run 30 against all-candidate and fixed-confidence
+    baselines on the controlled ScanNet-style subset.
+  \end{block}
+
+  \vspace{0.18cm}
+  \begin{alertblock}{What is not claimed}
+    The current results are not a full ScanNet++ evaluation and do not establish
+    official-benchmark generality. A larger mesh or laser-scan benchmark remains
+    future work.
+  \end{alertblock}
+
+  \vspace{0.18cm}
+  \begin{itemize}
+    \item Run 11 remains the strongest RGB-only baseline.
+    \item Runs 12--29 are diagnostic and negative evidence.
+    \item Run 30 is the final RGB-D/source-depth method.
+  \end{itemize}
 \end{frame}
 
 \begin{frame}{Evaluation Plan}
@@ -112,4 +117,39 @@
     \item Occlusion and repeated/wrong-depth cases improve because the method
     fixes geometry rather than discarding sparse-view evidence.
   \end{itemize}
+\end{frame}
+
+\begin{frame}{Run 31 Coverage Stress Test}
+  \small
+  \begin{block}{Purpose}
+    Validate the frozen Run 30 method over more sparse-view groups. Run 31 does
+    not train, tune, or select a new reconstruction method.
+  \end{block}
+
+  \begin{columns}[T]
+    \column{0.48\textwidth}
+    \textbf{Coverage}
+    \begin{itemize}
+      \item 30 scenes
+      \item 12 groups per scene
+      \item 360 groups total
+      \item 3, 4, and 5 views
+      \item No dense-frame inference
+    \end{itemize}
+
+    \column{0.48\textwidth}
+    \textbf{Fixed evaluation}
+    \begin{itemize}
+      \item Hybrid and diversity-aware groups
+      \item Two frame variants per configuration
+      \item Frozen \texttt{residual\_ge\_0.30} policy
+      \item Paired F-score delta vs all candidates
+      \item Scene-cluster bootstrap 95\% CI
+    \end{itemize}
+  \end{columns}
+
+  \vspace{0.08cm}
+  \begin{alertblock}{Current status}
+    Submitted/pending result. No additional stability claim is made yet.
+  \end{alertblock}
 \end{frame}

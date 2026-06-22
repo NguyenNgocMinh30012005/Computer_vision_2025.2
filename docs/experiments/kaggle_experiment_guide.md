@@ -17,6 +17,15 @@ showed that RGB-only filtering/correction was insufficient; Run 30 changes the
 inference contract to RGB-D and passes the overall, occlusion, and ambiguity
 gates.
 
+Run 31 is a coverage-only follow-up:
+
+```text
+mv-dust3r-run-31-rgbd-coverage-stress-test
+```
+
+It freezes the Run 30 policy and evaluates more sparse-view groups. It must not
+be used to retune the method.
+
 ## 1. Trang thai setup local
 
 Credential Kaggle da duoc copy vao:
@@ -240,7 +249,7 @@ Output folder:
 /kaggle/working/outputs/run_01_evaluation_pipeline/
 ```
 
-## 7. Run 2-30 mapping
+## 7. Run 2-31 mapping
 
 Dung dung thu tu trong `docs/experiments/experiment_run_order.md`. Runs 2-11
 create the strong RGB-only baseline; Runs 12-29 are diagnostic learned/RGB-only
@@ -262,6 +271,7 @@ experiments; Run 30 is the accepted final RGB-D result.
 | 11 | Final RGB-only baseline validation | `run_11_final_validation_3seeds` |
 | 12-29 | RGB-only learned diagnostics | see `scripts/kaggle/README.md` |
 | 30 | Final RGB-D source-depth correction | `run_30_rgbd_source_depth_correction` |
+| 31 | Frozen-policy RGB-D coverage stress test | `run_31_rgbd_coverage_stress_test` |
 
 Moi run nen sinh it nhat:
 
@@ -303,5 +313,27 @@ gate_decision.csv
 run_config.json
 ```
 
-Do not run a later experiment unless the research question changes. The current
-accepted final claim is the Run 30 RGB-D/source-depth result.
+The current accepted method claim remains the Run 30 RGB-D/source-depth result.
+Run 31 is the supported coverage-only follow-up and must not retune that method.
+
+## 10. Run 31 Coverage Output
+
+Run 31 should produce:
+
+```text
+group_manifest.csv
+coverage_summary.csv
+correction_label_summary.csv
+metrics.csv
+summary.csv
+limit_summary.csv
+paired_group_deltas.csv
+stability_summary.csv
+view_count_stability.csv
+gate_decision.csv
+run_config.json
+```
+
+The expected default coverage is 360 groups over 30 scenes. Review
+`gate_decision.csv` and `stability_summary.csv` before making any stability
+claim.

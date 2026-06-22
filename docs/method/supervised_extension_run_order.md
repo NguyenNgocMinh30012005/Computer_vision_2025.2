@@ -1,6 +1,8 @@
 # Supervised Extension Run Order
 
-This document defines the next experiment phase after the heuristic ablations. The goal is to move from hand-written post-processing to a supervised occlusion- and ambiguity-aware sparse-view reconstruction pipeline.
+This document records the supervised RGB-only experiment phase that followed
+the heuristic ablations. It is retained as diagnostic history; the accepted
+final method is the Run 30 RGB-D/source-depth pipeline.
 
 ## Final Status After Run 30
 
@@ -19,13 +21,13 @@ sparse posed RGB-D views
 + source-depth / source-ray correction
 ```
 
-Current best pipeline to keep:
+Historical strongest RGB-only baseline (Run 11):
 
 ```text
 best view selection + tuned/fixed confidence + F0 baseline fusion
 ```
 
-New target pipeline:
+Historical learned target tested in Runs 12-29 (not selected as final):
 
 ```text
 Selected sparse views
@@ -33,6 +35,16 @@ Selected sparse views
 -> candidate point cloud + confidence + pointmaps
 -> learned visibility / reliability / ambiguity heads
 -> learned filtering + fusion
+-> refined point cloud
+```
+
+Final accepted pipeline:
+
+```text
+Sparse posed RGB-D views
+-> MV-DUSt3R+ candidate reconstruction
+-> input source depth + known poses/intrinsics
+-> Run 30 source-ray correction
 -> refined point cloud
 ```
 
@@ -191,6 +203,7 @@ Do not enforce consistency through occluded views.
 | 28 | Source-ray supervised correction | Preserve candidate count and learn train-depth source-ray correction targets without depth at inference |
 | 29 | Monodepth source-ray correction | Approximate the source-depth oracle with RGB-only monodepth and input poses/intrinsics |
 | 30 | RGB-D source-depth correction | Make source depth an explicit inference input and gate full/selective source-ray correction |
+| 31 | RGB-D coverage stress test | Freeze the Run 30 policy and test more 3/4/5-view groups per scene without dense-frame inference |
 
 Minimum viable version if time is short:
 
@@ -216,11 +229,11 @@ Current execution note after submitting Runs 15--18:
   15 `match_features.csv` as a Kaggle kernel source when available, so it does
   not depend on receiving a T4x2 allocation again.
 - Run 17 is intentionally a decision gate. It should skip light backbone
-  fine-tuning unless the validation-gated learned pipeline beats the verified
-  confidence-only final policy by a meaningful margin.
-- Run 18 summarizes the learned extension honestly: the then-current RGB-only
-  policy remains the verified confidence-only reconstruction unless the new
-  learned runs clearly improve validation and held-out metrics.
+  fine-tuning unless the validation-gated learned pipeline beats the
+  then-current Run 11 RGB-only baseline by a meaningful margin.
+- Run 18 summarizes the learned extension honestly: the then-current Run 11
+  RGB-only baseline remains preferred unless the learned runs clearly improve
+  validation and held-out metrics.
 
 Current note after Runs 15--16 completed:
 
@@ -322,6 +335,9 @@ Current Phase 3 execution note:
   RGB-only contract.
 - RGB-only learned extensions did not pass reconstruction-level gates and
   should remain diagnostic evidence.
+- Run 31 is a post-method coverage check. It does not train a head or select a
+  policy; it measures whether the fixed Run 30 gain persists over 360
+  sparse-view groups.
 
 ## Dataset Split
 
