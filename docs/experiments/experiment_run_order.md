@@ -2,6 +2,22 @@
 
 File nay quy dinh thu tu chay thi nghiem cho de tai sparse-view 3D reconstruction dua tren MV-DUSt3R+. Muc tieu la chay theo tung lop: dau tien kiem tra pipeline co hoat dong, sau do tao baseline manh, roi moi them view selection, fusion, occlusion va repeated-structure filtering.
 
+## Final Status After Run 30
+
+Run 30 is the final recommended run and the final technical contribution. The
+project now uses a sparse posed RGB-D/source-depth setting:
+
+```text
+sparse posed RGB-D views
++ known camera intrinsics/extrinsics
++ MV-DUSt3R+ candidate reconstruction
++ source-depth / source-ray correction
+```
+
+Runs 22-29 showed that RGB-only filtering/correction was insufficient. Run 30
+changes the inference contract to RGB-D and passes the overall, occlusion, and
+ambiguity gates.
+
 ## Global Protocol
 
 Truoc khi chay baseline chinh thuc, can chot mot file config co dinh, vi du:
@@ -51,7 +67,9 @@ Config nay nen ghi ro:
   run_25_rsdh_v2_reconstruction/
   run_26_rsdh_v2_diagnostic_gate/
   run_27_reconstruction_aware_joint_acceptance/
-  run_28_final_heldout_learned_eval/
+  run_28_ray_depth_correction/
+  run_29_monodepth_ray_correction/
+  run_30_rgbd_source_depth_correction/
 ```
 
 Chi thay doi dung bien dang duoc test trong tung run. Cac thanh phan khac phai giu nguyen de ket qua ablation co y nghia.
@@ -460,6 +478,31 @@ Run 10 - Sensitivity + visualization
 Run 11 - Final validation with fixed thresholds
 ```
 
+This creates the strong RGB-only baseline. The full experiment history then
+continues through the learned/diagnostic phase and ends at Run 30:
+
+```text
+Run 12 - OARH proxy
+Run 13 - RSDH proxy
+Run 14 - Validation-gated learned pipeline
+Run 15 - MASt3R reciprocal features
+Run 16 - RSDH descriptor/cycle features
+Run 17 - Light fine-tune decision
+Run 18 - Learned full evaluation summary
+Run 19 - Supervised label cache
+Run 20 - Occlusion/ambiguity subset mining
+Run 21 - OARH v2 multitask
+Run 22 - OARH v2 reconstruction integration
+Run 23 - Reconstruction candidate calibration
+Run 24 - RSDH v2 image-only
+Run 25 - RSDH v2 reconstruction integration
+Run 26 - RSDH diagnostic gate
+Run 27 - Reconstruction-aware joint acceptance
+Run 28 - Source-ray supervised 3D correction
+Run 29 - RGB-only monodepth source-ray correction
+Run 30 - RGB-D source-depth correction final result
+```
+
 ## Phase 2 - Supervised Learned Extension
 
 Sau Run 11, neu co compute de training/fine-tune, khong nen fine-tune full MV-DUSt3R+ ngay. Huong hop ly hon la train module supervised tren output cua MV-DUSt3R+:
@@ -557,7 +600,7 @@ Ket qua hien tai:
 - Run 28 result: fail gate nhung co oracle headroom lon. Val all-candidates 0.1194, learned ray-depth 0.1139, fixed confidence 0.1123; oracle source-depth 0.1936 overall, 0.2759 occlusion va 0.3263 ambiguity. Learned correction giup ambiguity validation +0.0085 nhung lam occlusion -0.0210, nen chua the claim solved.
 - Run 29: xap xi oracle source-depth bang pretrained monocular depth tu RGB dau vao, khong dung GT depth de sua candidate. Kernel thu raw, inverse va inverse-disparity depth, align qua pose/intrinsics vao he MV-DUSt3R, chon policy tren held-out train scenes va gate tren val/test nhu Run 28.
 - Run 29 result: fail gate ro rang. Val all-candidates 0.1208, selected monodepth 0.0949, fixed confidence 0.1131; occlusion delta -0.0338 va ambiguity delta -0.0520. Source-depth diagnostic van manh: 0.1979 val overall, +0.1263 tren occlusion va +0.1680 tren ambiguity so voi all-candidates.
-- Run 30: chuyen sang RGB-D/resource-expanded setting. Depth map cua input posed frames duoc phep dung o inference de sua source ray; policy duoc chon tren internal train scenes roi gate tren val/test. Neu pass, ket luan dung la hai limit duoc giai quyet khi them depth input, khong phai RGB-only.
+- Run 30: chuyen sang RGB-D/resource-expanded setting. Depth map cua input posed frames duoc phep dung o inference de sua source ray; policy duoc chon tren internal train scenes roi gate tren val/test. Completed Run 30 pass gate va la final technical contribution: hai limit con lai duoc giai quyet khi them depth input, khong phai RGB-only.
 
 Output can gui lai sau khi Kaggle chay xong:
 

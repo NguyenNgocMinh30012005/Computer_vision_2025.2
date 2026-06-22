@@ -1,57 +1,128 @@
-# Sparse-View 3D Reconstruction
+# Sparse-View RGB-D 3D Reconstruction with MV-DUSt3R+ and Source-Depth Correction
 
-This repository contains the Computer Vision 2025.2 project on sparse-view indoor
-3D reconstruction with MV-DUSt3R+. It includes the proposal slide deck, Kaggle
-experiment scripts, ablation notes, and the supervised extension plan for
-occlusion-aware reliability and repeated-structure disambiguation.
+This repository contains the Computer Vision 2025.2 project on sparse-view
+indoor 3D reconstruction. The final project setting is now RGB-D/source-depth:
+
+```text
+sparse posed RGB-D views
++ known camera intrinsics/extrinsics
++ MV-DUSt3R+ candidate reconstruction
++ source-depth / source-ray correction
+-> improved point cloud reconstruction under sparse views, occlusion, and
+   repeated/wrong-depth ambiguity
+```
+
+Runs 0-30 are the full experiment history. RGB-only experiments are kept as a
+strong baseline and negative-analysis track, not as the final solved setting.
+Run 30 is the final technical contribution.
 
 ## Portfolio Summary
 
 This is my main computer vision research project. The goal is to make
-sparse-view indoor 3D reconstruction more reliable when only a few views are
-available and scenes contain occlusion, repeated structures, or weak overlap.
+sparse-view indoor 3D reconstruction more reliable when only a few posed views
+are available and scenes contain occlusion, repeated structures, or weak
+overlap.
 
-The repository is organized as a staged experiment log rather than a single
-notebook dump. Runs 1-27 cover baseline evaluation, confidence thresholding,
-view selection, fusion ablations, occlusion filtering, repeated-structure
-analysis, supervised reliability proxies, and hard-case mining.
+The project first builds a strong MV-DUSt3R+ sparse-view baseline with view
+selection and fixed confidence thresholding. It then stress-tests RGB-only
+learned reliability, match-disambiguation, candidate filtering, and monodepth
+correction. Those RGB-only learned extensions do not pass reconstruction-level
+gates. The final Run 30 switches the inference contract to RGB-D/source-depth
+and passes the overall, occlusion, and ambiguity gates.
 
-## Highlights
+## Final Supported Claim
 
-- Built a reproducible Kaggle experiment sequence around MV-DUSt3R+.
-- Compared confidence filtering, view selection, and fusion strategies.
-- Tested occlusion-aware and repeated-structure reliability ideas through
-  ablation scripts.
-- Added supervised proxy experiments for OARH/RSDH-style reliability heads.
-- Documented negative results where learned or heuristic filters hurt
-  reconstruction quality.
+Under the RGB-D/source-depth inference setting, Run 30 solves the remaining
+occlusion and repeated/wrong-depth limits by using input source depth maps with
+camera poses/intrinsics for source-ray correction. RGB-only learned extensions
+did not pass reconstruction-level gates and are kept as diagnostics/baselines.
 
-## My Contribution
+Use this exact framing in reports and slides:
 
-- Designed the staged run order and experiment tracking structure.
-- Implemented the Kaggle scripts for baseline, ablation, validation-gated, and
-  supervised extension runs.
-- Wrote the project documentation, method notes, and slide/report assets.
-- Reported limitations explicitly instead of presenting every learned extension
-  as a final improvement.
+```text
+RGB-only learned extensions did not pass reconstruction-level gates. After switching the inference contract to RGB-D, Run 30 uses input source depth maps with known camera poses/intrinsics for source-ray correction and passes the overall, occlusion, and ambiguity gates on held-out scenes.
+```
 
-## Results Snapshot
+## Final RGB-D Result
 
-| Area | Finding |
-|---|---|
-| Baseline reliability | Fixed confidence thresholding remains the safest final policy. |
-| View selection | Diversity/overlap-aware selection is useful for sparse views. |
-| OARH proxy | Helps selected larger-view cases but can regress 2/3-view cases. |
-| RSDH proxy | Run 24 beats image-only match baselines, but Runs 25--26 show it should stay out of reconstruction because the geometry gain is matched by non-learned candidate retention. |
-| Final direction | Use validation-gated learned reliability instead of unconditional learned filtering. |
+Run 30 selected:
+
+- `selected_method`: `rgbd_source_depth_selected`
+- `best_baseline_method`: `all_candidates`
+- selected internal policy: `rgbd_residual_ge_0.30`
+- mode: `residual`
+- alpha: `1.0`
+- residual threshold: `0.30 m`
+- internal mean reconstruction F-score: `0.2327`
+- mean correction ratio: `0.4705`
+- gate margin: `0.005`
+- `pass_all_limits`: `1`
+
+Validation gate:
+
+| Metric | Best baseline | RGB-D selected | Delta |
+| --- | ---: | ---: | ---: |
+| Overall F-score | 0.1194 | 0.1753 | +0.0559 |
+| Occlusion challenging | 0.1064 | 0.2522 | +0.1458 |
+| Ambiguity challenging | 0.1623 | 0.3000 | +0.1377 |
+
+Held-out test:
+
+| Metric | All candidates | RGB-D selected | Delta |
+| --- | ---: | ---: | ---: |
+| Overall F-score | 0.1758 | 0.2764 | +0.1007 |
+| Occlusion challenging | 0.2111 | 0.3146 | +0.1035 |
+| Ambiguity challenging | 0.1621 | 0.2948 | +0.1327 |
+
+## Why We Switched From RGB-only To RGB-D
+
+Runs 22-29 showed that RGB-only filtering/correction was insufficient. Run 30
+changes the inference contract to RGB-D and passes the overall, occlusion, and
+ambiguity gates.
+
+Main evidence:
+
+- OARH v2 learned the proxy labels well in Run 21, but Run 22 showed a large
+  reconstruction recall/completeness collapse.
+- Candidate calibration in Run 23 removed much of the domain shift, but still
+  lost to fixed confidence on validation.
+- RSDH v2 image-only passed its proxy match-validity gate in Run 24, but Runs
+  25-26 showed that reconstruction gains were matched by non-learned
+  all-candidate retention.
+- Run 27 showed that candidate filtering is the wrong operation: learned
+  filtering can beat fixed confidence but still loses to full retention.
+- Run 28 showed source-depth correction has large oracle headroom.
+- Run 29 showed generic RGB-only monodepth does not recover metric/source depth
+  well enough.
+- Run 30 makes source depth an explicit input and turns that headroom into a
+  validated method.
+
+## What Is Still Not Claimed
+
+This repository does not claim:
+
+- RGB-only learned extensions solve occlusion or repeated structures.
+- OARH/RSDH/RAJAH are final reconstruction modules.
+- generic RGB-only monodepth is enough for source-ray correction.
+- full MV-DUSt3R+ backbone fine-tuning was proven useful.
+- the controlled ScanNet-style subset is a definitive full benchmark.
+
+Correct limitation framing:
+
+- Limit 1, sparse-view/view-selection instability, was solved by the RGB-only
+  baseline pipeline through Run 11.
+- Limit 2, occlusion/low-overlap valid geometry, is solved under the Run 30
+  RGB-D/source-depth setting.
+- Limit 3, repeated/wrong-depth ambiguity, is solved under the Run 30
+  RGB-D/source-depth setting.
 
 ## Repository Layout
 
 ```text
 .
 +-- docs/
-|   +-- experiments/   # run order, Kaggle guide, result summaries
-|   +-- method/        # supervised OARH/RSDH extension notes
+|   +-- experiments/   # run order, Kaggle guide, final result summaries
+|   +-- method/        # OARH/RSDH diagnostics and transition notes
 |   +-- proposal/      # original proposal sources and team PDF
 +-- notebooks/         # notebook-based sanity checks
 +-- pdf/               # LaTeX Beamer source and generated main.pdf
@@ -61,172 +132,67 @@ analysis, supervised reliability proxies, and hard-case mining.
 ```
 
 Generated Kaggle submission folders, downloaded outputs, local credentials, and
-the cloned upstream `mvdust3r/` repository are intentionally ignored.
-Local Hugging Face token files such as `HF.json` and `.env` are also ignored;
-use Kaggle Secrets (`HF_TOKEN`) for runs that download from the Hub.
+the cloned upstream `mvdust3r/` repository are intentionally ignored. Local
+Hugging Face token files such as `HF.json` and `.env` are also ignored; use
+Kaggle Secrets (`HF_TOKEN`) for runs that download from the Hub.
 
-## Experiment Scripts
+## Experiment History
 
-The staged Kaggle scripts live in `scripts/kaggle/`:
+The staged Kaggle scripts live in `scripts/kaggle/`. Runs 0-30 are the complete
+history:
 
-- `kaggle_run1_run2_eval_baseline.py`: evaluator smoke test and B0 baseline
-- `kaggle_run3_confidence_sweep.py`: confidence threshold sweep
-- `kaggle_run4_view_selection.py`: random/diversity/overlap/hybrid view ablation
-- `kaggle_run5_basic_fusion.py`: F0/F1/F2/F3 fusion ablation
-- `kaggle_run6_occlusion_fusion.py`: occlusion-aware filtering ablation
-- `kaggle_run7_repeated_structure_filtering.py`: repeated-structure ablation
-- `kaggle_run8_full_pipeline.py`: B0/B1/V/F/O/A/Full comparison
-- `kaggle_run9_final_stress_test.py`: case-specific stress test
-- `kaggle_run10_sensitivity_visualization.py`: confidence sensitivity figures
-- `kaggle_run11_final_validation_3seeds.py`: fixed-threshold B0 vs Final over 3 seeds, with a P100 Torch compatibility fallback
-- `kaggle_run12_supervised_reliability.py`: frozen-backbone OARH proxy training
-- `kaggle_run13_match_disambiguation.py`: RSDH proxy match-validity training
-- `kaggle_run14_validation_gated_learned_pipeline.py`: validation-gated OARH fallback policy
-- `kaggle_run15_mast3r_reciprocal_features.py`: MASt3R reciprocal match feature extraction with explicit fallback logging
-- `kaggle_run16_rsdh_descriptor_cycle.py`: RSDH descriptor/cycle-feature training from Run 15 kernel-source features
-- `kaggle_run17_light_finetune_decision.py`: validation-based fine-tune gate
-- `kaggle_run18_learned_full_evaluation_summary.py`: final learned-extension summary
-- `kaggle_run19_supervised_label_cache.py`: scalable visibility/occlusion label cache for OARH v2 and RSDH v2
-- `kaggle_run20_occlusion_ambiguity_subset_mining.py`: mines occlusion-heavy, low-overlap, and hard-negative subsets from Run 19
-- `kaggle_run21_oarh_v2_multitask.py`: trains an OARH v2 keep/visibility/depth-residual multitask head from Run 20 labels
-- `kaggle_run22_oarh_v2_reconstruction_integration.py`: evaluates whether Run 21 OARH v2 improves reconstruction F-score on Run 20 final-eval groups
-- `kaggle_run23_reconstruction_candidate_calibration.py`: retrains reliability on actual MV-DUSt3R reconstruction candidates after Run 22 exposed proxy-to-reconstruction domain shift
-- `kaggle_run24_rsdh_v2_image_only.py`: trains an image-only RSDH v2 match-validity head from Run 20 hard-negative labels
-- `kaggle_run25_rsdh_v2_reconstruction_integration.py`: integrates the Run 24 RSDH v2 checkpoint into reconstruction candidate scoring and gates it against fixed confidence
-- `kaggle_run26_rsdh_v2_diagnostic_gate.py`: reruns the RSDH integration with all-candidate and confidence top-k baselines plus exact top-k tie handling
-- `kaggle_run27_joint_candidate_acceptance.py`: runs a self-contained, reconstruction-aware joint acceptance experiment using confidence residuals, geometry support, raw image-patch consistency, GT-surface coverage loss, scene-level validation, and a three-seed ensemble
-- `kaggle_run28_ray_depth_correction.py`: preserves all candidates and learns source-ray 3D corrections from train-only depth/pose targets, with an inference-only RGB/geometry feature contract and an oracle headroom diagnostic
-- `kaggle_run29_monodepth_ray_correction.py`: approximates the Run 28 source-depth oracle with pretrained RGB-only monocular depth plus input poses/intrinsics, then gates raw/inverse/inverse-disparity correction variants
-- `kaggle_run30_rgbd_source_depth_correction.py`: promotes source depth to an explicit RGB-D inference input and gates full/selective source-ray correction policies
+- Runs 0-11: baseline, view selection, confidence thresholding, heuristic
+  fusion/filtering ablations, final fixed-threshold baseline.
+- Runs 12-18: first OARH/RSDH proxy and validation-gated learned extensions.
+- Runs 19-20: supervised label cache and hard subset mining.
+- Runs 21-23: OARH v2 and reconstruction-candidate calibration, both negative
+  at reconstruction level.
+- Runs 24-26: image-only RSDH v2, positive proxy but negative reconstruction
+  gate.
+- Run 27: reconstruction-aware joint acceptance, negative gate against
+  all-candidate retention.
+- Run 28: source-ray supervised correction, negative RGB-only learned result
+  but strong source-depth oracle headroom.
+- Run 29: RGB-only monodepth correction, negative gate.
+- Run 30: RGB-D source-depth correction, final accepted contribution.
 
-The notebook sanity check is in `notebooks/kaggle_run0_mvdust3r_sanity.ipynb`.
+Final script:
 
-## Current Finding
+```text
+scripts/kaggle/kaggle_run30_rgbd_source_depth_correction.py
+```
 
-The strongest verified pipeline is view selection plus fixed confidence
-thresholding and baseline fusion. Heuristic occlusion and ambiguity filters were
-kept out of the final pipeline because they reduced F-score/completeness in the
-ablations.
+Key final-result documents:
 
-Run 12 shows that the frozen-backbone OARH proxy is not safe as an unconditional
-replacement for confidence thresholding: it helps only some larger-view cases
-and hurts 2/3-view reconstruction. Run 13 shows strong proxy match-validity
-learning, but it should be reported as a supervised proxy result rather than a
-full MASt3R-based repeated-structure solution. Run 14 therefore tests a
-validation-gated learned policy that falls back to confidence-only filtering
-when the learned reliability head does not win on validation. The first Run 14
-log shows that gating avoids the large 2/3/5-view OARH regressions but still
-slightly overfits at 4 views, so the final tested reconstruction policy remains
-fixed confidence thresholding rather than unconditional learned reliability.
-Run 15 successfully used the MASt3R backend for reciprocal match extraction.
-Run 16 then trained RSDH from the Run 15 kernel-source features and reached
-near-perfect held-out proxy match F1, but this should be reported as a
-GT-depth-assisted proxy/upper-bound result because the features include direct
-3D disagreement derived from available depth. The next phase starts with Run 19,
-which builds a scene-level supervised label cache for visibility, occlusion, and
-wrong-depth candidates before retraining OARH/RSDH with stronger held-out
-evidence.
-Run 20 consumes that cache and produces balanced OARH v2/RSDH v2 manifests so
-the next training runs can target occlusion-heavy and hard-negative cases
-instead of sampling generic points.
-Run 21 trains the OARH v2 multitask head from the Run 20 balanced label file
-and reports split-level plus group-level metrics for occlusion-heavy held-out
-groups. It intentionally excludes direct label-leakage inputs such as
-`candidate_type` and `visibility_label`; reconstruction-level proof is still
-reserved for the follow-up integration run.
-The pasted Run 21 log confirms strong held-out proxy metrics, with test
-`keep_f1` near 0.9996 and test `occluded_f1` near 0.9795. Run 22 therefore
-integrates the Run 21 checkpoint into reconstruction candidate filtering and
-compares it with the fixed-confidence final policy on the Run 20 final-eval
-groups.
-Run 22 showed that the proxy head does not transfer: validation F-score fell
-from `0.6716` with fixed confidence to `0.2160` for the best learned OARH
-variant, and test F-score fell from `0.6033` to `0.1936`. Run 23 therefore
-trains on actual MV-DUSt3R reconstruction candidates and selects any learned
-ranking policy only through validation reconstruction F-score.
-Run 23 nearly recovers the fixed-confidence policy only when it keeps `99.5%`
-of points, but the validation gate still selects fixed confidence (`0.6674`
-versus `0.6618`). Run 24 therefore moves to the remaining repeated-structure
-limit by training RSDH v2 from image-only patch/coordinate features and Run 20
-hard-negative match labels. Run 24 passes its validation gate: the image-only
-RSDH MLP reaches validation match F1 `0.6954` versus the best image-only patch
-baseline `0.6212`, and test F1 `0.6596` versus `0.5517`. Run 25 then tests
-that match-validity signal on actual MV-DUSt3R candidate points, but its
-validation gain is only `+0.0035`, below the `0.005` gate margin. Run 26
-confirms the apparent reconstruction gain is a candidate-retention effect:
-validation selects `all_candidates` with F-score `0.1463`, while the best
-learned RSDH policy ties that score only at `selected_ratio = 1.0`. Therefore
-the final reconstruction policy should keep fixed confidence / candidate
-retention baselines and report RSDH v2 as a useful proxy result, not a solved
-image-only repeated-structure module.
-Run 27 is redesigned as a self-contained reconstruction-aware experiment for
-the two remaining limits. It no longer consumes the private Run 20/24 outputs.
-Instead, it learns a bounded correction to MV-DUSt3R confidence from actual
-reconstruction candidates, cross-view point support, and aggregated raw
-photometric/gradient patch consistency. Its soft top-k loss optimizes both
-candidate precision and GT-surface coverage, while scene-level internal
-validation fixes the keep ratio before the external validation/test gate. The
-gate passes only when the learned method beats the best candidate-retention
-baseline overall and does not regress on the hardest occlusion and ambiguity
-subsets.
-
-The completed gate still selects `all_candidates`: validation F-score is
-`0.1226` for all candidates, `0.1211` for the learned policy, and `0.1149` for
-fixed confidence. Test follows the same ordering (`0.1825`, `0.1797`,
-`0.1753`). The result rules out further aggressive candidate filtering.
-Run 28 therefore keeps the candidate count and learns source-ray 3D correction
-targets from training depth/poses, with RGB/multi-view features only at
-inference.
-
-Run 28 also fails the validation gate: all candidates reaches `0.1194`, learned
-ray-depth correction reaches `0.1139`, and fixed confidence reaches `0.1123`.
-However, the diagnostic source-depth oracle reaches `0.1936` overall, `0.2759`
-on occlusion-challenging groups, and `0.3263` on ambiguity-challenging groups.
-Run 29 therefore tries to approximate that oracle at inference with pretrained
-RGB-only monocular depth plus known input poses/intrinsics, testing raw,
-inverse, and inverse-disparity depth variants under the same validation gate.
-
-Run 29 also fails: selected monodepth correction reaches only `0.0949` on
-validation versus `0.1208` for all candidates, with regressions on occlusion
-(`-0.0338`) and ambiguity (`-0.0520`). The diagnostic source-depth correction
-still reaches `0.1979` validation F-score and improves both limit subsets. Run
-30 therefore tests the resource-expanded solution directly: use input RGB-D
-source depth maps plus poses/intrinsics at inference, then apply full or
-selective source-ray correction without claiming an RGB-only method.
-
-See `docs/experiments/experiment_results_summary.md` and
-`docs/method/supervised_extension_run_order.md`.
+- `docs/experiments/final_rgbd_result.md`
+- `docs/experiments/project_full_report_run30.md`
+- `docs/experiments/experiment_results_summary.md`
+- `scripts/kaggle/README.md`
 
 ## How To Reproduce
 
 1. Read `scripts/kaggle/README.md` and
    `docs/experiments/experiment_run_order.md`.
-2. Run the staged Kaggle scripts in order, starting from the baseline and
-   confidence sweep.
-3. Compare the generated summaries with
-   `docs/experiments/experiment_results_summary.md`.
+2. Reproduce the baseline sequence if needed.
+3. Use Run 30 as the final RGB-D/source-depth method.
+4. Compare the generated Run 30 outputs with
+   `docs/experiments/final_rgbd_result.md`.
 
-The project expects the upstream model/data setup to be handled in Kaggle. Local
-credentials and downloaded model artifacts are intentionally ignored.
+Run 30 expected output files:
 
-Latest Kaggle kernels:
+```text
+correction_label_summary.csv
+policy_selection.csv
+metrics.csv
+summary.csv
+limit_summary.csv
+gate_decision.csv
+run_config.json
+```
 
-- [Run 12 Supervised Reliability](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-12-supervised-reliability)
-- [Run 13 Match Disambiguation](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-13-match-disambiguation)
-- [Run 14 Validation-Gated Learned Pipeline](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-14-validation-gated-learned-pipeline)
-- [Run 15 MASt3R Reciprocal Features](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-15-mast3r-reciprocal-features)
-- [Run 16 RSDH Descriptor Cycle](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-16-rsdh-descriptor-cycle)
-- [Run 17 Light Finetune Decision](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-17-light-finetune-decision)
-- [Run 18 Learned Full Evaluation Summary](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-18-learned-full-evaluation-summary)
-- [Run 19 Supervised Label Cache](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-19-supervised-label-cache)
-- [Run 20 Occlusion Ambiguity Subset Mining](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-20-occlusion-ambiguity-subset-mining)
-- [Run 21 OARH v2 Multitask](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-21-oarh-v2-multitask)
-- [Run 22 OARH v2 Reconstruction Integration](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-22-oarh-v2-integration)
-- [Run 23 Reconstruction Candidate Calibration](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-23-candidate-calibration)
-- [Run 24 RSDH v2 Image Only](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-24-rsdh-v2-image-only)
-- [Run 25 RSDH v2 Reconstruction Integration](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-25-rsdh-v2-integration)
-- [Run 26 RSDH v2 Diagnostic Gate](https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-26-rsdh-v2-diagnostic-gate)
-- [Run 27 Reconstruction-Aware Joint Acceptance](https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-27-reconstruction-aware)
+Latest final Kaggle kernel:
+
+- [Run 30 RGB-D Source-Depth Correction](https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-30-rgbd-source-depth-correction)
 
 ## Build The Slides
 

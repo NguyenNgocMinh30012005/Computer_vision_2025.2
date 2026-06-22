@@ -1,4 +1,4 @@
-# Sparse-View 3D Reconstruction Project Report Through Run 30
+# Sparse-View RGB-D 3D Reconstruction Project Report Through Run 30
 
 Ngay cap nhat: 2026-06-22
 
@@ -7,10 +7,11 @@ duoc, va nhung diem van chua the claim la giai quyet triet de.
 
 ## 1. Executive Summary
 
-Du an xay dung pipeline sparse-view 3D reconstruction dua tren MV-DUSt3R+.
-Input chinh la mot so it anh posed RGB/RGB-D trong ScanNet-style scene. Output
-la point cloud/GLB duoc danh gia bang accuracy, completeness/recall,
-precision, F-score va Chamfer distance.
+Du an xay dung pipeline sparse-view RGB-D 3D reconstruction dua tren
+MV-DUSt3R+. Final project setting la posed RGB-D sparse views, known camera
+intrinsics/extrinsics, MV-DUSt3R+ candidate reconstruction, va source-depth /
+source-ray correction. Output la point cloud/GLB duoc danh gia bang accuracy,
+completeness/recall, precision, F-score va Chamfer distance.
 
 Ket luan ngan gon sau Run 30:
 
@@ -23,17 +24,22 @@ Ket luan ngan gon sau Run 30:
 - Limit 3, repeated-structure/wrong-depth ambiguity, cung chua duoc giai quyet
   trong setting RGB-only. RSDH image-only pass proxy gate o Run 24 nhung khong
   pass reconstruction gate o Run 25/26.
-- Run 30 pass ca hai limit con lai neu cho phep dung source depth maps tu input
-  posed RGB-D frames tai inference. Day la solution resource-expanded/RGB-D,
-  khong phai claim RGB-only.
+- Run 30 pass ca hai limit con lai trong final RGB-D/source-depth inference
+  setting. Day la final technical contribution, khong phai claim RGB-only.
 
-Noi cach khac: du an hien co hai ket luan dung:
+Noi cach khac: final framing dung la:
 
-1. RGB-only/frozen MV-DUSt3R+ pipeline: cai thien manh baseline, nhung occlusion
-   va repeated/wrong-depth van chua solved.
-2. RGB-D/source-depth pipeline: Run 30 cho thay hai limit con lai co the duoc
-   giai quyet bang source-ray depth correction khi depth map cua input frame
-   duoc phep dung luc inference.
+1. RGB-only/frozen MV-DUSt3R+ pipeline la baseline va negative-analysis track:
+   no cai thien manh baseline, nhung khong solve occlusion/repeated ambiguity.
+2. RGB-D/source-depth pipeline la final setting: Run 30 giai quyet hai limit
+   con lai bang source-ray depth correction khi depth map cua input frame duoc
+   phep dung luc inference.
+
+Required final wording:
+
+```text
+RGB-only learned extensions did not pass reconstruction-level gates. After switching the inference contract to RGB-D, Run 30 uses input source depth maps with known camera poses/intrinsics for source-ray correction and passes the overall, occlusion, and ambiguity gates on held-out scenes.
+```
 
 ## 2. Project Goal
 
@@ -490,17 +496,17 @@ Run 30 Kaggle kernel:
 mv-dust3r-run-30-rgbd-source-depth-correction
 ```
 
-## 10. Next Possible Work, Not Run Yet
+## 10. Final Direction And Possible Follow-Up
 
-Do not run this automatically unless explicitly requested.
+Run 30 is the final recommended experiment and the final technical
+contribution. The report/slides should package it as the accepted RGB-D
+solution for the two hard limits.
 
-Possible next directions:
+Possible future work, outside the current final claim:
 
-1. Write final thesis/report section using the honest two-contract conclusion:
-   RGB-only improved baseline, RGB-D solves remaining limits.
-2. Add Run 30 tables and qualitative figures into `pdf/` slides.
-3. If the project insists on RGB-only, design a new run using metric depth
-   calibration or lightweight indoor depth fine-tuning, because Run 29 shows
-   generic monodepth is not enough.
-4. If using RGB-D is acceptable, stop experimenting and package Run 30 as the
-   final technical contribution for the two hard limits.
+1. Add qualitative figures for Run 30 source-depth correction.
+2. If the project later returns to RGB-only, design a new metric depth
+   calibration or indoor-depth fine-tuning run, because Run 29 shows generic
+   monodepth is not enough.
+3. Evaluate the final RGB-D method on a larger official benchmark with mesh or
+   laser-scan ground truth.

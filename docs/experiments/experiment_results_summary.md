@@ -1,16 +1,64 @@
 # Experiment Results Summary
 
-This file summarizes the Kaggle experiment outputs for the MV-DUSt3R+ sparse-view reconstruction study.
+This file summarizes the Kaggle experiment outputs for the MV-DUSt3R+
+sparse-view reconstruction study.
 
-## Final Pipeline
+## Current Final Setting
 
-The best current pipeline is:
+The project now uses an RGB-D/source-depth final setting:
+
+```text
+sparse posed RGB-D views
++ known camera intrinsics/extrinsics
++ MV-DUSt3R+ candidate reconstruction
++ source-depth / source-ray correction
+```
+
+Run 30 is the final technical contribution. RGB-only Runs 12-29 are kept as
+baseline and negative-analysis evidence, not as the solved setting.
+
+Final supported claim:
+
+```text
+RGB-only learned extensions did not pass reconstruction-level gates. After
+switching the inference contract to RGB-D, Run 30 uses input source depth maps
+with known camera poses/intrinsics for source-ray correction and passes the
+overall, occlusion, and ambiguity gates on held-out scenes.
+```
+
+## Final RGB-D Result
+
+Run 30 selected `rgbd_source_depth_selected` over the best baseline
+`all_candidates`, using the internal policy `rgbd_residual_ge_0.30`
+(`mode=residual`, `alpha=1.0`, `residual_threshold_m=0.30`). The internal mean
+reconstruction F-score was `0.2327`, with mean correction ratio `0.4705`.
+
+| Split / subset | Baseline | RGB-D selected | Delta |
+| --- | ---: | ---: | ---: |
+| Val overall | 0.1194 | 0.1753 | +0.0559 |
+| Val occlusion | 0.1064 | 0.2522 | +0.1458 |
+| Val ambiguity | 0.1623 | 0.3000 | +0.1377 |
+| Test overall | 0.1758 | 0.2764 | +0.1007 |
+| Test occlusion | 0.2111 | 0.3146 | +0.1035 |
+| Test ambiguity | 0.1621 | 0.2948 | +0.1327 |
+
+Gate status: `pass_all_limits = 1` with margin `0.005`.
+
+## Strong RGB-only Baseline
+
+The strongest RGB-only baseline pipeline remains:
 
 ```text
 Final = best view selection + fixed confidence threshold + F0 baseline fusion
 ```
 
-Occlusion-aware filtering and repeated-structure ambiguity filtering are disabled in the final pipeline because their ablations reduced F-score on the smoke/proxy evaluation.
+This baseline solves the sparse-view/view-selection reliability limit, but it
+does not solve occlusion or repeated/wrong-depth ambiguity. Those two remaining
+limits are solved only after the Run 30 RGB-D/source-depth transition.
+
+Occlusion-aware filtering and repeated-structure ambiguity filtering are
+disabled in the RGB-only baseline because their ablations reduced F-score on
+the smoke/proxy evaluation.
 
 Fixed thresholds selected from Run 10:
 
@@ -81,6 +129,9 @@ Expected output files:
 - `metrics.csv`
 - `fig_qualitative_b0_vs_final.png`
 
+Interpretation: Run 11 is the final RGB-only baseline table, not the final
+technical contribution after the project switches to RGB-D.
+
 ## Run 12 Supervised Reliability
 
 Run 12 freezes MV-DUSt3R+ and trains a small OARH proxy MLP on GT-depth-derived point labels. The validation point-label F1 rises to about `0.969`, but reconstruction F-score on the held-out scene is mixed:
@@ -128,7 +179,7 @@ Held-out `scene0000_01` result:
 | 4 | 0.6763 | 0.6738 | 0.6738 | OARH |
 | 5 | 0.5901 | 0.5704 | 0.5901 | Confidence |
 
-Interpretation: validation gating avoids the large OARH regressions at 2/3/5 views, but the 4-view gate slightly overfits the proxy validation scene and underperforms confidence-only by about `0.0025` F-score on the held-out scene. This supports keeping confidence-only as the final tested reconstruction policy while presenting OARH as a partial learned ablation that needs better labels/features.
+Interpretation: validation gating avoids the large OARH regressions at 2/3/5 views, but the 4-view gate slightly overfits the proxy validation scene and underperforms confidence-only by about `0.0025` F-score on the held-out scene. This supports keeping confidence-only as the then-current RGB-only reconstruction policy while presenting OARH as a partial learned ablation that needs better labels/features.
 
 ## Run 15 MASt3R Reciprocal Features
 
@@ -517,8 +568,8 @@ The selected RGB-only monodepth correction regresses validation occlusion by
 `-0.0338` and ambiguity by `-0.0520`. The best diagnostic monodepth variant is
 closer but still below all candidates. Run 30 therefore tests the direct
 resource-expanded solution: allow source depth maps from the input RGB-D frames
-at inference, then gate full/selective source-ray correction policies. Passing
-Run 30 would solve the two remaining limits only under an explicit RGB-D
+at inference, then gate full/selective source-ray correction policies. Completed
+Run 30 solves the two remaining limits only under an explicit RGB-D/source-depth
 assumption, not as an RGB-only claim.
 
 Expected outputs for the submitted remaining runs:
@@ -540,27 +591,52 @@ Expected outputs for the submitted remaining runs:
 - Run 29: `correction_label_summary.csv`, `policy_selection.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `run_config.json`
 - Run 30: `correction_label_summary.csv`, `policy_selection.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `run_config.json`
 
+## Run 30 Final RGB-D Source-Depth Correction
+
+Run 30 is the accepted final result. It changes the inference contract from
+RGB-only to sparse posed RGB-D. Source depth maps from input frames anchor each
+source ray to metric geometry, so the method corrects wrong-depth candidates
+instead of deleting candidates and losing recall.
+
+Run 30 preserves the negative evidence from Runs 22-29:
+
+- proxy F1 did not transfer to reconstruction;
+- filtering hurt recall/completeness;
+- all-candidate retention was a strong baseline;
+- RGB-only monodepth did not recover metric/source depth well enough.
+
+The RGB-D gate passes all required conditions:
+
+- overall validation delta is above `0.005`;
+- occlusion delta is non-negative and large;
+- ambiguity delta is non-negative and large.
+
 ## Limitations
 
-- The current Kaggle evaluation uses ScanNet posed RGB-D depth as proxy geometry, not the full ScanNet++ laser-scan mesh evaluator.
-- The scene subset is small, so results should be framed as a controlled prototype/smoke benchmark rather than a definitive benchmark.
-- The implemented occlusion filter is a simple front-depth heuristic and was too aggressive, reducing completeness and F-score.
-- The ambiguity/repeated-structure filter is also heuristic; it reduced global F-score and should not be claimed as a successful module.
-- View selection policies are lightweight proxies for diversity/overlap, not learned visibility prediction.
-- Runtime excludes some dataset loading and setup overhead; report runtime per scene from the script, not Kaggle wall-clock setup time.
+- The final solved setting is RGB-D/source-depth, not RGB-only.
+- RGB-only OARH/RSDH/RAJAH/monodepth components are diagnostics and baselines,
+  not final reconstruction modules.
+- The current Kaggle evaluation uses ScanNet posed RGB-D depth as proxy
+  geometry, not the full ScanNet++ laser-scan mesh evaluator.
+- The scene subset is small, so results should be framed as a controlled
+  prototype/smoke benchmark rather than a definitive benchmark.
+- View selection policies are lightweight proxies for diversity/overlap, not
+  learned visibility prediction.
+- Runtime excludes some dataset loading and setup overhead; report runtime per
+  scene from the script, not Kaggle wall-clock setup time.
 
 ## Future Work
 
-- Replace the proxy evaluator with an official mesh/laser-scan geometry evaluator on ScanNet++ scenes with full 3D ground truth.
-- Improve OARH labels/features so point-label F1 translates into reconstruction F-score; Run 22 shows the Run 21 proxy head does not transfer, and Run 23 shows actual-candidate calibration is close but still not enough to beat fixed confidence.
-- Treat Run 26 as the reconstruction-level stop gate for RSDH v2: redesign the repeated-structure head before using it in the final pipeline.
-- Redesign occlusion reasoning using camera geometry, z-buffer consistency, and supervised per-view visibility masks.
-- Revisit repeated-structure filtering as match validity learning, not as self-similarity suppression.
-- If OARH/RSDH improve validation in future data, lightly fine-tune MV-DUSt3R+ confidence layers and the last decoder blocks; Run 17 records the current decision gate instead of forcing a costly fine-tune.
-- Evaluate on more scenes and report confidence intervals across scene categories.
-- Add qualitative failure analysis for occlusion-heavy scenes where the final pipeline remains weakest.
+- Package Run 30 qualitative examples for the final slide deck.
+- Evaluate the RGB-D/source-depth method on more scenes and report confidence
+  intervals across scene categories.
+- Replace the proxy evaluator with an official mesh/laser-scan geometry
+  evaluator on scenes with full 3D ground truth.
+- If a future project returns to RGB-only, it needs a stronger metric-depth
+  calibration or indoor-depth fine-tuning path; Runs 22-29 show current
+  RGB-only heads are insufficient.
 
-The proposed learned extension is documented in:
+The diagnostic learned-extension history is documented in:
 
 ```text
 docs/method/supervised_extension_run_order.md

@@ -2,6 +2,23 @@
 
 This document defines the next experiment phase after the heuristic ablations. The goal is to move from hand-written post-processing to a supervised occlusion- and ambiguity-aware sparse-view reconstruction pipeline.
 
+## Final Status After Run 30
+
+The supervised/RGB-only extension path is now a diagnostic history, not the
+final target. Runs 22-29 showed that RGB-only filtering/correction was
+insufficient. Run 30 changes the inference contract to sparse posed RGB-D and
+passes the overall, occlusion, and ambiguity gates using input source depth maps
+with known camera poses/intrinsics.
+
+Final project setting:
+
+```text
+sparse posed RGB-D views
++ known camera intrinsics/extrinsics
++ MV-DUSt3R+ candidate reconstruction
++ source-depth / source-ray correction
+```
+
 Current best pipeline to keep:
 
 ```text
@@ -171,7 +188,9 @@ Do not enforce consistency through occluded views.
 | 25 | RSDH v2 reconstruction integration | Use validated matches in reconstruction/fusion and evaluate repeated-structure held-out groups |
 | 26 | RSDH diagnostic gate | Compare RSDH against all-candidate and confidence top-k baselines with exact top-k masks |
 | 27 | Joint candidate acceptance | Train one reconstruction-candidate head that combines confidence, self-geometry support, and RSDH image-match scores |
-| 28 | Final held-out evaluation | Compare B0, fixed-confidence final, and learned full pipeline on unseen scenes |
+| 28 | Source-ray supervised correction | Preserve candidate count and learn train-depth source-ray correction targets without depth at inference |
+| 29 | Monodepth source-ray correction | Approximate the source-depth oracle with RGB-only monodepth and input poses/intrinsics |
+| 30 | RGB-D source-depth correction | Make source depth an explicit inference input and gate full/selective source-ray correction |
 
 Minimum viable version if time is short:
 
@@ -199,9 +218,9 @@ Current execution note after submitting Runs 15--18:
 - Run 17 is intentionally a decision gate. It should skip light backbone
   fine-tuning unless the validation-gated learned pipeline beats the verified
   confidence-only final policy by a meaningful margin.
-- Run 18 summarizes the learned extension honestly: the final deployable policy
-  remains the verified confidence-only reconstruction unless the new learned
-  runs clearly improve validation and held-out metrics.
+- Run 18 summarizes the learned extension honestly: the then-current RGB-only
+  policy remains the verified confidence-only reconstruction unless the new
+  learned runs clearly improve validation and held-out metrics.
 
 Current note after Runs 15--16 completed:
 
@@ -298,11 +317,11 @@ Current Phase 3 execution note:
 - Run 30 changes the assumption instead of pretending the RGB-only route is
   solved. It allows source depth maps from the input RGB-D frames at inference,
   then gates full/selective source-ray correction against all-candidate
-  retention. A pass would solve the two limits under an explicit RGB-D/resource
-  expansion, not under the original RGB-only contract.
-- A strong RGB-only final claim would still require a no-depth run to show held-out reconstruction
-  improvement on occlusion-heavy and repeated-structure subsets, not only high
-  proxy classification F1.
+  retention. Completed Run 30 passes all gates and solves the two remaining
+  limits under an explicit RGB-D/source-depth contract, not under the original
+  RGB-only contract.
+- RGB-only learned extensions did not pass reconstruction-level gates and
+  should remain diagnostic evidence.
 
 ## Dataset Split
 
@@ -395,16 +414,16 @@ Unfreeze only:
 
 Do not full fine-tune the whole backbone first.
 
-## Expected Contribution
+## Final Contribution
 
-| Limitation | Learned solution |
+| Limitation | Final status |
 | --- | --- |
-| Far-reference views | visibility-aware / diversity-aware view selection |
-| Severe occlusion | supervised occlusion-aware reliability head |
-| Repeated structures | learned match disambiguation with reciprocal/cycle consistency |
+| Far-reference / sparse-view instability | solved by Run 11 view selection + fixed confidence baseline |
+| Severe occlusion | solved under Run 30 RGB-D/source-depth correction |
+| Repeated/wrong-depth ambiguity | solved under Run 30 RGB-D/source-depth correction |
 
-If the learned phase succeeds, the project becomes:
+Final framing:
 
 ```text
-Supervised Occlusion- and Ambiguity-Aware Sparse-View Reconstruction
+Sparse-View RGB-D 3D Reconstruction with MV-DUSt3R+ and Source-Depth Correction
 ```

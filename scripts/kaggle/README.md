@@ -10,6 +10,11 @@ named `HF_TOKEN`, `HUGGINGFACE_TOKEN`, or `HUGGINGFACE_HUB_TOKEN`. Run 11 and
 the later helper-based scripts automatically export the secret before downloading
 the MV-DUSt3R+ checkpoint.
 
+Final status: Run 30 is the final recommended script and final technical
+contribution. It switches the project to sparse posed RGB-D/source-depth
+inference and passes the overall, occlusion, and ambiguity gates. Runs 12-29
+are kept as RGB-only learned diagnostics and negative evidence.
+
 Run order:
 
 1. `kaggle_run1_run2_eval_baseline.py`
@@ -128,7 +133,22 @@ train small MLP heads on proxy labels generated from ScanNet posed depth:
   and ambiguity by `-0.0520`, while the source-depth diagnostic remains strong
   at `0.1979`. Run 30 therefore makes the extra resource explicit: input RGB-D
   source depth maps are allowed at inference, and full/selective source-ray
-  correction policies are gated against all-candidate retention.
+  correction policies are gated against all-candidate retention. Completed Run
+  30 selects `rgbd_source_depth_selected`, uses internal policy
+  `rgbd_residual_ge_0.30`, and passes all limits with validation gains of
+  `+0.0559` overall, `+0.1458` on occlusion, and `+0.1377` on ambiguity.
+
+Run 30 expected outputs:
+
+```text
+correction_label_summary.csv
+policy_selection.csv
+metrics.csv
+summary.csv
+limit_summary.csv
+gate_decision.csv
+run_config.json
+```
 
 Latest pushed kernels:
 

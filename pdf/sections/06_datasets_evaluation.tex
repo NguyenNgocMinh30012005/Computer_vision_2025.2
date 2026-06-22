@@ -43,26 +43,73 @@
 \end{frame}
 
 \begin{frame}{Evaluation Plan}
+  \small
   \begin{columns}[T]
-    \column{0.48\textwidth}
+    \column{0.52\textwidth}
     \begin{itemize}
-      \item Reconstruction accuracy against available ground-truth geometry
-      \item Completeness and consistency of reconstructed point clouds
-      \item Performance degradation under 2-view, 3-view, and 5-view settings
-      \item Inference efficiency, including runtime per scene
+      \item Reconstruction F-score against available ground-truth geometry
+      \item Accuracy, completeness, and Chamfer distance of point clouds
+      \item Sparse 2--5 view behavior across scene splits
+      \item Limit-specific gates for occlusion and wrong-depth ambiguity
+      \item Runtime per scene for practical inference
     \end{itemize}
 
-    \vspace{0.15cm}
+    \vspace{0.08cm}
     \begin{block}{Success criterion}
-      Show that the multi-view method is more robust than the pairwise
-      baseline under identical sparse-view conditions.
+      Run 30 must beat the best non-learned baseline overall and improve both
+      occlusion and ambiguity subsets by at least the gate margin.
     \end{block}
 
-    \column{0.52\textwidth}
+    \column{0.48\textwidth}
     \centering
-    \includegraphics[width=\linewidth]{mvdust3r_results_table.png}
+    \includegraphics[height=0.46\textheight,keepaspectratio]{mvdust3r_results_table.png}
+
+    \vspace{0.04cm}
+    \figsource{Tang et al., MV-DUSt3R+, quantitative benchmark}
   \end{columns}
+\end{frame}
+
+\begin{frame}{Final RGB-D Result}
+  \scriptsize
+  \begin{block}{Run 30 gate decision}
+    \texttt{selected\_method = rgbd\_source\_depth\_selected};
+    best baseline = \texttt{all\_candidates};
+    gate margin = 0.005;
+    \texttt{pass\_all\_limits = 1}.
+  \end{block}
 
   \vspace{0.08cm}
-  \figsource{Tang et al., MV-DUSt3R+, quantitative benchmark}
+  \centering
+  \begin{tabular}{lrrrr}
+    \toprule
+    \textbf{Split/subset} & \textbf{All cand.} & \textbf{Fixed conf.} &
+    \textbf{RGB-D selected} & \textbf{Delta vs all} \\
+    \midrule
+    Val overall & 0.1194 & 0.1123 & 0.1753 & +0.0559 \\
+    Val occlusion & 0.1064 & 0.0917 & 0.2522 & +0.1458 \\
+    Val ambiguity & 0.1623 & 0.1416 & 0.3000 & +0.1377 \\
+    \midrule
+    Test overall & 0.1758 & 0.1662 & 0.2764 & +0.1007 \\
+    Test occlusion & 0.2111 & 0.1866 & 0.3146 & +0.1035 \\
+    Test ambiguity & 0.1621 & 0.1462 & 0.2948 & +0.1327 \\
+    \bottomrule
+  \end{tabular}
+\end{frame}
+
+\begin{frame}{Why RGB-D Works}
+  \footnotesize
+  \begin{alertblock}{Final wording}
+    RGB-only learned extensions did not pass reconstruction-level gates. After
+    switching the inference contract to RGB-D, Run 30 uses input source depth
+    maps with known camera poses/intrinsics for source-ray correction and passes
+    the overall, occlusion, and ambiguity gates on held-out scenes.
+  \end{alertblock}
+
+  \begin{itemize}
+    \item Source depth anchors each source ray to metric geometry.
+    \item Correction preserves candidate count, unlike filtering that hurts
+    recall and completeness.
+    \item Occlusion and repeated/wrong-depth cases improve because the method
+    fixes geometry rather than discarding sparse-view evidence.
+  \end{itemize}
 \end{frame}

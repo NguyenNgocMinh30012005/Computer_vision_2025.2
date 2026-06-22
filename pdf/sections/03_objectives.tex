@@ -1,25 +1,26 @@
 \begin{frame}{Objectives}
   \begin{enumerate}
-    \item Evaluate a generalizable 3D reconstruction model on unseen scenes.
-    \item Analyze sparse-view performance with 2, 3, and 5 images.
-    \item Compare a pairwise baseline (DUSt3R) with a single-stage multi-view
-    method (MV-DUSt3R+).
-    \item Identify conditions where sparse-view reconstruction fails or remains
-    reliable.
+    \item Build a strong sparse-view MV-DUSt3R+ baseline for 2--5 views.
+    \item Diagnose why RGB-only learned reliability, match filtering, and
+    monodepth correction fail reconstruction-level gates.
+    \item Switch the final setting to posed RGB-D views with known camera
+    intrinsics/extrinsics.
+    \item Validate Run 30 source-depth correction on overall, occlusion, and
+    repeated/wrong-depth ambiguity subsets.
   \end{enumerate}
 \end{frame}
 
-\begin{frame}{Hypothesis}
+\begin{frame}{Final Hypothesis}
   \begin{block}{Working hypothesis}
-    A feed-forward multi-view model should be more robust than a pairwise
-    baseline when the number of input views is limited, because it reasons over
-    multiple views jointly in one pass.
+    Candidate deletion is too risky for sparse-view reconstruction. When input
+    source depth is available, anchoring source rays to metric RGB-D geometry
+    should correct wrong-depth candidates while preserving recall.
   \end{block}
 
   \vspace{0.3cm}
   \begin{itemize}
-    \item Better global consistency across views
-    \item Less dependence on separate alignment stages
-    \item Stronger behavior in highly ambiguous sparse-view settings
+    \item Keep the useful MV-DUSt3R+ candidate set instead of over-filtering it
+    \item Use source depth, poses, and intrinsics to correct 3D locations
+    \item Test the result on occlusion and repeated/wrong-depth hard subsets
   \end{itemize}
 \end{frame}

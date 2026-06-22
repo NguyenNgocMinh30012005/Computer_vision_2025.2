@@ -4,8 +4,9 @@
     \begin{itemize}
       \item Primary method: \textbf{MV-DUSt3R+}
       \item Single-stage feed-forward multi-view reconstruction
-      \item Targeted at sparse-view scenes without camera calibration
-      \item Our study focuses on robustness, quality, and runtime
+      \item Final setting uses sparse posed RGB-D views
+      \item Run 30 adds source-depth correction after MV-DUSt3R+
+      \item Our study focuses on robustness, hard cases, and runtime
     \end{itemize}
 
     \vspace{0.15cm}
@@ -59,25 +60,25 @@
   \vspace{0.22cm}
   \begin{itemize}
     \item DUSt3R is still a strong baseline, so the comparison is direct and meaningful.
-    \item MV-DUSt3R+ is better aligned with our target setting of 2--5 sparse views.
+    \item MV-DUSt3R+ is the candidate generator for our final RGB-D correction step.
   \end{itemize}
 \end{frame}
 
 \begin{frame}{Quantitative Evidence from the Paper}
   \centering
-  \includegraphics[width=0.91\textwidth]{mvdust3r_results_table.png}
+  \includegraphics[height=0.62\textheight,keepaspectratio]{mvdust3r_results_table.png}
 
-  \vspace{0.08cm}
-  {\small Across multiple datasets and view counts, the highlighted rows show that MV-DUSt3R+ improves reconstruction quality while keeping runtime practical.}
+  \vspace{0.04cm}
+  {\scriptsize Across multiple datasets and view counts, the highlighted rows show that MV-DUSt3R+ improves reconstruction quality while keeping runtime practical.}
 
   \figsource{Tang et al., MV-DUSt3R+, Table 2}
 \end{frame}
 
 \begin{frame}{Qualitative Motivation}
   \centering
-  \includegraphics[width=0.88\textwidth]{mv_qualitative_slide.png}
+  \includegraphics[height=0.65\textheight,keepaspectratio]{mv_qualitative_slide.png}
 
-  \vspace{0.08cm}
+  \vspace{0.04cm}
   {\scriptsize DUSt3R often fails on repeated structures, while MV-DUSt3R+ remains more stable in sparse-view scenes.}
 
   \figsource{Tang et al., MV-DUSt3R+, qualitative results}

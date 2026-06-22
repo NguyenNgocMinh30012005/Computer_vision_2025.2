@@ -1,10 +1,10 @@
-\begin{frame}{Expected Deliverables}
+\begin{frame}{Final Deliverables}
   \scriptsize
   \begin{itemize}
-    \item End-to-end implementation for training and evaluation
+    \item End-to-end implementation for Kaggle training/evaluation diagnostics
     \item Quantitative results on unseen scenes across multiple view counts
     \item Qualitative 3D visualizations and failure-case analysis
-    \item Final report discussing strengths, limitations, and recommendations
+    \item Final report discussing RGB-D source-depth strengths and limitations
     \item Reproducible Kaggle experiment scripts organized under
     \texttt{scripts/kaggle}
     \item Final validation rerun script with a P100-compatible Torch fallback
@@ -21,28 +21,23 @@
     deleting valid occluded geometry
     \item Added Run 29 monodepth source-ray correction to approximate the Run 28
     oracle without GT depth at inference
-    \item Added Run 30 RGB-D source-depth correction to test the resource-expanded
+    \item Added Run 30 RGB-D source-depth correction as the final accepted
     solution for the two remaining limits
     \item Clean GitHub repository with curated docs, proposal sources, and PDF
     deck
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Expected Contributions}
+\begin{frame}{Final Contributions}
   \footnotesize
   \begin{itemize}
-    \item A focused benchmark of sparse-view reconstruction on unseen scenes
-    \item A direct comparison between pairwise and single-stage multi-view
-    reasoning
-    \item Evidence about when sparse-view reconstruction remains reliable
-    \item Practical guidance for follow-up work on robust 3D reconstruction
-    \item An ablation record showing which proposed modules help and which fail
-    \item A supervised follow-up plan with honest outcomes: gated OARH still
-    needs better labels/features, while RSDH v2 is strong on proxy match
-    validity but fails the reconstruction-level gate
-    \item A stricter Phase 3 protocol with label caching, subset mining, OARH
-    v2 training, reconstruction-level integration checks, candidate-level
-    calibration, and RSDH validation plus tie-controlled reconstruction
-    diagnostics before claiming the remaining limitations are solved
+    \item A strong RGB-only baseline that solves sparse-view instability through
+    view selection and fixed confidence thresholds.
+    \item A negative-analysis record showing why OARH/RSDH/RAJAH and monodepth
+    should not be claimed as RGB-only solutions.
+    \item A final RGB-D/source-depth method that passes reconstruction-level
+    gates for overall quality, occlusion, and repeated/wrong-depth ambiguity.
+    \item A clear limitation boundary: RGB-only is baseline/diagnostic; Run 30
+    is the final source-depth contribution.
   \end{itemize}
 \end{frame}

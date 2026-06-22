@@ -15,8 +15,8 @@
 
 \begin{frame}{Problem Statement}
   \begin{block}{Core question}
-    How can we reconstruct unseen scenes accurately and efficiently when only
-    2 to 5 input views are available?
+    How can we reconstruct unseen indoor scenes accurately when only 2 to 5
+    sparse posed RGB-D views are available?
   \end{block}
 
   \vspace{0.3cm}
@@ -25,7 +25,8 @@
     \textbf{Key constraints}
     \begin{itemize}
       \item Unseen scene at test time
-      \item Sparse overlapping images
+      \item Sparse posed RGB-D views
+      \item Known camera intrinsics/extrinsics
       \item No per-scene optimization
     \end{itemize}
 
@@ -34,6 +35,7 @@
     \begin{itemize}
       \item Robust geometry recovery
       \item Stable performance under view reduction
+      \item Better occlusion and wrong-depth behavior
       \item Practical runtime per scene
     \end{itemize}
   \end{columns}

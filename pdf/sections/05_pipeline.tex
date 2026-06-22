@@ -1,7 +1,7 @@
-\begin{frame}{Planned Pipeline}
+\begin{frame}{Final Pipeline}
   \centering
   \begin{tikzpicture}[
-    node distance=0.85cm,
+    node distance=0.75cm,
     every node/.style={font=\small},
     box/.style={
       rectangle,
@@ -10,15 +10,15 @@
       fill=soft,
       align=center,
       minimum width=0.78\textwidth,
-      minimum height=0.8cm
+      minimum height=0.72cm
     },
     arr/.style={-{Latex[length=2.5mm]}, very thick, draw=accent}
   ]
-    \node[box] (data) {Prepare multi-view scenes and split into train / validation / unseen test};
-    \node[box, below=of data] (subset) {Create sparse-view subsets with 2, 3, 4, and 5 input images};
-    \node[box, below=of subset] (base) {Run MV-DUSt3R+ pretrained with selected sparse views};
-    \node[box, below=of base] (heads) {Apply learned reliability / visibility / ambiguity heads};
-    \node[box, below=of heads] (eval) {Evaluate geometry, robustness, runtime, and case-specific failures};
+    \node[box] (data) {Select sparse posed RGB-D views and scene-level train / validation / test splits};
+    \node[box, below=of data] (subset) {Run MV-DUSt3R+ to produce candidate point cloud and confidence};
+    \node[box, below=of subset] (base) {Use source depth maps with poses/intrinsics to anchor source rays};
+    \node[box, below=of base] (heads) {Apply Run 30 selective source-depth correction};
+    \node[box, below=of heads] (eval) {Evaluate overall, occlusion, and repeated/wrong-depth gates};
 
     \draw[arr] (data) -- (subset);
     \draw[arr] (subset) -- (base);
@@ -33,8 +33,9 @@
     \textbf{Controlled factors}
     \begin{itemize}
       \item Number of input views
+      \item RGB-D source depth availability
       \item Scene-level train / validation / test split
-      \item Fixed threshold on final test
+      \item Fixed Run 30 policy on final test
     \end{itemize}
 
     \column{0.48\textwidth}
@@ -43,12 +44,12 @@
       \item Reconstruction accuracy
       \item Completeness and consistency
       \item Runtime per scene
-      \item Occlusion and repeated-structure failures
+      \item Occlusion and repeated/wrong-depth failures
     \end{itemize}
   \end{columns}
 \end{frame}
 
-\begin{frame}{Training Strategy}
+\begin{frame}{RGB-only Diagnostic Path}
   \footnotesize
   \begin{enumerate}
     \item First build a supervised label cache with per-view visibility,
@@ -63,10 +64,11 @@
     from actual candidates, self-geometry support, and raw image-patch cues.
     \item Completed Run 27 still selects all candidates: learned filtering beats
     fixed confidence but loses completeness against full retention.
+    \item These runs motivate switching the final inference contract to RGB-D.
   \end{enumerate}
 \end{frame}
 
-\begin{frame}{Limit-Driven Runs}
+\begin{frame}{RGB-D Source-Depth Correction}
   \footnotesize
   \begin{enumerate}
     \item Run 28 therefore preserves candidate count and learns source-ray
@@ -79,8 +81,9 @@
     monodepth is not enough.
     \item Run 30 makes source depth an explicit RGB-D input and gates
     full/selective source-ray correction policies.
-    \item Only if a future learned gate improves validation, unfreeze the
-    confidence head and last decoder blocks for light fine-tuning.
+    \item Selected policy: \texttt{rgbd\_residual\_ge\_0.30}, residual mode,
+    \(\alpha = 1.0\), threshold \(0.30m\).
+    \item Final selected method: \texttt{rgbd\_source\_depth\_selected}.
     \item Keep final test clean: no threshold tuning, no checkpoint selection
     on test scenes.
   \end{enumerate}

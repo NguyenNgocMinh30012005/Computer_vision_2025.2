@@ -3,11 +3,12 @@
 This directory keeps project documentation separate from executable experiment
 scripts.
 
-- `experiments/`: run order, Kaggle execution notes, quantitative summaries
-- `method/`: supervised reliability, visibility, and ambiguity extension
+- `experiments/`: run order, Kaggle execution notes, final Run 30 summaries
+- `method/`: OARH/RSDH diagnostic notes and the RGB-only to RGB-D transition
 - `proposal/`: original proposal sources and team deliverables
 
-Current full project report:
+Current final project reports:
 
+- `experiments/final_rgbd_result.md`: concise final RGB-D/source-depth result
 - `experiments/project_full_report_run30.md`: project overview, Runs 0-30,
-  solved limits, remaining RGB-only limitations, and the Run 30 RGB-D result
+  solved limits, RGB-only negative evidence, and the Run 30 RGB-D result

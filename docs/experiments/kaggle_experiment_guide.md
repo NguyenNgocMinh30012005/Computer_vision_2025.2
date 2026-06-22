@@ -3,6 +3,20 @@
 File nay huong dan dung Kaggle de chay cac thi nghiem trong
 `docs/experiments/experiment_run_order.md`.
 
+## Final status
+
+Run 30 is the final recommended Kaggle run:
+
+```text
+mv-dust3r-run-30-rgbd-source-depth-correction
+```
+
+It uses sparse posed RGB-D views, known intrinsics/extrinsics, MV-DUSt3R+
+candidate reconstruction, and source-depth/source-ray correction. Runs 22-29
+showed that RGB-only filtering/correction was insufficient; Run 30 changes the
+inference contract to RGB-D and passes the overall, occlusion, and ambiguity
+gates.
+
 ## 1. Trang thai setup local
 
 Credential Kaggle da duoc copy vao:
@@ -226,9 +240,11 @@ Output folder:
 /kaggle/working/outputs/run_01_evaluation_pipeline/
 ```
 
-## 7. Run 2-9 mapping
+## 7. Run 2-30 mapping
 
-Dung dung thu tu trong `docs/experiments/experiment_run_order.md`:
+Dung dung thu tu trong `docs/experiments/experiment_run_order.md`. Runs 2-11
+create the strong RGB-only baseline; Runs 12-29 are diagnostic learned/RGB-only
+experiments; Run 30 is the accepted final RGB-D result.
 
 | Run | Ten | Output folder |
 | --- | --- | --- |
@@ -242,6 +258,10 @@ Dung dung thu tu trong `docs/experiments/experiment_run_order.md`:
 | 7 | Repeated-structure filtering | `run_07_repeated_structure` |
 | 8 | Full pipeline | `run_08_full_pipeline` |
 | 9 | Final stress test | `run_09_final_stress_test` |
+| 10 | Sensitivity visualization | `run_10_sensitivity_visualization` |
+| 11 | Final RGB-only baseline validation | `run_11_final_validation_3seeds` |
+| 12-29 | RGB-only learned diagnostics | see `scripts/kaggle/README.md` |
+| 30 | Final RGB-D source-depth correction | `run_30_rgbd_source_depth_correction` |
 
 Moi run nen sinh it nhat:
 
@@ -269,11 +289,19 @@ python -m kaggle.cli datasets download -d <owner>/<dataset-slug> -p downloads/ka
 
 Neu output nam trong notebook session, download truc tiep tu tab Output cua Kaggle Notebook.
 
-## 9. Viec can ban cung cap tiep
+## 9. Final Run 30 Output
 
-De minh viet notebook/script chay cu the, can cac thong tin sau:
+Run 30 should produce:
 
-- Link hoac slug dataset ScanNet++ subset tren Kaggle.
-- Ten/path checkpoint MV-DUSt3R+ tren Kaggle.
-- Ban muon chay truoc Run 0 hay tao full notebook cho Run 0-3.
-- GPU Kaggle dang dung: T4/P100/A100 neu co.
+```text
+correction_label_summary.csv
+policy_selection.csv
+metrics.csv
+summary.csv
+limit_summary.csv
+gate_decision.csv
+run_config.json
+```
+
+Do not run a later experiment unless the research question changes. The current
+accepted final claim is the Run 30 RGB-D/source-depth result.
