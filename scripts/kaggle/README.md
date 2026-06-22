@@ -15,7 +15,7 @@ contribution. It switches the project to sparse posed RGB-D/source-depth
 inference and passes the overall, occlusion, and ambiguity gates. Runs 12-29
 are kept as RGB-only learned diagnostics and negative evidence. Run 31 is a
 coverage stress test of the frozen Run 30 method. Run 32 is a direct RGB-D
-backprojection baseline without MV-DUSt3R+.
+backprojection diagnostic without MV-DUSt3R+.
 
 Run order:
 
@@ -178,7 +178,22 @@ run_config.json
 Run 32 directly lifts valid source depth pixels with intrinsics/poses, attaches
 RGB colors, and uses fixed voxel/sampled downsampling at the 3,500-point budget.
 It mounts Run 30 output to compare the same validation/test groups and hard
-subsets without test tuning.
+subsets without test tuning. The completed primary voxel baseline is below Run
+30 selected:
+
+| Split / subset | Direct voxel RGB-D | Run 30 selected | Run 30 - direct |
+| --- | ---: | ---: | ---: |
+| Val overall | 0.0874 | 0.1753 | +0.0879 |
+| Val occlusion | 0.1162 | 0.2522 | +0.1360 |
+| Val ambiguity | 0.0998 | 0.3000 | +0.2002 |
+| Test overall | 0.1359 | 0.2764 | +0.1405 |
+| Test occlusion | 0.1196 | 0.3146 | +0.1951 |
+| Test ambiguity | 0.1837 | 0.2948 | +0.1111 |
+
+The auxiliary sampled direct diagnostic is much higher (`0.8500` validation
+overall, `0.8666` test overall) because it shares the same input-depth source
+as the controlled proxy target. Treat that as an evaluator-circularity warning,
+not as an official benchmark result.
 
 Direct RGB-D backprojection is not source-depth correction. It is a
 depth-only/RGB-D baseline. Source-depth correction specifically refers to

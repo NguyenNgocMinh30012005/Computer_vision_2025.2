@@ -340,7 +340,13 @@ Current Phase 3 execution note:
   policy; it measures whether the fixed Run 30 gain persists over 360
   sparse-view groups.
 - Run 32 is a no-learning depth baseline. It tests whether source depth itself,
-  rather than MV-DUSt3R+ candidate correction, dominates the final result.
+  rather than MV-DUSt3R+ candidate correction, dominates the final result. The
+  completed primary voxel direct baseline is below Run 30 selected
+  (validation overall 0.0874 vs 0.1753; test overall 0.1359 vs 0.2764), but
+  the sampled direct diagnostic reaches 0.8500 validation overall and 0.8666
+  test overall because it shares the input-depth source with the proxy target.
+  Treat Run 32 as an evaluator-circularity warning unless an independent
+  mesh/laser-scan target is used.
 
 ## Dataset Split
 

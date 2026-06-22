@@ -17,8 +17,8 @@ sparse posed RGB-D views
 Runs 0-32 are the full experiment history. RGB-only experiments are kept as a
 strong baseline and negative-analysis track, not as the final solved setting.
 Run 30 is the final technical contribution. Run 31 is a coverage stress test of
-that frozen method. Run 32 adds a direct RGB-D backprojection baseline to test
-whether Run 30 adds value beyond source depth alone.
+that frozen method. Run 32 adds a direct RGB-D backprojection diagnostic to test
+the boundary between source-depth correction and depth-only reconstruction.
 
 ## Project Summary
 
@@ -145,7 +145,7 @@ Kaggle Secrets (`HF_TOKEN`) for runs that download from the Hub.
 
 ## Experiment History
 
-The staged Kaggle scripts live in `scripts/kaggle/`. Runs 0-31 are the complete
+The staged Kaggle scripts live in `scripts/kaggle/`. Runs 0-32 are the complete
 history:
 
 - Runs 0-11: baseline, view selection, confidence thresholding, heuristic
@@ -166,7 +166,7 @@ history:
 - Run 31: frozen-policy coverage stress test with 12 sparse-view groups per
   scene across all 30 scenes.
 - Run 32: direct RGB-D source-depth backprojection without MV-DUSt3R+;
-  comparison against Run 30 is pending.
+  completed diagnostic baseline and evaluator-circularity check.
 
 Final script:
 
@@ -200,8 +200,27 @@ correcting MV-DUSt3R+ candidate points using source depth residuals.
 Run 32 also records an evaluator warning: the controlled GT cloud is currently
 built from the same selected input depth maps. Direct backprojection therefore
 shares its depth source with the evaluation target and is not an independent
-mesh/laser-scan benchmark. No claim that Run 30 beats direct RGB-D
-backprojection is made before Run 32 results are reviewed.
+mesh/laser-scan benchmark.
+
+Run 32 result:
+
+| Split/subset | Direct voxel RGB-D | Run 30 selected | Run 30 - direct |
+| --- | ---: | ---: | ---: |
+| Val overall | 0.0874 | 0.1753 | +0.0879 |
+| Val occlusion | 0.1162 | 0.2522 | +0.1360 |
+| Val ambiguity | 0.0998 | 0.3000 | +0.2002 |
+| Test overall | 0.1359 | 0.2764 | +0.1405 |
+| Test occlusion | 0.1196 | 0.3146 | +0.1951 |
+| Test ambiguity | 0.1837 | 0.2948 | +0.1111 |
+
+The pre-registered primary direct method is the voxelized
+`direct_rgbd_backprojection`, and the gate outcome is
+`run30_adds_value_over_direct`. Run 32 also logs
+`direct_rgbd_backprojection_sampled`, which scores very high
+(`0.8500` validation overall, `0.8666` test overall) because it shares the same
+input-depth source as the controlled GT cloud. That sampled diagnostic is
+therefore treated as evaluator-circularity evidence, not as an official
+benchmark result.
 
 Key final-result documents:
 

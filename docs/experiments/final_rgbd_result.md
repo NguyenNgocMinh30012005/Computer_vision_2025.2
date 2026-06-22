@@ -131,19 +131,34 @@ Kaggle output is reviewed.
 
 ## Direct RGB-D Backprojection Baseline
 
-Run 32 tests whether Run 30 adds value beyond source depth alone. It directly
-back-projects valid depth pixels with intrinsics and camera poses, attaches RGB
-colors, and evaluates a fixed voxel-downsampled cloud without MV-DUSt3R+.
+Run 32 tests the boundary between Run 30 source-depth correction and direct
+depth-only reconstruction. It directly back-projects valid depth pixels with
+intrinsics and camera poses, attaches RGB colors, and evaluates a fixed
+voxel-downsampled cloud without MV-DUSt3R+.
 
 Direct RGB-D backprojection is not source-depth correction. It is a
 depth-only/RGB-D baseline. Source-depth correction specifically refers to
 correcting MV-DUSt3R+ candidate points using source depth residuals.
 
 The comparison uses the same Run 30 validation/test groups and hard subsets.
-Status: submitted/pending result. The final claim is unchanged until the Run 32
-output is reviewed.
+Run 32 is complete. The pre-registered primary method is the voxelized
+`direct_rgbd_backprojection`, and its gate outcome is
+`run30_adds_value_over_direct`.
+
+| Split / subset | Direct voxel RGB-D | Run 30 selected | Run 30 - direct |
+| --- | ---: | ---: | ---: |
+| Val overall | 0.0874 | 0.1753 | +0.0879 |
+| Val occlusion | 0.1162 | 0.2522 | +0.1360 |
+| Val ambiguity | 0.0998 | 0.3000 | +0.2002 |
+| Test overall | 0.1359 | 0.2764 | +0.1405 |
+| Test occlusion | 0.1196 | 0.3146 | +0.1951 |
+| Test ambiguity | 0.1837 | 0.2948 | +0.1111 |
 
 Important evaluator limitation: the current controlled GT cloud is built from
 the same selected input depth maps. Direct backprojection therefore shares its
 depth source with the target; this is not an independent official mesh or
-laser-scan evaluation.
+laser-scan evaluation. This warning is concrete in Run 32: the additional
+`direct_rgbd_backprojection_sampled` diagnostic reaches `0.8500` validation
+overall and `0.8666` test overall because the sampled depth cloud is too close
+to the proxy target. Treat that as evaluator-circularity evidence, not as a
+new final method claim.

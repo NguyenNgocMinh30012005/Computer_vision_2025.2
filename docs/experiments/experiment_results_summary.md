@@ -591,6 +591,7 @@ Expected outputs for the submitted remaining runs:
 - Run 29: `correction_label_summary.csv`, `policy_selection.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `run_config.json`
 - Run 30: `correction_label_summary.csv`, `policy_selection.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `run_config.json`
 - Run 31: `group_manifest.csv`, `coverage_summary.csv`, `correction_label_summary.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `paired_group_deltas.csv`, `stability_summary.csv`, `view_count_stability.csv`, `gate_decision.csv`, `run_config.json`
+- Run 32: `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `qualitative_manifest.csv`, `run_config.json`
 
 ## Run 30 Final RGB-D Source-Depth Correction
 
@@ -644,14 +645,28 @@ Direct RGB-D backprojection is not source-depth correction. It is a
 depth-only/RGB-D baseline. Source-depth correction specifically refers to
 correcting MV-DUSt3R+ candidate points using source depth residuals.
 
-The script mounts Run 30 outputs and reports direct-minus-Run-30 deltas. Status:
-submitted/pending result. The final claim remains unchanged until these metrics
-are reviewed.
+The script mounts Run 30 outputs and reports direct-minus-Run-30 deltas. Run 32
+is complete. The pre-registered primary direct method is the voxelized
+`direct_rgbd_backprojection`, and the gate outcome is
+`run30_adds_value_over_direct`.
+
+| Split / subset | Direct voxel RGB-D | Run 30 selected | Run 30 - direct |
+| --- | ---: | ---: | ---: |
+| Val overall | 0.0874 | 0.1753 | +0.0879 |
+| Val occlusion | 0.1162 | 0.2522 | +0.1360 |
+| Val ambiguity | 0.0998 | 0.3000 | +0.2002 |
+| Test overall | 0.1359 | 0.2764 | +0.1405 |
+| Test occlusion | 0.1196 | 0.3146 | +0.1951 |
+| Test ambiguity | 0.1837 | 0.2948 | +0.1111 |
 
 Evaluation warning: `build_gt_cloud` uses depth PNGs from the same selected
 input views. Direct backprojection and the evaluation target therefore share a
 depth source, so this diagnostic is not an independent full-ScanNet or official
-mesh benchmark.
+mesh benchmark. The additional `direct_rgbd_backprojection_sampled` diagnostic
+scores `0.8500` validation overall and `0.8666` test overall, which confirms
+that direct depth sampling can exploit the proxy-target construction. Do not
+turn that sampled diagnostic into a final method claim without independent
+mesh/laser-scan ground truth.
 
 ## Limitations
 

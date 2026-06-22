@@ -21,9 +21,10 @@ ambiguity gates.
 Run 31 follows as a coverage stress test only. It freezes the Run 30 policy and
 adds more sparse-view groups per scene; it does not search for a new method.
 
-Run 32 adds a direct RGB-D backprojection baseline without MV-DUSt3R+. It tests
-whether Run 30 improves over source depth alone and does not replace Run 30
-before the comparison is reviewed.
+Run 32 adds a direct RGB-D backprojection diagnostic without MV-DUSt3R+. Its
+primary voxelized direct baseline is below Run 30, while its sampled diagnostic
+exposes evaluator circularity from sharing the same input-depth source as the
+proxy target. It does not replace Run 30 or create an official benchmark claim.
 
 ## Global Protocol
 
@@ -625,8 +626,11 @@ Ket qua hien tai:
   tren coverage set. Status: submitted/pending result.
 - Run 32: direct RGB-D baseline, khong dung MV-DUSt3R+. Depth pixel duoc
   back-project bang intrinsics/pose, voxel-downsample va cap 3,500 points.
-  Script so sanh truc tiep voi Run 30 neu mounted output san sang. Status:
-  submitted/pending result; khong doi final claim truoc khi doc output.
+  Completed gate tren primary voxel baseline cho thay Run 30 selected thang:
+  val overall 0.1753 vs 0.0874, test overall 0.2764 vs 0.1359. Tuy nhien
+  diagnostic sampled direct dat 0.8500 val overall va 0.8666 test overall vi
+  no chia se depth source voi proxy GT; day la canh bao circularity, khong phai
+  official benchmark claim.
 
 Output can gui lai sau khi Kaggle chay xong:
 

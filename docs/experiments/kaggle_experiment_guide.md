@@ -26,13 +26,15 @@ mv-dust3r-run-31-rgbd-coverage-stress-test
 It freezes the Run 30 policy and evaluates more sparse-view groups. It must not
 be used to retune the method.
 
-Run 32 is the direct source-depth baseline:
+Run 32 is the direct source-depth diagnostic:
 
 ```text
 mv-dust3r-run-32-direct-rgbd-backprojection
 ```
 
 It does not use MV-DUSt3R+ and mounts Run 30 outputs for an exact comparison.
+The completed primary voxel baseline is below Run 30, but the sampled direct
+diagnostic exposes circularity in the controlled depth-derived proxy target.
 
 ## 1. Trang thai setup local
 
@@ -363,3 +365,20 @@ run_config.json
 Review the circularity warning in `run_config.json`: current GT clouds and the
 direct baseline use the same selected input depth maps. Do not convert a strong
 Run 32 number into an official benchmark claim.
+
+Completed Run 32 result:
+
+| Split / subset | Direct voxel RGB-D | Run 30 selected | Run 30 - direct |
+| --- | ---: | ---: | ---: |
+| Val overall | 0.0874 | 0.1753 | +0.0879 |
+| Val occlusion | 0.1162 | 0.2522 | +0.1360 |
+| Val ambiguity | 0.0998 | 0.3000 | +0.2002 |
+| Test overall | 0.1359 | 0.2764 | +0.1405 |
+| Test occlusion | 0.1196 | 0.3146 | +0.1951 |
+| Test ambiguity | 0.1837 | 0.2948 | +0.1111 |
+
+The auxiliary `direct_rgbd_backprojection_sampled` diagnostic reaches `0.8500`
+validation overall and `0.8666` test overall because it samples from nearly the
+same depth distribution used to build the proxy target. Treat that as a warning
+that independent mesh/laser-scan GT is required for a fair direct-depth
+benchmark.

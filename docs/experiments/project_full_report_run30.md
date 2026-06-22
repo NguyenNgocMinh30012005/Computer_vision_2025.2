@@ -517,8 +517,8 @@ Kaggle output is reviewed.
 Run 32 directly back-projects input depth pixels into the first-camera frame,
 attaches RGB colors, and applies a fixed 2 cm voxel downsample with a 3,500-point
 cap. It does not use MV-DUSt3R+ and does not tune on test scenes. Its purpose is
-to determine whether the MV-DUSt3R+ candidate prior plus source-depth correction
-adds value beyond direct source-depth reconstruction.
+to test the boundary between MV-DUSt3R+ candidate source-depth correction and
+direct source-depth reconstruction.
 
 Direct RGB-D backprojection is not source-depth correction. It is a
 depth-only/RGB-D baseline. Source-depth correction specifically refers to
@@ -526,13 +526,28 @@ correcting MV-DUSt3R+ candidate points using source depth residuals.
 
 Run 32 mounts the Run 30 output and compares `all_candidates`,
 `confidence_fixed_final`, `rgbd_source_depth_selected`, and
-`direct_rgbd_backprojection` on the same groups and hard subsets. Status:
-submitted/pending result. No Run 30-versus-direct claim is made yet.
+`direct_rgbd_backprojection` on the same groups and hard subsets. The completed
+primary gate uses the voxelized `direct_rgbd_backprojection` method and reports
+`run30_adds_value_over_direct`.
+
+| Split / subset | Direct voxel RGB-D | Run 30 selected | Run 30 - direct |
+| --- | ---: | ---: | ---: |
+| Val overall | 0.0874 | 0.1753 | +0.0879 |
+| Val occlusion | 0.1162 | 0.2522 | +0.1360 |
+| Val ambiguity | 0.0998 | 0.3000 | +0.2002 |
+| Test overall | 0.1359 | 0.2764 | +0.1405 |
+| Test occlusion | 0.1196 | 0.3146 | +0.1951 |
+| Test ambiguity | 0.1837 | 0.2948 | +0.1111 |
 
 The present evaluator builds its GT cloud from the depth maps of the same
 selected input views. This creates a circularity advantage for direct
-backprojection and must be reported alongside its metrics. An independent
-mesh/laser-scan target is still required for an official generalization claim.
+backprojection and must be reported alongside its metrics. The warning is not
+hypothetical: Run 32 also logs `direct_rgbd_backprojection_sampled`, which
+scores `0.8500` validation overall and `0.8666` test overall because it samples
+from the same input-depth distribution used to build the proxy target. This is
+evaluator-circularity evidence, not a new official benchmark result. An
+independent mesh/laser-scan target is still required for an official
+generalization claim.
 
 Possible future work, outside the current final claim:
 
