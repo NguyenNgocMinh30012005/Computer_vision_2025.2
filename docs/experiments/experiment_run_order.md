@@ -2,10 +2,11 @@
 
 File nay quy dinh thu tu chay thi nghiem cho de tai sparse-view 3D reconstruction dua tren MV-DUSt3R+. Muc tieu la chay theo tung lop: dau tien kiem tra pipeline co hoat dong, sau do tao baseline manh, roi moi them view selection, fusion, occlusion va repeated-structure filtering.
 
-## Final Status After Run 33
+## Final Status After Run 37
 
-Run 30 is the final recommended run and the final technical contribution. The
-project now uses a sparse posed RGB-D/source-depth setting:
+Run 30 is the validated RGB-D reference run. The current target direction is to
+keep the Run 30 correction idea but replace true source depth with estimated
+source depth from the fine-tuned depth model. The Run 30 reference setting is:
 
 ```text
 sparse posed RGB-D views
@@ -30,6 +31,26 @@ Run 33 adds a clean MV-DUSt3R+ only RGB baseline by reusing Run 30
 `all_candidates` and `confidence_fixed_final` rows. It reruns no inference and
 uses no source depth for inference, correction, or direct RGB-D backprojection.
 Its gate confirms Run 30 adds value over MV-DUSt3R+ RGB-only outputs.
+
+Run 37 responds to the predicted-depth limitation from Runs 35-36. It does not
+change the final Run 30 RGB-D claim. Instead, it fine-tunes the monocular depth
+estimator on the full Kaggle RGB-D frame pool discovered under
+`scannet/posed_images`, with a scene-level holdout for fair depth metrics and a
+separate 100%-data deployment checkpoint.
+
+Target setting after Run 37:
+
+```text
+RGB-only sparse views
+-> MV-DUSt3R+ candidate reconstruction
+-> fine-tuned depth estimator predicts source depth from RGB
+-> predicted-depth source-ray correction with known poses/intrinsics
+-> corrected point cloud
+```
+
+This is the desired RGB-only-input reconstruction setting. It still uses known
+camera calibration and must pass reconstruction gates before it can replace the
+Run 30 RGB-D reference result.
 
 ## Global Protocol
 
@@ -86,6 +107,7 @@ Config nay nen ghi ro:
   run_31_rgbd_coverage_stress_test/
   run_32_direct_rgbd_backprojection_baseline/
   run_33_mvdust3r_only_rgb_baseline/
+  run_37_depth_estimator_full_finetune/
 ```
 
 Chi thay doi dung bien dang duoc test trong tung run. Cac thanh phan khac phai giu nguyen de ket qua ablation co y nghia.
@@ -605,6 +627,8 @@ Da submit cac kernel dau cho phase learned extension:
 | 31 | `mv-dust3r-run-31-rgbd-coverage-stress-test` | Co dinh policy Run 30, tang len 12 sparse-view groups moi scene tren 30 scenes, va do paired delta + scene-cluster bootstrap CI |
 | 32 | `mv-dust3r-run-32-direct-rgbd-backprojection` | Back-project source depth truc tiep khong dung MV-DUSt3R+, so sanh voi Run 30 tren cung groups, metrics va hard subsets |
 | 33 | `mv-dust3r-run-33-mvdust3r-only-rgb-baseline` | Reuse Run 30 all-candidate/fixed-confidence rows de do MV-DUSt3R+ RGB-only baseline khong dung source depth |
+| 35 | `mv-dust3r-run-35-predicted-depth-quality` | Do AbsRel/RMSE/MAE/delta va scale-aligned quality cua Depth Anything V2 Metric Indoor; cache predicted depth |
+| 36 | `mv-dust3r-run-36-predicted-depth-correction` | Dung RGB + predicted depth + known pose/intrinsics de correction, tune tau/alpha tren internal validation, khong dung true depth o inference |
 
 Ket qua hien tai:
 
@@ -630,7 +654,7 @@ Ket qua hien tai:
 - Run 28 result: fail gate nhung co oracle headroom lon. Val all-candidates 0.1194, learned ray-depth 0.1139, fixed confidence 0.1123; oracle source-depth 0.1936 overall, 0.2759 occlusion va 0.3263 ambiguity. Learned correction giup ambiguity validation +0.0085 nhung lam occlusion -0.0210, nen chua the claim solved.
 - Run 29: xap xi oracle source-depth bang pretrained monocular depth tu RGB dau vao, khong dung GT depth de sua candidate. Kernel thu raw, inverse va inverse-disparity depth, align qua pose/intrinsics vao he MV-DUSt3R, chon policy tren held-out train scenes va gate tren val/test nhu Run 28.
 - Run 29 result: fail gate ro rang. Val all-candidates 0.1208, selected monodepth 0.0949, fixed confidence 0.1131; occlusion delta -0.0338 va ambiguity delta -0.0520. Source-depth diagnostic van manh: 0.1979 val overall, +0.1263 tren occlusion va +0.1680 tren ambiguity so voi all-candidates.
-- Run 30: chuyen sang RGB-D/resource-expanded setting. Depth map cua input posed frames duoc phep dung o inference de sua source ray; policy duoc chon tren internal train scenes roi gate tren val/test. Completed Run 30 pass gate va la final technical contribution: hai limit con lai duoc giai quyet khi them depth input, khong phai RGB-only.
+- Run 30: chuyen sang RGB-D/resource-expanded reference setting. Depth map cua input posed frames duoc phep dung o inference de sua source ray; policy duoc chon tren internal train scenes roi gate tren val/test. Completed Run 30 pass gate va la validated RGB-D reference: hai limit con lai duoc giai quyet khi them true depth input, khong phai RGB-only.
 - Run 31: coverage stress test, khong phai method moi. Co dinh
   `rgbd_residual_ge_0.30`, dung 3/4/5 views, hybrid/diversity-aware va hai frame
   variants moi cau hinh. Tong cong 360 groups tren 30 scenes; khong tune policy
@@ -648,6 +672,16 @@ Ket qua hien tai:
   source-depth/direct-RGB-D inference flags ve false. Completed gate cho thay
   Run 30 selected thang best RGB-only MV-DUSt3R+: val overall 0.1753 vs 0.1194,
   test overall 0.2764 vs 0.1758; occlusion/ambiguity cung tang manh.
+- Run 35: completed predicted-depth quality diagnostic. Model co dinh la
+  `depth-anything/Depth-Anything-V2-Metric-Indoor-Small-hf`; true source depth
+  chi dung de score va calibrate global scale tren train-fit scenes. Test
+  AbsRel 0.1861, delta1 0.7736, raw MAE 0.3525 m va scale-aligned MAE 0.1614 m.
+- Run 36: completed. Policy duoc chon la global scale, `tau_pred=0.5`,
+  `alpha=0.25`. Correction F-score thap hon RGB-only tren validation
+  (`0.1012` vs `0.1231`) va test (`0.1465` vs `0.1744`), dong thoi fail
+  overall/occlusion/ambiguity gates. Direct predicted-depth backprojection dat
+  `0.1747` val va `0.1894` test, nhung van thap hon Run 30 test `0.2764` va
+  regress tren test occlusion. Final claim khong thay doi.
 
 Output can gui lai sau khi Kaggle chay xong:
 
@@ -673,6 +707,8 @@ Output can gui lai sau khi Kaggle chay xong:
 - Run 31: `group_manifest.csv`, `coverage_summary.csv`, `correction_label_summary.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `paired_group_deltas.csv`, `stability_summary.csv`, `view_count_stability.csv`, `gate_decision.csv`, `run_config.json`
 - Run 32: `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `qualitative_manifest.csv`, `run_config.json`
 - Run 33: `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `run_config.json`, optional `qualitative_manifest.csv`
+- Run 35: `depth_metrics.csv`, `depth_summary.csv`, `predicted_depth_cache_manifest.csv`, `selected_group_manifest.csv`, `scale_calibration.csv`, `run_config.json`
+- Run 36: `metrics.csv`, `summary.csv`, `limit_summary.csv`, `policy_selection.csv`, `gate_decision.csv`, `comparison_table.csv`, `predicted_depth_cache_manifest.csv`, `run_config.json`
 
 Nguyen tac dung:
 

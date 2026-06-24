@@ -214,6 +214,29 @@ def load_limit_rows(output_dir):
     return read_csv_rows(path) if path.exists() else []
 
 
+def read_json(path):
+    path = Path(path)
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def coverage_from_metric_rows(metric_rows, source_config):
+    scenes = sorted({row["scene"] for row in metric_rows if row.get("scene")})
+    groups = sorted({row["group_key"] for row in metric_rows if row.get("group_key")})
+    return {
+        "max_eval_groups_raw": source_config.get("max_eval_groups_raw"),
+        "max_eval_groups_resolved": source_config.get("max_eval_groups_resolved"),
+        "num_discovered_scenes": source_config.get("num_discovered_scenes"),
+        "num_total_eval_groups_before_cap": source_config.get(
+            "num_total_eval_groups_before_cap"
+        ),
+        "num_eval_groups_after_cap": len(groups),
+        "evaluated_scene_count": len(scenes),
+        "evaluated_scene_ids": scenes,
+    }
+
+
 def choose_best_rgb_method(limit_rows):
     val_rows = [
         row
@@ -298,6 +321,9 @@ def main():
     run32_dir = find_output_dir(RUN32_NAME, "RUN33_RUN32_OUTPUT_DIR")
 
     metric_rows = load_run30_rgb_only_metrics(run30_dir)
+    run30_config = read_json(run30_dir / "run_config.json")
+    run32_config = read_json(run32_dir / "run_config.json") if run32_dir else {}
+    coverage = coverage_from_metric_rows(metric_rows, run30_config)
     summary_rows = summarize(metric_rows)
     limit_rows = limit_summary(metric_rows)
     gate_rows = comparison_gate(limit_rows, run30_dir, run32_dir)
@@ -316,6 +342,29 @@ def main():
         "evaluation_contract": "existing project reconstruction evaluator",
         "evaluation_may_use_depth_proxy_target": True,
         "method_map": METHOD_MAP,
+        **coverage,
+        "source_run30_coverage": {
+            "max_eval_groups_raw": run30_config.get("max_eval_groups_raw"),
+            "max_eval_groups_resolved": run30_config.get("max_eval_groups_resolved"),
+            "num_discovered_scenes": run30_config.get("num_discovered_scenes"),
+            "num_total_eval_groups_before_cap": run30_config.get(
+                "num_total_eval_groups_before_cap"
+            ),
+            "num_eval_groups_after_cap": run30_config.get("num_eval_groups_after_cap"),
+            "evaluated_scene_count": run30_config.get("evaluated_scene_count"),
+            "evaluated_scene_ids": run30_config.get("evaluated_scene_ids"),
+        },
+        "source_run32_coverage": {
+            "max_eval_groups_raw": run32_config.get("max_eval_groups_raw"),
+            "max_eval_groups_resolved": run32_config.get("max_eval_groups_resolved"),
+            "num_discovered_scenes": run32_config.get("num_discovered_scenes"),
+            "num_total_eval_groups_before_cap": run32_config.get(
+                "num_total_eval_groups_before_cap"
+            ),
+            "num_eval_groups_after_cap": run32_config.get("num_eval_groups_after_cap"),
+            "evaluated_scene_count": run32_config.get("evaluated_scene_count"),
+            "evaluated_scene_ids": run32_config.get("evaluated_scene_ids"),
+        },
         "num_metric_rows": len(metric_rows),
         "num_groups": len({row["group_key"] for row in metric_rows}),
         "gate_margin_f1": GATE_MARGIN_F1,

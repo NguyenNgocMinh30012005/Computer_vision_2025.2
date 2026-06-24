@@ -31,9 +31,9 @@ base = r28.base
 
 RUN_NAME = "run_30_rgbd_source_depth_correction"
 SEED = 3030
-MAX_SCENES = int(os.environ.get("RUN30_MAX_SCENES", "30"))
+MAX_SCENES = int(os.environ.get("RUN30_MAX_SCENES", "0"))
 MAX_TRAIN_GROUPS = int(os.environ.get("RUN30_MAX_TRAIN_GROUPS", "48"))
-MAX_EVAL_GROUPS = int(os.environ.get("RUN30_MAX_EVAL_GROUPS", "36"))
+MAX_EVAL_GROUPS_RAW = os.environ.get("RUN30_MAX_EVAL_GROUPS", "0")
 MAX_CANDIDATES_PER_GROUP = int(os.environ.get("RUN30_MAX_CANDIDATES_PER_GROUP", "3500"))
 GATE_MARGIN_F1 = float(os.environ.get("RUN30_GATE_MARGIN_F1", "0.005"))
 
@@ -46,6 +46,19 @@ POLICIES = [
     {"name": "rgbd_residual_ge_0.30", "mode": "residual", "alpha": 1.00, "residual_threshold_m": 0.30},
     {"name": "rgbd_low_support_or_residual_0.15", "mode": "low_support_or_residual", "alpha": 1.00, "residual_threshold_m": 0.15},
 ]
+
+
+def parse_optional_positive_limit(raw_value):
+    if raw_value is None:
+        return None
+    text = str(raw_value).strip().lower()
+    if text in {"", "none", "null", "all", "unlimited"}:
+        return None
+    value = int(text)
+    return value if value > 0 else None
+
+
+MAX_EVAL_GROUPS = parse_optional_positive_limit(MAX_EVAL_GROUPS_RAW)
 
 
 def confidence_mask(conf, num_views):
@@ -203,6 +216,12 @@ def summarize(metric_rows):
                 "mean_precision": float(np.mean([row["precision"] for row in rows])),
                 "mean_recall": float(np.mean([row["recall"] for row in rows])),
                 "mean_chamfer": float(np.mean([row["chamfer"] for row in rows])),
+                "mean_normalized_distance": float(
+                    np.mean([row["normalized_distance"] for row in rows])
+                ),
+                "mean_dac_at_0_2_normalized": float(
+                    np.mean([row["dac_at_0_2_normalized"] for row in rows])
+                ),
             }
         )
     return output
@@ -242,6 +261,12 @@ def limit_summary(metric_rows):
                         "mean_fscore": float(np.mean([row["fscore"] for row in rows])),
                         "mean_precision": float(np.mean([row["precision"] for row in rows])),
                         "mean_recall": float(np.mean([row["recall"] for row in rows])),
+                        "mean_normalized_distance": float(
+                            np.mean([row["normalized_distance"] for row in rows])
+                        ),
+                        "mean_dac_at_0_2_normalized": float(
+                            np.mean([row["dac_at_0_2_normalized"] for row in rows])
+                        ),
                     }
                 )
     return output
@@ -322,7 +347,8 @@ def main():
     root = base.clone_repo()
     base.install_deps(root)
     posed_root = base.find_posed_images_root()
-    scene_dirs = r27.discover_scene_dirs(posed_root)[:MAX_SCENES]
+    all_scene_dirs = r27.discover_scene_dirs(posed_root)
+    scene_dirs = all_scene_dirs[:MAX_SCENES] if MAX_SCENES > 0 else all_scene_dirs
     scene_lookup = {path.name: path for path in scene_dirs}
     splits = r27.scene_splits(scene_dirs)
     manifest = r27.build_group_manifest(scene_dirs, splits)
@@ -330,10 +356,15 @@ def main():
         [row for row in manifest if row["split"] == "train"],
         MAX_TRAIN_GROUPS,
     )
-    eval_groups = r27.balanced_group_subset(
-        [row for row in manifest if row["split"] in {"val", "test"}],
-        MAX_EVAL_GROUPS,
+    eval_group_candidates = [
+        row for row in manifest if row["split"] in {"val", "test"}
+    ]
+    eval_groups = (
+        eval_group_candidates
+        if MAX_EVAL_GROUPS is None
+        else r27.balanced_group_subset(eval_group_candidates, MAX_EVAL_GROUPS)
     )
+    evaluated_scene_ids = sorted({row["scene"] for row in eval_groups})
     _fit_groups, internal_val_groups, internal_val_scenes = r27.split_internal_train_groups(train_groups)
     print("Run 30 splits:", splits)
     print("Run 30 group counts:", {"train": len(train_groups), "internal_val": len(internal_val_groups), "eval": len(eval_groups)})
@@ -372,7 +403,15 @@ def main():
         "self_contained": True,
         "source_run29_diagnosis": "RGB-only monodepth source-ray correction regresses both occlusion and ambiguity; source-depth oracle still has large headroom.",
         "num_scenes": len(scene_dirs),
+        "scene_limit": MAX_SCENES if MAX_SCENES > 0 else None,
+        "num_discovered_scenes": len(all_scene_dirs),
         "scene_splits": splits,
+        "max_eval_groups_raw": MAX_EVAL_GROUPS_RAW,
+        "max_eval_groups_resolved": MAX_EVAL_GROUPS,
+        "num_total_eval_groups_before_cap": len(eval_group_candidates),
+        "num_eval_groups_after_cap": len(eval_groups),
+        "evaluated_scene_count": len(evaluated_scene_ids),
+        "evaluated_scene_ids": evaluated_scene_ids,
         "num_internal_val_groups": len(internal_val_records),
         "num_eval_groups": len(eval_groups),
         "max_candidates_per_group": MAX_CANDIDATES_PER_GROUP,

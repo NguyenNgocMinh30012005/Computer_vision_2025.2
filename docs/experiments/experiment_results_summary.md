@@ -3,27 +3,37 @@
 This file summarizes the Kaggle experiment outputs for the MV-DUSt3R+
 sparse-view reconstruction study.
 
-## Current Final Setting
+## Current Target Setting
 
-The project now uses an RGB-D/source-depth final setting:
+The project now separates the validated RGB-D reference from the target
+RGB-only estimated-depth setting. The target reconstruction contract is:
 
 ```text
-sparse posed RGB-D views
+sparse posed RGB views
 + known camera intrinsics/extrinsics
 + MV-DUSt3R+ candidate reconstruction
-+ source-depth / source-ray correction
++ fine-tuned estimated source depth from RGB
++ predicted-depth / source-ray correction
 ```
 
-Run 30 is the final technical contribution. RGB-only Runs 12-29 are kept as
-baseline and negative-analysis evidence, not as the solved setting.
+Run 30 remains the validated RGB-D/source-depth reference contribution.
+RGB-only Runs 12-29 are kept as baseline and negative-analysis evidence.
+Run 37 fine-tunes the depth estimator that should provide the estimated source
+depth for the next reconstruction correction run.
 
-Final supported claim:
+Validated reference claim:
 
 ```text
 RGB-only learned extensions did not pass reconstruction-level gates. After
 switching the inference contract to RGB-D, Run 30 uses input source depth maps
 with known camera poses/intrinsics for source-ray correction and passes the
 overall, occlusion, and ambiguity gates on held-out scenes.
+```
+
+Target-setting claim to test next:
+
+```text
+RGB-only sparse views are reconstructed by MV-DUSt3R+, while a fine-tuned depth estimator predicts per-view source depth from RGB. The predicted depth is back-projected with known camera poses/intrinsics and used to correct MV-DUSt3R+ candidates. This must pass reconstruction gates before replacing the Run 30 RGB-D reference.
 ```
 
 ## Final RGB-D Result
@@ -593,13 +603,27 @@ Expected outputs for the submitted remaining runs:
 - Run 31: `group_manifest.csv`, `coverage_summary.csv`, `correction_label_summary.csv`, `metrics.csv`, `summary.csv`, `limit_summary.csv`, `paired_group_deltas.csv`, `stability_summary.csv`, `view_count_stability.csv`, `gate_decision.csv`, `run_config.json`
 - Run 32: `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `qualitative_manifest.csv`, `run_config.json`
 - Run 33: `metrics.csv`, `summary.csv`, `limit_summary.csv`, `gate_decision.csv`, `run_config.json`, optional `qualitative_manifest.csv`
+- Run 34: `qualitative_3d_manifest.csv`, `normalized_metric_summary.csv`,
+  `dense_scene_manifest.csv`, scene-like GLBs, and `run_config.json`
 
-## Run 30 Final RGB-D Source-Depth Correction
+Run 34 verified means over its three selected 3,500-point comparison groups:
 
-Run 30 is the accepted final result. It changes the inference contract from
-RGB-only to sparse posed RGB-D. Source depth maps from input frames anchor each
-source ray to metric geometry, so the method corrects wrong-depth candidates
-instead of deleting candidates and losing recall.
+| Method | Mean normalized distance | Mean DAc@0.2 normalized |
+| --- | ---: | ---: |
+| `rgbd_source_depth_selected` | **0.0515** | **0.9841** |
+| `direct_rgbd_backprojection` | 0.0926 | 0.8617 |
+| `mvdust3r_rgb_only_all_candidates` | 0.1308 | 0.7967 |
+
+These auxiliary normalized metrics agree with the Run 30 shape-level advantage
+on this small qualitative subset. They do not replace the full Run 30
+validation/test gate or provide an independent official-mesh benchmark.
+
+## Run 30 RGB-D Source-Depth Reference
+
+Run 30 is the accepted RGB-D reference result. It changes the inference
+contract from RGB-only to sparse posed RGB-D. Source depth maps from input
+frames anchor each source ray to metric geometry, so the method corrects
+wrong-depth candidates instead of deleting candidates and losing recall.
 
 Run 30 preserves the negative evidence from Runs 22-29:
 
@@ -698,6 +722,35 @@ Run 33 gate outcome is `run30_adds_value_over_mvdust3r_only`. The final claim
 does not change: the project still claims a Run 30 RGB-D/source-depth result,
 not an RGB-only solution for occlusion or repeated/wrong-depth ambiguity.
 
+## Runs 35-36 RGB-only Predicted-Depth Generalization Track
+
+Run 35 uses
+`depth-anything/Depth-Anything-V2-Metric-Indoor-Small-hf` to measure raw and
+scale-aligned monocular depth quality. Run 36 then uses only RGB, cached
+predicted depth, and known poses/intrinsics for correction. True source depth is
+evaluation-only in Run 36.
+
+Run 35 is complete on 158 unique frames across 30 scenes:
+
+| Split | AbsRel | RMSE (m) | MAE (m) | delta1 | Scale-aligned RMSE (m) | Scale-aligned MAE (m) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Val | 0.2207 | 0.4773 | 0.4115 | 0.7175 | 0.2175 | 0.1088 |
+| Test | 0.1861 | 0.4642 | 0.3525 | 0.7736 | 0.2786 | 0.1614 |
+
+The train-fit global scale is `0.9123`. Run 36 selected global scale,
+`tau_pred = 0.5`, and `alpha = 0.25`.
+
+| Split | RGB-only all candidates | Selected correction | Direct predicted depth | Run 30 true RGB-D |
+| --- | ---: | ---: | ---: | ---: |
+| Val F-score | 0.1231 | 0.1012 | 0.1747 | 0.1753 |
+| Test F-score | 0.1744 | 0.1465 | 0.1894 | 0.2764 |
+
+The selected correction fails the overall, occlusion, and ambiguity gates.
+Validation deltas versus RGB-only are `-0.0218`, `-0.0421`, and `-0.0310`.
+Direct predicted-depth backprojection is stronger overall, but it regresses on
+test occlusion (`0.1840` versus `0.2120`) and does not approach Run 30 test
+performance. The final claim remains Run 30 RGB-D/source-depth correction.
+
 ## Limitations
 
 - The final solved setting is RGB-D/source-depth, not RGB-only.
@@ -705,6 +758,9 @@ not an RGB-only solution for occlusion or repeated/wrong-depth ambiguity.
   not final reconstruction modules.
 - The current Kaggle evaluation uses ScanNet posed RGB-D depth as proxy
   geometry, not the full ScanNet++ laser-scan mesh evaluator.
+- Run 34 normalized distance and DAc@0.2 remove translation and isotropic
+  scale, but still use the same depth-derived proxy GT and do not remove
+  rotation.
 - The scene subset is small, so results should be framed as a controlled
   prototype/smoke benchmark rather than a definitive benchmark.
 - View selection policies are lightweight proxies for diversity/overlap, not

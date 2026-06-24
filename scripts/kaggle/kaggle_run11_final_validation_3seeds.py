@@ -16,6 +16,38 @@ import matplotlib.pyplot as plt
 from PIL import Image
 from scipy.spatial import cKDTree
 
+try:
+    from kaggle_normalized_geometry_metrics import (
+        compute_normalized_geometry_metrics,
+    )
+except ModuleNotFoundError:
+    # Raw-helper consumers may download only this file. Keep that path working.
+    def compute_normalized_geometry_metrics(pred, gt, dac_threshold=0.2):
+        def rms_normalize(points):
+            points = np.asarray(points, dtype=np.float64)
+            centered = points - points.mean(axis=0, keepdims=True)
+            scale = float(
+                np.sqrt(np.mean(np.sum(centered * centered, axis=1)))
+            )
+            return centered / max(scale, 1e-8)
+
+        pred_normalized = rms_normalize(pred)
+        gt_normalized = rms_normalize(gt)
+        pred_to_gt, _ = cKDTree(gt_normalized).query(
+            pred_normalized, k=1, workers=-1
+        )
+        gt_to_pred, _ = cKDTree(pred_normalized).query(
+            gt_normalized, k=1, workers=-1
+        )
+        return {
+            "normalized_distance": 0.5
+            * (float(pred_to_gt.mean()) + float(gt_to_pred.mean())),
+            "dac_at_0_2_normalized": float(
+                (pred_to_gt <= dac_threshold).mean()
+            ),
+            "normalized_dac_threshold": float(dac_threshold),
+        }
+
 
 REPO_URL = "https://github.com/facebookresearch/mvdust3r.git"
 DATASET_SLUG = "tiantiansyrinx1102/scannet-data"
@@ -453,6 +485,7 @@ def compute_metrics(pred, gt, threshold=F_SCORE_THRESHOLD_M):
         "num_pred_points": int(len(pred)),
         "num_gt_points": int(len(gt)),
         "threshold_m": float(threshold),
+        **compute_normalized_geometry_metrics(pred, gt),
     }
 
 

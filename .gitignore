@@ -196,6 +196,7 @@ cython_debug/
 
 # Kaggle credentials
 kaggle.json
+kaggle*.json*
 .kaggle/
 HF.json
 hf.json
@@ -207,6 +208,9 @@ mvdust3r/
 kaggle_run*_submission/
 downloads/
 outputs/
+tmp/
+.kaggle_run*/
+download*.txt
 __results__.html
 __script__.ipynb
 pdf/assets/page_debug/

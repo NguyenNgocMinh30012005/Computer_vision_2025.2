@@ -1,8 +1,9 @@
 \begin{frame}{Proposed Contributions}
   \begin{alertblock}{Our contribution}
-    The final contribution is a sparse-view RGB-D source-depth correction
-    pipeline. RGB-only learned modules are kept as diagnostic evidence, while
-    Run 30 is the accepted method.
+    Run 30 validates the source-ray correction idea with true RGB-D source
+    depth. The current target setting keeps MV-DUSt3R+ as the candidate
+    generator and replaces true source depth with depth estimated from RGB by
+    the Run 37 fine-tuned depth model.
   \end{alertblock}
 
   \vspace{0.12cm}
@@ -11,9 +12,98 @@
     views using view selection and fixed confidence thresholds.
     \item \textbf{Negative RGB-only analysis:} Runs 22--29 show that proxy F1,
     candidate filtering, and generic monodepth do not solve reconstruction.
-    \item \textbf{Final RGB-D method:} Run 30 uses input source depth maps with
-    poses/intrinsics for source-ray correction and passes all gates.
+    \item \textbf{Validated RGB-D reference:} Run 30 uses input source depth
+    maps with poses/intrinsics for source-ray correction and passes all gates.
+    \item \textbf{Estimated-depth target:} Run 37 fine-tunes the RGB depth
+    estimator; the next correction setting should use that estimated depth to
+    align MV-DUSt3R+ candidates.
   \end{itemize}
+\end{frame}
+
+\begin{frame}{Target Reconstruction Setting}
+  \footnotesize
+  \begin{block}{Inference contract}
+    RGB-only sparse input images, known camera poses/intrinsics, MV-DUSt3R+
+    candidate geometry, and source depth estimated by the fine-tuned depth
+    model.
+  \end{block}
+
+  \begin{center}
+    \begin{tikzpicture}[
+      node distance=0.38cm,
+      box/.style={draw, rounded corners=1.5pt, align=center, fill=soft,
+      inner sep=4pt, minimum width=2.5cm},
+      arrow/.style={-{Latex[length=2mm]}, thick}
+    ]
+      \node[box] (rgb) {Sparse RGB\\views};
+      \node[box, right=of rgb] (mv) {MV-DUSt3R+\\candidates};
+      \node[box, right=of mv] (depth) {Run 37\\estimated depth};
+      \node[box, right=of depth] (corr) {Predicted-depth\\source-ray correction};
+      \node[box, right=of corr] (out) {Corrected\\point cloud};
+      \draw[arrow] (rgb) -- (mv);
+      \draw[arrow] (mv) -- (depth);
+      \draw[arrow] (depth) -- (corr);
+      \draw[arrow] (corr) -- (out);
+    \end{tikzpicture}
+  \end{center}
+
+  \begin{alertblock}{Claim boundary}
+    This target still uses known camera calibration and must pass the same
+    reconstruction gates before replacing the Run 30 RGB-D reference result.
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Predicted-Depth Generalization Track}
+  \footnotesize
+  \begin{block}{Goal}
+    Move from true RGB-D source depth toward RGB image input by estimating
+    source depth from RGB, then using that depth for candidate correction.
+  \end{block}
+
+  \begin{itemize}
+    \item Run 35: evaluate Depth Anything V2 Metric Indoor Small using AbsRel,
+    RMSE, MAE, \(\delta_1/\delta_2/\delta_3\), and scale-aligned errors.
+    \item Run 36: first predicted-depth correction attempt with the generic
+    depth model; it did not pass reconstruction gates.
+    \item Run 37: fine-tune the depth estimator so the next correction run can
+    use a stronger estimated-depth anchor.
+    \item True source depth is forbidden from Run 36 correction and residual
+    gating; it remains evaluator/proxy-GT data only.
+  \end{itemize}
+
+  \begin{alertblock}{Claim boundary}
+    The target setting is RGB-only for source depth, but it is not fully
+    pose-free and is not the MV-DUSt3R+ paper benchmark setting.
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Runs 35--36 Results}
+  \footnotesize
+  \begin{itemize}
+    \item Run 35 test depth: AbsRel \(0.1861\), \(\delta_1=0.7736\), raw MAE
+    \(0.3525\) m, diagnostic scale-aligned MAE \(0.1614\) m.
+    \item Run 36 selects global scale, \(\tau_{\mathrm{pred}}=0.5\), and
+    \(\alpha=0.25\).
+  \end{itemize}
+
+  \begin{center}
+    \begin{tabular}{lcc}
+      \toprule
+      Method & Val F-score & Test F-score \\
+      \midrule
+      MV-DUSt3R+ RGB-only & 0.1231 & 0.1744 \\
+      Predicted-depth correction & 0.1012 & 0.1465 \\
+      Direct predicted depth & 0.1747 & 0.1894 \\
+      Run 30 true RGB-D & 0.1753 & 0.2764 \\
+      \bottomrule
+    \end{tabular}
+  \end{center}
+
+  \begin{alertblock}{Outcome}
+    Correction fails overall, occlusion, and ambiguity gates. Predicted depth
+    is useful as a direct prior, but it does not replace Run 30 and does not
+    solve the two RGB-only limits.
+  \end{alertblock}
 \end{frame}
 
 \begin{frame}{Contribution Details}

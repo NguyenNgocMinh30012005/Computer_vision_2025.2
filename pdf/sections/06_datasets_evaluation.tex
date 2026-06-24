@@ -43,19 +43,22 @@
   \begin{itemize}
     \item Run 11 remains the strongest RGB-only baseline.
     \item Runs 12--29 are diagnostic and negative evidence.
-    \item Run 30 is the final RGB-D/source-depth method.
+    \item Run 30 is the validated RGB-D/source-depth reference method.
+    \item Run 37 prepares the estimated-depth source for the target RGB-only
+    correction setting.
     \item Run 33 isolates MV-DUSt3R+ RGB-only outputs as the final backbone
     baseline.
   \end{itemize}
 \end{frame}
 
 \begin{frame}{Evaluation Plan}
-  \small
+  \scriptsize
   \begin{columns}[T]
     \column{0.52\textwidth}
     \begin{itemize}
       \item Reconstruction F-score against available ground-truth geometry
       \item Accuracy, completeness, and Chamfer distance of point clouds
+      \item Symmetric normalized distance and normalized DAc@0.2
       \item Sparse 2--5 view behavior across scene splits
       \item Limit-specific gates for occlusion and wrong-depth ambiguity
       \item Runtime per scene for practical inference
@@ -69,11 +72,76 @@
 
     \column{0.48\textwidth}
     \centering
-    \includegraphics[height=0.46\textheight,keepaspectratio]{mvdust3r_results_table.png}
+    \includegraphics[height=0.42\textheight,keepaspectratio]{mvdust3r_results_table.png}
 
     \vspace{0.04cm}
     \figsource{Tang et al., MV-DUSt3R+, quantitative benchmark}
   \end{columns}
+\end{frame}
+
+\begin{frame}{Normalized Geometry Metrics}
+  \small
+  For each point cloud, remove translation and isotropic RMS scale:
+  \[
+    \hat X =
+    \frac{X-\bar X}
+    {\sqrt{\frac{1}{|X|}\sum_{x\in X}\|x-\bar X\|_2^2}}.
+  \]
+
+  \begin{columns}[T]
+    \column{0.49\textwidth}
+    \begin{block}{Normalized distance}
+      \[
+        \mathrm{ND}_{sym} =
+        \tfrac{1}{2}\bigl(
+        \operatorname{mean}d(\hat P,\hat G)+
+        \operatorname{mean}d(\hat G,\hat P)\bigr)
+      \]
+      Lower is better; measures two-way normalized shape error.
+    \end{block}
+
+    \column{0.49\textwidth}
+    \begin{block}{DAc@0.2 normalized}
+      \[
+        \frac{|\{p\in\hat P:d(p,\hat G)\leq0.2\}|}{|P|}
+      \]
+      Higher is better; measures prediction-side normalized accuracy.
+    \end{block}
+  \end{columns}
+
+  \begin{alertblock}{Scope}
+    Auxiliary paper-style metrics only. They still use depth-derived proxy GT,
+    and normalization does not remove rotation.
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Run 34 Normalized Metric Results}
+  \small
+  Mean over three matched 3,500-point qualitative groups:
+
+  \vspace{0.12cm}
+  \centering
+  \begin{tabular}{lrr}
+    \toprule
+    \textbf{Method} & \textbf{Normalized distance} &
+    \textbf{DAc@0.2} \\
+    \midrule
+    Run 30 RGB-D selected & \textbf{0.0515} & \textbf{0.9841} \\
+    Direct RGB-D backprojection & 0.0926 & 0.8617 \\
+    MV-DUSt3R+ RGB-only & 0.1308 & 0.7967 \\
+    \bottomrule
+  \end{tabular}
+
+  \vspace{0.25cm}
+  \begin{block}{Reading the result}
+    Run 30 has the lowest normalized shape error and highest normalized
+    prediction accuracy on this subset.
+  \end{block}
+
+  \begin{alertblock}{Claim boundary}
+    This is a three-group qualitative comparison against depth-derived proxy
+    GT. It complements, but does not replace, the full Run 30 F-score gates.
+  \end{alertblock}
 \end{frame}
 
 \begin{frame}{Final RGB-D Result}
@@ -223,5 +291,30 @@
   \begin{alertblock}{Interpretation}
     Run 30 adds value over MV-DUSt3R+ RGB-only outputs. The final claim remains
     RGB-D/source-depth; RGB-only stays a baseline and negative-evidence setting.
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Run 37 To Estimated-Depth Correction}
+  \footnotesize
+  \begin{block}{Why Run 37 exists}
+    Run 36 showed that generic predicted depth was not accurate enough for
+    source-ray correction. Run 37 fine-tunes the depth estimator on the
+    available RGB-D frame pool so predicted depth can become a stronger
+    correction anchor.
+  \end{block}
+
+  \begin{itemize}
+    \item Input at reconstruction time: sparse RGB views plus known camera
+    poses/intrinsics.
+    \item MV-DUSt3R+ still produces the candidate point cloud.
+    \item The fine-tuned depth model estimates per-view source depth from RGB.
+    \item Estimated depth is back-projected and used for Run 30-style
+    source-ray correction.
+  \end{itemize}
+
+  \begin{alertblock}{Evaluation rule}
+    This is a target setting, not a completed claim. It must be evaluated
+    against MV-DUSt3R+ RGB-only, generic predicted-depth correction, and the
+    Run 30 true-depth reference.
   \end{alertblock}
 \end{frame}

@@ -1,37 +1,20 @@
 \begin{frame}{Final Deliverables}
   \scriptsize
   \begin{itemize}
-    \item End-to-end implementation for Kaggle training/evaluation diagnostics
-    \item Quantitative results on unseen scenes across multiple view counts
-    \item Qualitative 3D visualizations and failure-case analysis
-    \item Final report discussing RGB-D source-depth strengths and limitations
-    \item Reproducible Kaggle experiment scripts organized under
-    \texttt{scripts/kaggle}
-    \item Final validation rerun script with a P100-compatible Torch fallback
-    for unstable Kaggle GPU allocation
-    \item Submitted supervised-extension kernels for Run 12--18 and Phase 3
-    label/subset kernels for Runs 19--20
-    \item Submitted OARH v2 reconstruction path for Runs 21--23, exposing
-    proxy-to-geometry transfer limits
-    \item Submitted RSDH v2 reconstruction path for Runs 24--26, where proxy
-    match validity fails the geometry gate
-    \item Redesigned Run 27 as a reconstruction-aware ensemble; its gate selects
-    all-candidate retention over learned filtering
-    \item Added Run 28 source-ray correction to repair wrong depth without
-    deleting valid occluded geometry
-    \item Added Run 29 monodepth source-ray correction to approximate the Run 28
-    oracle without GT depth at inference
-    \item Added Run 30 RGB-D source-depth correction as the final accepted
-    solution for the two remaining limits
-    \item Added Run 31 as a frozen-policy coverage stress test over 360
-    sparse-view groups; results are pending
-    \item Added Run 32 as a direct RGB-D backprojection baseline without
-    MV-DUSt3R+; primary voxel baseline loses to Run 30, while sampled direct
-    output exposes evaluator circularity
-    \item Added Run 33 as a no-rerun MV-DUSt3R+ RGB-only baseline extraction;
-    Run 30 still wins on overall, occlusion, and ambiguity subsets
-    \item Clean GitHub repository with curated docs, proposal sources, and PDF
-    deck
+    \item Reproducible Kaggle experiment scripts under \texttt{scripts/kaggle}.
+    \item Reconstruction metrics, hard-subset gates, and qualitative 3D
+    visualizations.
+    \item Run 11: strongest RGB-only sparse-view baseline.
+    \item Runs 12--29: negative reconstruction evidence for learned
+    RGB-only filtering/correction.
+    \item Run 30: validated RGB-D/source-depth correction reference.
+    \item Run 32: direct RGB-D backprojection diagnostic and circularity check.
+    \item Run 33: clean MV-DUSt3R+ RGB-only candidate baseline.
+    \item Run 34: side-by-side point clouds, dense GLBs, and normalized
+    ND/DAc metrics.
+    \item Run 37: fine-tuned estimated-depth source for the next correction run.
+    \item Updated reports and slides for the RGB-only estimated-depth target
+    setting.
   \end{itemize}
 \end{frame}
 
@@ -42,11 +25,13 @@
     view selection and fixed confidence thresholds.
     \item A negative-analysis record showing why OARH/RSDH/RAJAH and monodepth
     should not be claimed as RGB-only solutions.
-    \item A final RGB-D/source-depth method that passes reconstruction-level
+    \item A validated RGB-D/source-depth reference that passes reconstruction
     gates for overall quality, occlusion, and repeated/wrong-depth ambiguity.
+    \item A target RGB-only estimated-depth setting: MV-DUSt3R+ candidates are
+    corrected using depth predicted by the fine-tuned depth model.
     \item A Run 33 RGB-only backbone baseline confirming that Run 30's gain is
     not just MV-DUSt3R+ candidate retention.
-    \item A clear limitation boundary: RGB-only is baseline/diagnostic; Run 30
-    is the final source-depth contribution.
+    \item A clear limitation boundary: Run 30 uses true source depth; the
+    estimated-depth target needs separate reconstruction-gate evidence.
   \end{itemize}
 \end{frame}

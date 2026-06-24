@@ -1,10 +1,10 @@
-# Final RGB-D Result
+# RGB-D Reference Result And Estimated-Depth Target
 
 Ngay cap nhat: 2026-06-22
 
-## Final Setting
+## Validated RGB-D Reference Setting
 
-The project final setting is sparse-view RGB-D reconstruction:
+Run 30 is the validated sparse-view RGB-D reference setting:
 
 ```text
 sparse posed RGB-D views
@@ -15,7 +15,36 @@ sparse posed RGB-D views
 ```
 
 RGB-only experiments are kept as baselines and negative evidence. The final
-technical contribution is Run 30.
+validated RGB-D technical contribution is Run 30.
+
+## Target RGB-only Estimated-Depth Setting
+
+The current target setting replaces true source depth at inference with depth
+estimated from RGB by the fine-tuned depth model:
+
+```text
+sparse posed RGB views
++ known camera intrinsics/extrinsics
++ MV-DUSt3R+ candidate reconstruction
++ Run 37 fine-tuned estimated source depth
++ predicted-depth / source-ray correction
+-> corrected point cloud reconstruction
+```
+
+The target pipeline is:
+
+```text
+RGB sparse views
+-> MV-DUSt3R+ candidate point cloud
+-> fine-tuned depth estimator predicts per-view source depth
+-> back-project predicted depth with pose/intrinsics
+-> correct MV candidates toward predicted-depth source rays
+-> evaluate overall, occlusion, and ambiguity gates
+```
+
+This target is RGB-only with respect to reconstruction input images, but it
+still uses known camera poses/intrinsics. It cannot replace Run 30 until a
+separate reconstruction run passes the same gates.
 
 ## Input Contract
 
@@ -87,10 +116,16 @@ select sparse posed RGB-D views
 - The project does not claim full benchmark generality beyond the controlled
   ScanNet-style subset.
 
-## Required Final Wording
+## Required Reference Wording
 
 ```text
 RGB-only learned extensions did not pass reconstruction-level gates. After switching the inference contract to RGB-D, Run 30 uses input source depth maps with known camera poses/intrinsics for source-ray correction and passes the overall, occlusion, and ambiguity gates on held-out scenes.
+```
+
+## Required Target-Setting Wording
+
+```text
+The target RGB-only reconstruction pipeline keeps MV-DUSt3R+ as the sparse-view candidate generator, estimates source depth from RGB using the Run 37 fine-tuned depth model, and applies predicted-depth source-ray correction with known camera poses/intrinsics. This setting must be evaluated separately before it can replace the Run 30 RGB-D reference claim.
 ```
 
 ## Reproduction Pointer
@@ -198,3 +233,32 @@ Gate outcome: `run30_adds_value_over_mvdust3r_only`. Final claim unchanged:
 RGB-only remains a baseline/diagnostic setting, and Run 30 remains the final
 RGB-D/source-depth result. The evaluator still uses depth-derived proxy targets,
 so this is not a full official benchmark claim.
+
+## RGB-only Predicted-Depth Generalization Track
+
+Runs 35-36 test whether Run 30-style geometric correction can move toward RGB
+input by replacing true source depth with monocular predicted depth.
+
+- Run 35 measures predicted-depth quality and calibrates a train-only global
+  scale.
+- Run 36 performs predicted-depth correction with known poses/intrinsics.
+- True source depth is not allowed in Run 36 correction or residual gating.
+- Run 36 fails its reconstruction-level gate, so Run 30 remains the accepted
+  RGB-D reference method until fine-tuned estimated-depth correction is tested.
+
+This track is more general than true RGB-D Run 30, but it is not yet fully
+pose-free and is not directly comparable to the MV-DUSt3R+ paper benchmark.
+
+Run 35 is complete. Validation/test AbsRel are `0.2207/0.1861`; test delta1 is
+`0.7736`. Test MAE improves from `0.3525 m` raw to `0.1614 m` after per-frame
+diagnostic scale alignment. Run 36 therefore tests both raw and the frozen
+train-fit global scale `0.9123`; it does not use per-test-frame true-depth
+scales.
+
+Run 36 selects global scale, `tau_pred = 0.5`, and `alpha = 0.25`. The selected
+correction scores `0.1012` validation / `0.1465` test F-score versus RGB-only
+`0.1231` / `0.1744`, and fails overall, occlusion, and ambiguity gates. Direct
+predicted-depth backprojection reaches `0.1747` / `0.1894`, showing that the
+depth prior is useful, but it regresses on test occlusion and remains below
+Run 30 (`0.1753` / `0.2764`). This is negative evidence for the tested
+candidate-blending rule, not an RGB-only solution.

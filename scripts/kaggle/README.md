@@ -10,13 +10,22 @@ named `HF_TOKEN`, `HUGGINGFACE_TOKEN`, or `HUGGINGFACE_HUB_TOKEN`. Run 11 and
 the later helper-based scripts automatically export the secret before downloading
 the MV-DUSt3R+ checkpoint.
 
-Final status: Run 30 is the final recommended script and final technical
-contribution. It switches the project to sparse posed RGB-D/source-depth
-inference and passes the overall, occlusion, and ambiguity gates. Runs 12-29
-are kept as RGB-only learned diagnostics and negative evidence. Run 31 is a
-coverage stress test of the frozen Run 30 method. Run 32 is a direct RGB-D
-backprojection diagnostic without MV-DUSt3R+. Run 33 is a final MV-DUSt3R+
-only RGB baseline extraction from clean Run 30 rows.
+Final status: Run 30 is the validated RGB-D/source-depth reference script. It
+switches the project to sparse posed RGB-D/source-depth inference and passes
+the overall, occlusion, and ambiguity gates. Runs 12-29 are kept as RGB-only
+learned diagnostics and negative evidence. Run 31 is a coverage stress test of
+the frozen Run 30 method. Run 32 is a direct RGB-D backprojection diagnostic
+without MV-DUSt3R+. Run 33 is a final MV-DUSt3R+ only RGB baseline extraction
+from clean Run 30 rows.
+Runs 35-36 add an experimental RGB-image predicted-depth track with known
+poses/intrinsics. They do not alter the accepted Run 30 claim by default.
+Run 37 fine-tunes that predicted-depth estimator on the full Kaggle
+ScanNet-style RGB-D frame pool discovered under `posed_images`, not the earlier
+30-scene controlled sparse-view subset.
+The next target reconstruction setting is RGB-only sparse input: run
+MV-DUSt3R+ for candidate geometry, predict source depth from RGB with the Run
+37 fine-tuned depth estimator, then apply predicted-depth source-ray correction
+with known camera poses/intrinsics.
 
 Run order:
 
@@ -52,6 +61,9 @@ Run order:
 30. `kaggle_run31_rgbd_coverage_stress_test.py`
 31. `kaggle_run32_direct_rgbd_backprojection_baseline.py`
 32. `kaggle_run33_mvdust3r_only_rgb_baseline.py`
+33. `kaggle_run35_predicted_depth_quality_diagnostic.py`
+34. `kaggle_run36_predicted_depth_correction.py`
+35. `kaggle_run37_depth_estimator_full_finetune.py`
 
 The final validation script uses fixed thresholds selected before test-time
 evaluation, rather than tuning on the final test rows. Run 11 prefers T4 x2,
@@ -156,6 +168,81 @@ gate_decision.csv
 run_config.json
 ```
 
+Run 35 uses
+`depth-anything/Depth-Anything-V2-Metric-Indoor-Small-hf` to predict metric
+indoor depth from RGB. It evaluates raw and median-scale-aligned depth on valid
+source-depth pixels, then writes a reusable compressed predicted-depth cache.
+True source depth is diagnostic/calibration data only.
+
+Run 35 expected outputs:
+
+```text
+depth_metrics.csv
+depth_summary.csv
+predicted_depth_cache_manifest.csv
+selected_group_manifest.csv
+scale_calibration.csv
+run_config.json
+```
+
+Run 36 mounts Run 35 output and replaces Run 30 true source depth with predicted
+monocular depth. It selects `tau_pred`, `alpha`, and raw/global-scale mode on
+held-out train scenes, then freezes them for validation/test. True source depth
+is forbidden from method inference and is used only by the existing evaluator
+and hard-subset diagnostics.
+
+Run 36 expected outputs:
+
+```text
+metrics.csv
+summary.csv
+limit_summary.csv
+policy_selection.csv
+gate_decision.csv
+comparison_table.csv
+predicted_depth_cache_manifest.csv
+run_config.json
+```
+
+Completed Run 36 selects global scale, `tau_pred = 0.5`, and `alpha = 0.25`.
+The selected correction scores `0.1012` validation and `0.1465` test F-score,
+below RGB-only all candidates (`0.1231` and `0.1744`). It fails the overall,
+occlusion, and ambiguity gates. Direct predicted-depth backprojection is
+stronger (`0.1747` validation, `0.1894` test) but does not replace the final
+Run 30 RGB-D result.
+
+Run 37 fine-tunes the Depth Anything V2 metric indoor checkpoint on all
+complete RGB/depth/pose frames discovered in the Kaggle dataset. It uses a
+deterministic scene-level 80/10/10 split for unbiased depth validation/test
+metrics, then optionally trains a deployment checkpoint on 100% of discovered
+frames. Report `controlled_best` for claims; use `full_dataset_deployment` only
+as a deployment artifact.
+
+The intended follow-up reconstruction run should mount Run 37, predict depth
+for each sparse RGB source frame, back-project that estimated depth with known
+poses/intrinsics, and reuse the Run 30 correction mechanism on MV-DUSt3R+
+candidates. True source depth is evaluation/calibration data only in that
+target setting.
+
+Run 37 expected outputs:
+
+```text
+scene_split.csv
+frame_manifest.csv
+split_summary.csv
+baseline_depth_metrics.csv
+baseline_depth_summary.csv
+controlled_best_depth_metrics.csv
+controlled_best_depth_summary.csv
+training_history.csv
+deployment_training_history.csv
+gate_decision.csv
+sample_prediction_manifest.csv
+run_config.json
+checkpoints/controlled_best/
+checkpoints/full_dataset_deployment/
+```
+
 Run 31 freezes `rgbd_residual_ge_0.30` and evaluates 360 sparse-view groups:
 12 per scene across 30 scenes. It keeps 3/4/5 views, hybrid and
 diversity-aware policies, and two deterministic frame variants per
@@ -239,6 +326,14 @@ run_config.json
 qualitative_manifest.csv
 ```
 
+Run 34 exports matched RGB-only, Run 30 corrected, and direct RGB-D point
+clouds/dense scenes. Its `qualitative_3d_manifest.csv` includes symmetric
+`normalized_distance` and prediction-side `dac_at_0_2_normalized`; the
+aggregate comparison is stored in `normalized_metric_summary.csv`.
+Verified three-group means are `0.0515 / 0.9841` for Run 30 RGB-D,
+`0.0926 / 0.8617` for direct RGB-D, and `0.1308 / 0.7967` for MV-DUSt3R+
+RGB-only, reported as normalized distance / DAc@0.2.
+
 Latest pushed kernels:
 
 - Run 15: <https://www.kaggle.com/code/minhhuyen3012nguyen/mv-dust3r-run-15-mast3r-reciprocal-features>
@@ -260,3 +355,4 @@ Latest pushed kernels:
 - Run 31: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-31-rgbd-coverage-stress-test>
 - Run 32: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-32-direct-rgbd-backprojection>
 - Run 33: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-33-mvdust3r-only-rgb-baseline>
+- Run 37: <https://www.kaggle.com/code/nguynnminh/mv-dust3r-run-37-depth-full-finetune>

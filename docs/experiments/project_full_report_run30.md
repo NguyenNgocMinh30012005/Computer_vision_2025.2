@@ -1,4 +1,4 @@
-# Sparse-View RGB-D 3D Reconstruction Project Report Through Run 33
+# Sparse-View RGB + Estimated-Depth 3D Reconstruction Project Report
 
 Ngay cap nhat: 2026-06-22
 
@@ -7,11 +7,15 @@ duoc, va nhung diem van chua the claim la giai quyet triet de.
 
 ## 1. Executive Summary
 
-Du an xay dung pipeline sparse-view RGB-D 3D reconstruction dua tren
-MV-DUSt3R+. Final project setting la posed RGB-D sparse views, known camera
-intrinsics/extrinsics, MV-DUSt3R+ candidate reconstruction, va source-depth /
-source-ray correction. Output la point cloud/GLB duoc danh gia bang accuracy,
-completeness/recall, precision, F-score va Chamfer distance.
+Du an xay dung pipeline sparse-view 3D reconstruction dua tren MV-DUSt3R+.
+Run 30 la validated RGB-D/source-depth reference: posed RGB-D sparse views,
+known camera intrinsics/extrinsics, MV-DUSt3R+ candidate reconstruction, va
+source-depth/source-ray correction. Huong setting moi la RGB-only sparse input:
+MV-DUSt3R+ tao candidate point cloud, depth estimator sau Run 37 du doan source
+depth tu RGB, sau do predicted-depth source-ray correction can chinh dau ra cua
+MV model. Output la point cloud/GLB duoc danh gia bang accuracy,
+completeness/recall, precision, F-score, Chamfer distance, symmetric normalized
+distance va normalized DAc@0.2.
 
 Ket luan ngan gon sau Run 30:
 
@@ -24,24 +28,36 @@ Ket luan ngan gon sau Run 30:
 - Limit 3, repeated-structure/wrong-depth ambiguity, cung chua duoc giai quyet
   trong setting RGB-only. RSDH image-only pass proxy gate o Run 24 nhung khong
   pass reconstruction gate o Run 25/26.
-- Run 30 pass ca hai limit con lai trong final RGB-D/source-depth inference
-  setting. Day la final technical contribution, khong phai claim RGB-only.
+- Run 30 pass ca hai limit con lai trong RGB-D/source-depth inference setting.
+  Day la validated reference, khong phai claim RGB-only.
 - Run 33 tach rieng MV-DUSt3R+ RGB-only baseline tu cac row Run 30 sach
   (`all_candidates`, `confidence_fixed_final`) va xac nhan Run 30 co gain thuc
   su so voi MV-DUSt3R+ only.
+- Run 37 fine-tune depth estimator tren RGB-D frames. Target run tiep theo can
+  dung estimated depth nay de correction MV-DUSt3R+ candidates, thay vi dung
+  true source depth cua Run 30.
 
 Noi cach khac: final framing dung la:
 
 1. RGB-only/frozen MV-DUSt3R+ pipeline la baseline va negative-analysis track:
    no cai thien manh baseline, nhung khong solve occlusion/repeated ambiguity.
-2. RGB-D/source-depth pipeline la final setting: Run 30 giai quyet hai limit
-   con lai bang source-ray depth correction khi depth map cua input frame duoc
-   phep dung luc inference.
+2. RGB-D/source-depth pipeline la reference setting: Run 30 giai quyet hai
+   limit con lai bang source-ray depth correction khi true depth map cua input
+   frame duoc phep dung luc inference.
+3. Target setting moi la RGB-only + estimated depth: depth map khong lay tu
+   sensor luc inference, ma duoc depth estimator fine-tuned du doan tu RGB; map
+   nay duoc dung de source-ray correction cho candidate cua MV-DUSt3R+.
 
 Required final wording:
 
 ```text
 RGB-only learned extensions did not pass reconstruction-level gates. After switching the inference contract to RGB-D, Run 30 uses input source depth maps with known camera poses/intrinsics for source-ray correction and passes the overall, occlusion, and ambiguity gates on held-out scenes.
+```
+
+Required target-setting wording:
+
+```text
+The target RGB-only reconstruction pipeline keeps MV-DUSt3R+ as the sparse-view candidate generator, estimates source depth from RGB using the Run 37 fine-tuned depth model, and applies predicted-depth source-ray correction with known camera poses/intrinsics. This setting must be evaluated separately before it can replace the Run 30 RGB-D reference claim.
 ```
 
 ## 2. Project Goal
@@ -68,6 +84,51 @@ limit:
 | L3: repeated/wrong-depth ambiguity | Repeated texture/object lam match sai hoac wrong-depth candidates | Solved only under Run 30 RGB-D/source-depth setting |
 
 ## 3. Dataset And Evaluation Protocol
+
+### 3.1 Additional normalized metrics
+
+Run 34 adds two auxiliary metrics to compare the three final reconstruction
+families under scale/translation-invariant geometry. For a point cloud \(X\),
+define
+
+\[
+\hat{X} =
+\frac{X-\bar{X}}
+{\sqrt{\frac{1}{|X|}\sum_{x\in X}\|x-\bar{X}\|_2^2}}.
+\]
+
+The symmetric normalized distance is
+
+\[
+\mathrm{ND}_{sym}(P,G)=\frac{1}{2}
+\left[
+\frac{1}{|P|}\sum_{p\in \hat P}d(p,\hat G)
++
+\frac{1}{|G|}\sum_{g\in \hat G}d(g,\hat P)
+\right].
+\]
+
+Lower is better. Normalized DAc@0.2 is
+
+\[
+\mathrm{DAc}@0.2 =
+\frac{|\{p\in\hat P:d(p,\hat G)\leq 0.2\}|}{|P|}.
+\]
+
+Higher is better. These metrics remove global translation and isotropic scale,
+but they do not remove rotation and do not solve the current proxy-GT
+circularity.
+
+Run 34 verified means over three matched 3,500-point groups:
+
+| Method | Mean normalized distance | Mean DAc@0.2 normalized |
+| --- | ---: | ---: |
+| `rgbd_source_depth_selected` | **0.0515** | **0.9841** |
+| `direct_rgbd_backprojection` | 0.0926 | 0.8617 |
+| `mvdust3r_rgb_only_all_candidates` | 0.1308 | 0.7967 |
+
+This is a small qualitative subset. The table supports the Run 30 shape result
+but does not replace the full Run 30 validation/test gates.
 
 Du an dung ScanNet posed image/depth style data trong Kaggle:
 
@@ -506,11 +567,13 @@ Run 33 Kaggle kernel:
 mv-dust3r-run-33-mvdust3r-only-rgb-baseline
 ```
 
-## 10. Final Status And Coverage Follow-Up
+## 10. Reference Status And Estimated-Depth Follow-Up
 
-Run 30 is the final method-defining experiment and the final technical
-contribution. The report/slides should package it as the accepted RGB-D
-solution for the two hard limits. Run 31 only expands coverage for validation.
+Run 30 is the method-defining RGB-D/source-depth reference experiment. The
+report/slides should package it as the validated true-depth correction result
+for the two hard limits, not as the final RGB-only setting. The next target
+setting uses estimated depth from the Run 37 fine-tuned model to perform the
+same source-ray correction on MV-DUSt3R+ candidates.
 
 Run 31 is a coverage stress test, not a new method. It keeps the Run 30 policy
 fixed and evaluates 12 sparse-view groups per scene over all 30 scenes, for 360
@@ -584,11 +647,32 @@ Gate outcome: `run30_adds_value_over_mvdust3r_only`. This supports the final
 Run 30 RGB-D/source-depth contribution while keeping the RGB-only limitation
 explicit.
 
-Possible future work, outside the current final claim:
+### Runs 35-36: Predicted-Depth Generalization Diagnostic
+
+Run 35 evaluates Depth Anything V2 Metric Indoor Small on 158 frames from the
+same 30-scene controlled protocol. Test AbsRel is `0.1861`, delta1 is `0.7736`,
+raw MAE is `0.3525 m`, and diagnostic scale-aligned MAE is `0.1614 m`. A single
+train-fit global scale of `0.9123` is frozen for Run 36.
+
+Run 36 uses RGB, predicted depth, and known poses/intrinsics. It does not use
+true source depth for correction or residual gating. The selected policy is
+global scale, `tau_pred = 0.5`, and `alpha = 0.25`.
+
+| Split | MV-DUSt3R+ RGB-only | Selected predicted correction | Direct predicted depth | Run 30 true RGB-D |
+| --- | ---: | ---: | ---: | ---: |
+| Val overall | 0.1231 | 0.1012 | 0.1747 | 0.1753 |
+| Test overall | 0.1744 | 0.1465 | 0.1894 | 0.2764 |
+
+The correction fails the overall, occlusion, and ambiguity gates. Direct
+predicted-depth backprojection confirms that monocular depth contains useful
+geometry, but it regresses on test occlusion and remains far below Run 30 test
+performance. Therefore Runs 35-36 are generalization diagnostics and negative
+evidence for the tested blending rule; the final project claim remains Run 30.
+
+Possible future work, outside the current validated reference claim:
 
 1. Add qualitative figures for Run 30/31 source-depth correction.
-2. If the project later returns to RGB-only, design a new metric depth
-   calibration or indoor-depth fine-tuning run, because Run 29 shows generic
-   monodepth is not enough.
-3. Evaluate the final RGB-D method on a larger official benchmark with mesh or
-   laser-scan ground truth.
+2. Use the Run 37 fine-tuned depth estimator as the estimated source-depth
+   input for MV-DUSt3R+ candidate correction.
+3. Evaluate both the RGB-D reference method and the estimated-depth target
+   method on a larger official benchmark with mesh or laser-scan ground truth.

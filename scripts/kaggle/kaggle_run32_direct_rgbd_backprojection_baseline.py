@@ -33,8 +33,8 @@ base = r30.base
 
 RUN_NAME = "run_32_direct_rgbd_backprojection_baseline"
 SEED = 3232
-MAX_SCENES = int(os.environ.get("RUN32_MAX_SCENES", "30"))
-MAX_EVAL_GROUPS = int(os.environ.get("RUN32_MAX_EVAL_GROUPS", "36"))
+MAX_SCENES = int(os.environ.get("RUN32_MAX_SCENES", "0"))
+MAX_EVAL_GROUPS_RAW = os.environ.get("RUN32_MAX_EVAL_GROUPS", "0")
 MAX_POINTS_PER_GROUP = int(os.environ.get("RUN32_MAX_POINTS_PER_GROUP", "3500"))
 DEPTH_PIXEL_STRIDE = int(os.environ.get("RUN32_DEPTH_PIXEL_STRIDE", "1"))
 MAX_DEPTH_M = float(os.environ.get("RUN32_MAX_DEPTH_M", "10.0"))
@@ -50,6 +50,19 @@ CIRCULARITY_WARNING = (
     "input depth maps. Direct backprojection therefore shares its depth source "
     "with the evaluation target and is not an independent mesh/laser-scan test."
 )
+
+
+def parse_optional_positive_limit(raw_value):
+    if raw_value is None:
+        return None
+    text = str(raw_value).strip().lower()
+    if text in {"", "none", "null", "all", "unlimited"}:
+        return None
+    value = int(text)
+    return value if value > 0 else None
+
+
+MAX_EVAL_GROUPS = parse_optional_positive_limit(MAX_EVAL_GROUPS_RAW)
 
 
 def deterministic_sample(points, colors, limit, seed):
@@ -205,6 +218,9 @@ def coerce_run30_metric_row(row):
         "recall",
         "fscore",
         "chamfer",
+        "normalized_distance",
+        "dac_at_0_2_normalized",
+        "normalized_dac_threshold",
         "threshold_m",
         "conf_percent",
         "conf_threshold",
@@ -425,14 +441,20 @@ def main():
 
     r27.validate_static_configuration()
     posed_root = base.find_posed_images_root()
-    scene_dirs = r27.discover_scene_dirs(posed_root)[:MAX_SCENES]
+    all_scene_dirs = r27.discover_scene_dirs(posed_root)
+    scene_dirs = all_scene_dirs[:MAX_SCENES] if MAX_SCENES > 0 else all_scene_dirs
     scene_lookup = {path.name: path for path in scene_dirs}
     splits = r27.scene_splits(scene_dirs)
     manifest = r27.build_group_manifest(scene_dirs, splits)
-    eval_groups = r27.balanced_group_subset(
-        [row for row in manifest if row["split"] in {"val", "test"}],
-        MAX_EVAL_GROUPS,
+    eval_group_candidates = [
+        row for row in manifest if row["split"] in {"val", "test"}
+    ]
+    eval_groups = (
+        eval_group_candidates
+        if MAX_EVAL_GROUPS is None
+        else r27.balanced_group_subset(eval_group_candidates, MAX_EVAL_GROUPS)
     )
+    evaluated_scene_ids = sorted({row["scene"] for row in eval_groups})
     group_keys = {row["group_key"] for row in eval_groups}
     run30_dir = find_run30_output()
     run30_rows, group_diagnostics = load_run30_comparison_rows(
@@ -472,7 +494,15 @@ def main():
         "run": RUN_NAME,
         "purpose": "Direct RGB-D source-depth backprojection baseline without MV-DUSt3R+.",
         "num_scenes": len(scene_dirs),
+        "scene_limit": MAX_SCENES if MAX_SCENES > 0 else None,
+        "num_discovered_scenes": len(all_scene_dirs),
         "scene_splits": splits,
+        "max_eval_groups_raw": MAX_EVAL_GROUPS_RAW,
+        "max_eval_groups_resolved": MAX_EVAL_GROUPS,
+        "num_total_eval_groups_before_cap": len(eval_group_candidates),
+        "num_eval_groups_after_cap": len(eval_groups),
+        "evaluated_scene_count": len(evaluated_scene_ids),
+        "evaluated_scene_ids": evaluated_scene_ids,
         "num_eval_groups": len(eval_groups),
         "max_points_per_group": MAX_POINTS_PER_GROUP,
         "depth_pixel_stride": DEPTH_PIXEL_STRIDE,

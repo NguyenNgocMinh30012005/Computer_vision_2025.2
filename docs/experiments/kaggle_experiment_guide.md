@@ -5,7 +5,7 @@ File nay huong dan dung Kaggle de chay cac thi nghiem trong
 
 ## Final status
 
-Run 30 is the final recommended Kaggle run:
+Run 30 is the validated RGB-D reference Kaggle run:
 
 ```text
 mv-dust3r-run-30-rgbd-source-depth-correction
@@ -16,6 +16,20 @@ candidate reconstruction, and source-depth/source-ray correction. Runs 22-29
 showed that RGB-only filtering/correction was insufficient; Run 30 changes the
 inference contract to RGB-D and passes the overall, occlusion, and ambiguity
 gates.
+
+The current target setting after Run 37 is different:
+
+```text
+RGB sparse views
+-> MV-DUSt3R+ candidate reconstruction
+-> Run 37 fine-tuned depth estimator predicts source depth from RGB
+-> predicted-depth source-ray correction with known pose/intrinsics
+-> corrected reconstruction
+```
+
+This target is RGB-only with respect to depth input at inference, but it still
+uses known camera intrinsics/extrinsics. It must pass a later reconstruction
+gate before replacing the Run 30 RGB-D reference.
 
 Run 31 is a coverage-only follow-up:
 
@@ -45,6 +59,30 @@ mv-dust3r-run-33-mvdust3r-only-rgb-baseline
 It reuses Run 30 `all_candidates` and `confidence_fixed_final` rows instead of
 rerunning MV-DUSt3R+ inference. Source-depth inference, correction, and direct
 RGB-D backprojection are all disabled in the run config.
+
+Run 37 is the full-dataset depth-estimator fine-tuning run:
+
+```text
+mv-dust3r-run-37-depth-full-finetune
+```
+
+It scans every `scene*` directory under Kaggle `scannet/posed_images`, builds
+complete RGB/depth/pose frame manifests, trains a `controlled_best` checkpoint
+with scene-level train/validation/test separation, and then optionally trains a
+`full_dataset_deployment` checkpoint on 100% of discovered frames. Use the
+controlled checkpoint for reporting; the deployment checkpoint is not unbiased
+test evidence.
+
+Next reconstruction run target:
+
+```text
+mount Run 37 checkpoint
+load sparse RGB groups
+run MV-DUSt3R+ for candidates
+predict source depth from RGB with the fine-tuned depth estimator
+back-project predicted depth with known poses/intrinsics
+apply the Run 30-style source-ray correction using estimated depth
+```
 
 ## 1. Trang thai setup local
 
@@ -273,7 +311,8 @@ Output folder:
 
 Dung dung thu tu trong `docs/experiments/experiment_run_order.md`. Runs 2-11
 create the strong RGB-only baseline; Runs 12-29 are diagnostic learned/RGB-only
-experiments; Run 30 is the accepted final RGB-D result.
+experiments; Run 30 is the accepted RGB-D reference result. The target follow-up
+uses Run 37 estimated depth for source-ray correction.
 
 | Run | Ten | Output folder |
 | --- | --- | --- |
@@ -423,3 +462,51 @@ Run 33 is selected sparse RGB views only, with MV-DUSt3R+ confidence and no
 source-depth correction. The gate outcome is
 `run30_adds_value_over_mvdust3r_only`; the final claim remains Run 30 RGB-D,
 not RGB-only.
+
+## 13. Run 35 Predicted Depth Quality
+
+Run 35 predicts source-frame depth from RGB with
+`depth-anything/Depth-Anything-V2-Metric-Indoor-Small-hf`. It reports AbsRel,
+RMSE, MAE, delta1/2/3, median scale ratio, and scale-aligned errors on valid
+source-depth pixels. It also writes compressed depth maps for Run 36.
+
+Run 35 method inference uses RGB only. Source RGB-D depth is used only to score
+the predictions and estimate one global scale from train-fit scenes.
+
+## 14. Run 36 Predicted-Depth Correction
+
+Run 36 mounts Run 35, Run 30, and Run 32 outputs. It selects residual threshold
+and correction strength on held-out train scenes, then evaluates frozen
+policies on validation/test groups.
+
+Required inference flags:
+
+```text
+uses_true_source_depth_for_inference = false
+uses_true_source_depth_for_correction = false
+uses_predicted_depth_for_inference = true
+uses_known_pose = true
+uses_known_intrinsics = true
+```
+
+Run 36 is closer to an RGB-only input setting than Run 30, but it still uses
+known camera calibration and is not the fully pose-free MV-DUSt3R+ paper
+setting.
+
+Completed gate:
+
+```text
+selected_depth_scale_mode = global_scale
+tau_pred = 0.5
+alpha = 0.25
+validation RGB-only F-score = 0.1231
+validation correction F-score = 0.1012
+test RGB-only F-score = 0.1744
+test correction F-score = 0.1465
+pass_all_limits = false
+final_project_claim_changed = false
+```
+
+The direct predicted-depth diagnostic scores `0.1747` validation and `0.1894`
+test F-score, but does not pass the hard-subset/generalization requirements
+needed to replace Run 30.
