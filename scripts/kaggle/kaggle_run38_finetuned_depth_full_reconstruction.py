@@ -67,6 +67,40 @@ def parse_optional_positive_limit(raw_value):
 MAX_SCENES = parse_optional_positive_limit(MAX_SCENES_RAW)
 MAX_EVAL_SCENES = parse_optional_positive_limit(MAX_EVAL_SCENES_RAW)
 MAX_EVAL_GROUPS = parse_optional_positive_limit(MAX_EVAL_GROUPS_RAW)
+_ORIGINAL_BUILD_GT_CLOUD = base.build_gt_cloud
+
+
+def build_finite_gt_cloud(view_files, *args, **kwargs):
+    """Drop invalid proxy-GT rows before inherited KD-tree evaluation.
+
+    Some full-data ScanNet-style scenes contain invalid pose/depth values. Run
+    36 assumes the depth-derived proxy cloud is finite and constructs a cKDTree
+    immediately. Run 38 evaluates many more groups, so one bad frame should not
+    crash the whole kernel.
+    """
+    gt, stats = _ORIGINAL_BUILD_GT_CLOUD(view_files, *args, **kwargs)
+    gt = np.asarray(gt, dtype=np.float32)
+    finite = np.isfinite(gt).all(axis=1)
+    removed = int(len(gt) - int(finite.sum()))
+    if removed:
+        print(
+            "Run 38 filtered non-finite GT points:",
+            {
+                "removed": removed,
+                "kept": int(finite.sum()),
+                "views": [Path(path).name for path in view_files],
+            },
+        )
+    gt = gt[finite]
+    if len(gt) == 0:
+        raise ValueError(
+            "No finite proxy-GT points remain after filtering "
+            f"{[Path(path).name for path in view_files]}."
+        )
+    return gt, stats
+
+
+base.build_gt_cloud = build_finite_gt_cloud
 
 
 def install_depth_dependencies():

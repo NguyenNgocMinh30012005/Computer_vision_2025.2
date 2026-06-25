@@ -268,6 +268,11 @@ the Kaggle output within quota. A small fixed number of qualitative groups is
 retained. This remains a project-specific depth-derived proxy evaluation, not
 an official full ScanNet or ScanNet++ benchmark.
 
+Run 38 also sanitizes the evaluator proxy point cloud before KD-tree
+construction. Full-data scene discovery can expose frames with invalid pose or
+depth values; those produce non-finite proxy-GT points and previously caused
+`cKDTree` to fail. Non-finite rows are now filtered and reported in the log.
+
 Run 31 freezes `rgbd_residual_ge_0.30` and evaluates 360 sparse-view groups:
 12 per scene across 30 scenes. It keeps 3/4/5 views, hybrid and
 diversity-aware policies, and two deterministic frame variants per
