@@ -353,8 +353,14 @@ history:
   estimator, with separate controlled and deployment checkpoints.
 - Run 38 target: use the Run 37 fine-tuned depth checkpoint to estimate source
   depth from RGB, then apply predicted-depth correction to MV-DUSt3R+
-  candidates. This is the desired RGB-only-input reconstruction setting and
-  must be evaluated before it replaces Run 30.
+  candidates. The current submission keeps scene discovery, policy selection,
+  and metric evaluation uncapped by default with `RUN38_MAX_EVAL_SCENES=0`,
+  so all sparse-view groups from all validation/test scenes are evaluated. It
+  uses the Run 37 `controlled_best` checkpoint to preserve held-out evidence.
+  Set `RUN38_MAX_EVAL_SCENES` to a positive integer only for an intentional
+  smaller pilot. This is the desired RGB-only-input reconstruction setting and
+  must pass its
+  reconstruction gates before it replaces Run 30.
 
 Final script:
 
@@ -384,6 +390,7 @@ Predicted-depth full-data fine-tuning script:
 
 ```text
 scripts/kaggle/kaggle_run37_depth_estimator_full_finetune.py
+scripts/kaggle/kaggle_run38_finetuned_depth_full_reconstruction.py
 ```
 
 ## MV-DUSt3R+ Only RGB Baseline

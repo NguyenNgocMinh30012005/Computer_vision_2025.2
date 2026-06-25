@@ -243,6 +243,31 @@ checkpoints/controlled_best/
 checkpoints/full_dataset_deployment/
 ```
 
+Run 38 mounts Run 37 and evaluates the target reconstruction pipeline:
+
+```text
+sparse RGB views
+-> MV-DUSt3R+ candidate geometry
+-> Run 37 controlled_best metric-depth prediction
+-> predicted-depth source-ray correction with known pose/intrinsics
+-> full validation/test sparse-group evaluation
+```
+
+The default Run 38 submission evaluates the full validation/test scene set:
+`RUN38_MAX_SCENES=0`, `RUN38_MAX_EVAL_SCENES=0`, and
+`RUN38_MAX_EVAL_GROUPS=0`. Scene discovery, train-split policy selection, and
+metric evaluation are uncapped by default. Set `RUN38_MAX_EVAL_SCENES` to a
+positive integer only when intentionally running a smaller pilot. Run 38 keeps
+the Run 37 scene split and uses
+`controlled_best` for held-out evaluation. The `full_dataset_deployment`
+checkpoint may be selected for deployment diagnostics, but it must not be used
+for unbiased validation/test claims because it was trained on all scenes.
+
+Run 38 removes most per-group GLB directories after extracting metrics to keep
+the Kaggle output within quota. A small fixed number of qualitative groups is
+retained. This remains a project-specific depth-derived proxy evaluation, not
+an official full ScanNet or ScanNet++ benchmark.
+
 Run 31 freezes `rgbd_residual_ge_0.30` and evaluates 360 sparse-view groups:
 12 per scene across 30 scenes. It keeps 3/4/5 views, hybrid and
 diversity-aware policies, and two deterministic frame variants per

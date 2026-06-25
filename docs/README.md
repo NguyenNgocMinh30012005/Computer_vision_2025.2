@@ -19,5 +19,14 @@ Current project reports:
   aggregate/per-group metrics, dense exports, conclusions, and limitations
 - `experiments/project_full_report_run35_run36_predicted_depth.md`: design,
   input contract, metrics, failed correction gate, and direct-depth diagnostic
-- Run 37/next-run direction: fine-tune the RGB depth estimator, then use its
-  estimated depth maps for MV-DUSt3R+ source-ray correction.
+- `experiments/run37_training_eval_plots.md`: Run 37 training workload,
+  held-out depth metrics, per-frame distributions, and baseline-versus-fine-tuned
+  plots
+- `experiments/sparse_view_rgb_estimated_depth_report_vi.tex`: Vietnamese
+  paper-style report for the RGB-only + fine-tuned estimated-depth correction
+  setting, including Run 37 fine-tuning figures and historical reconstruction
+  tables
+- `experiments/sparse_view_rgb_estimated_depth_report_en.tex`: English version
+  of the RGB-only + fine-tuned estimated-depth correction report
+- Run 37/next-run direction: use the fine-tuned RGB depth estimator output for
+  MV-DUSt3R+ source-ray correction and evaluate the resulting 3D reconstruction.

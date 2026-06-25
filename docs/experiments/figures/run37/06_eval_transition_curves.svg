@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="980" viewBox="0 0 1500 980">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<style>text{font-family:Arial,Helvetica,sans-serif;fill:#1f2933}.title{font-size:24px;font-weight:700}.subtitle{font-size:13px;fill:#52616b}.axis{font-size:11px;fill:#52616b}.legend{font-size:12px}.paneltitle{font-size:14px;font-weight:700}</style>
+<text class="title" x="50" y="44">Run 37 eval transition curves: pretrained baseline to fine-tuned checkpoint</text>
+<text class="subtitle" x="50" y="68">Two-point curves only: Run 37 logged one fine-tuning epoch, so these show held-out metric change from baseline to controlled_best.</text>
+<text class="paneltitle" x="50" y="116">AbsRel (lower is better)</text>
+<rect x="104" y="130" width="608" height="288" fill="#fbfdfe" stroke="#cfd8dc"/>
+<line x1="104" y1="418.00" x2="712" y2="418.00" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="96" y="422.00" text-anchor="end">0.00</text>
+<line x1="104" y1="346.00" x2="712" y2="346.00" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="96" y="350.00" text-anchor="end">0.08</text>
+<line x1="104" y1="274.00" x2="712" y2="274.00" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="96" y="278.00" text-anchor="end">0.15</text>
+<line x1="104" y1="202.00" x2="712" y2="202.00" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="96" y="206.00" text-anchor="end">0.23</text>
+<line x1="104" y1="130.00" x2="712" y2="130.00" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="96" y="134.00" text-anchor="end">0.31</text>
+<line x1="104.00" y1="130" x2="104.00" y2="418" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="104.00" y="436" text-anchor="middle">0</text>
+<line x1="256.00" y1="130" x2="256.00" y2="418" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="256.00" y="436" text-anchor="middle">0.25</text>
+<line x1="408.00" y1="130" x2="408.00" y2="418" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="408.00" y="436" text-anchor="middle">0.50</text>
+<line x1="560.00" y1="130" x2="560.00" y2="418" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="560.00" y="436" text-anchor="middle">0.75</text>
+<line x1="712.00" y1="130" x2="712.00" y2="418" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="712.00" y="436" text-anchor="middle">1</text>
+<line x1="104" y1="418" x2="712" y2="418" stroke="#2c3e50"/>
+<line x1="104" y1="130" x2="104" y2="418" stroke="#2c3e50"/>
+<text class="axis" x="408.0" y="452" text-anchor="middle">0 = pretrained, 1 = fine-tuned</text>
+<text class="axis" transform="translate(64,274.0) rotate(-90)" text-anchor="middle">AbsRel</text>
+<polyline points="104.00,160.86 712.00,310.20" fill="none" stroke="#117a65" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="104.00,163.03 712.00,310.68" fill="none" stroke="#1f77b4" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="562" y1="146" x2="586" y2="146" stroke="#117a65" stroke-width="2.4"/>
+<text class="legend" x="592" y="150">val</text>
+<line x1="562" y1="163" x2="586" y2="163" stroke="#1f77b4" stroke-width="2.4"/>
+<text class="legend" x="592" y="167">test</text>
+<text class="paneltitle" x="780" y="116">RMSE (m) (lower is better)</text>
+<rect x="834" y="130" width="608" height="288" fill="#fbfdfe" stroke="#cfd8dc"/>
+<line x1="834" y1="418.00" x2="1442" y2="418.00" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="826" y="422.00" text-anchor="end">0.00</text>
+<line x1="834" y1="346.00" x2="1442" y2="346.00" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="826" y="350.00" text-anchor="end">0.13</text>
+<line x1="834" y1="274.00" x2="1442" y2="274.00" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="826" y="278.00" text-anchor="end">0.27</text>
+<line x1="834" y1="202.00" x2="1442" y2="202.00" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="826" y="206.00" text-anchor="end">0.40</text>
+<line x1="834" y1="130.00" x2="1442" y2="130.00" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="826" y="134.00" text-anchor="end">0.54</text>
+<line x1="834.00" y1="130" x2="834.00" y2="418" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="834.00" y="436" text-anchor="middle">0</text>
+<line x1="986.00" y1="130" x2="986.00" y2="418" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="986.00" y="436" text-anchor="middle">0.25</text>
+<line x1="1138.00" y1="130" x2="1138.00" y2="418" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="1138.00" y="436" text-anchor="middle">0.50</text>
+<line x1="1290.00" y1="130" x2="1290.00" y2="418" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="1290.00" y="436" text-anchor="middle">0.75</text>
+<line x1="1442.00" y1="130" x2="1442.00" y2="418" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="1442.00" y="436" text-anchor="middle">1</text>
+<line x1="834" y1="418" x2="1442" y2="418" stroke="#2c3e50"/>
+<line x1="834" y1="130" x2="834" y2="418" stroke="#2c3e50"/>
+<text class="axis" x="1138.0" y="452" text-anchor="middle">0 = pretrained, 1 = fine-tuned</text>
+<text class="axis" transform="translate(794,274.0) rotate(-90)" text-anchor="middle">RMSE (m)</text>
+<polyline points="834.00,162.34 1442.00,289.95" fill="none" stroke="#117a65" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="834.00,160.86 1442.00,291.21" fill="none" stroke="#1f77b4" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="1292" y1="146" x2="1316" y2="146" stroke="#117a65" stroke-width="2.4"/>
+<text class="legend" x="1322" y="150">val</text>
+<line x1="1292" y1="163" x2="1316" y2="163" stroke="#1f77b4" stroke-width="2.4"/>
+<text class="legend" x="1322" y="167">test</text>
+<text class="paneltitle" x="50" y="536">MAE (m) (lower is better)</text>
+<rect x="104" y="550" width="608" height="288" fill="#fbfdfe" stroke="#cfd8dc"/>
+<line x1="104" y1="838.00" x2="712" y2="838.00" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="96" y="842.00" text-anchor="end">0.00</text>
+<line x1="104" y1="766.00" x2="712" y2="766.00" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="96" y="770.00" text-anchor="end">0.11</text>
+<line x1="104" y1="694.00" x2="712" y2="694.00" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="96" y="698.00" text-anchor="end">0.22</text>
+<line x1="104" y1="622.00" x2="712" y2="622.00" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="96" y="626.00" text-anchor="end">0.32</text>
+<line x1="104" y1="550.00" x2="712" y2="550.00" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="96" y="554.00" text-anchor="end">0.43</text>
+<line x1="104.00" y1="550" x2="104.00" y2="838" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="104.00" y="856" text-anchor="middle">0</text>
+<line x1="256.00" y1="550" x2="256.00" y2="838" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="256.00" y="856" text-anchor="middle">0.25</text>
+<line x1="408.00" y1="550" x2="408.00" y2="838" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="408.00" y="856" text-anchor="middle">0.50</text>
+<line x1="560.00" y1="550" x2="560.00" y2="838" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="560.00" y="856" text-anchor="middle">0.75</text>
+<line x1="712.00" y1="550" x2="712.00" y2="838" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="712.00" y="856" text-anchor="middle">1</text>
+<line x1="104" y1="838" x2="712" y2="838" stroke="#2c3e50"/>
+<line x1="104" y1="550" x2="104" y2="838" stroke="#2c3e50"/>
+<text class="axis" x="408.0" y="872" text-anchor="middle">0 = pretrained, 1 = fine-tuned</text>
+<text class="axis" transform="translate(64,694.0) rotate(-90)" text-anchor="middle">MAE (m)</text>
+<polyline points="104.00,581.59 712.00,742.43" fill="none" stroke="#117a65" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="104.00,580.86 712.00,742.65" fill="none" stroke="#1f77b4" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="562" y1="566" x2="586" y2="566" stroke="#117a65" stroke-width="2.4"/>
+<text class="legend" x="592" y="570">val</text>
+<line x1="562" y1="583" x2="586" y2="583" stroke="#1f77b4" stroke-width="2.4"/>
+<text class="legend" x="592" y="587">test</text>
+<text class="paneltitle" x="780" y="536">delta1 (higher is better)</text>
+<rect x="834" y="550" width="608" height="288" fill="#fbfdfe" stroke="#cfd8dc"/>
+<line x1="834" y1="838.00" x2="1442" y2="838.00" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="826" y="842.00" text-anchor="end">0.61</text>
+<line x1="834" y1="766.00" x2="1442" y2="766.00" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="826" y="770.00" text-anchor="end">0.72</text>
+<line x1="834" y1="694.00" x2="1442" y2="694.00" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="826" y="698.00" text-anchor="end">0.83</text>
+<line x1="834" y1="622.00" x2="1442" y2="622.00" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="826" y="626.00" text-anchor="end">0.94</text>
+<line x1="834" y1="550.00" x2="1442" y2="550.00" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="826" y="554.00" text-anchor="end">1.05</text>
+<line x1="834.00" y1="550" x2="834.00" y2="838" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="834.00" y="856" text-anchor="middle">0</text>
+<line x1="986.00" y1="550" x2="986.00" y2="838" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="986.00" y="856" text-anchor="middle">0.25</text>
+<line x1="1138.00" y1="550" x2="1138.00" y2="838" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="1138.00" y="856" text-anchor="middle">0.50</text>
+<line x1="1290.00" y1="550" x2="1290.00" y2="838" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="1290.00" y="856" text-anchor="middle">0.75</text>
+<line x1="1442.00" y1="550" x2="1442.00" y2="838" stroke="#d9e0e3" stroke-width="1"/>
+<text class="axis" x="1442.00" y="856" text-anchor="middle">1</text>
+<line x1="834" y1="838" x2="1442" y2="838" stroke="#2c3e50"/>
+<line x1="834" y1="550" x2="834" y2="838" stroke="#2c3e50"/>
+<text class="axis" x="1138.0" y="872" text-anchor="middle">0 = pretrained, 1 = fine-tuned</text>
+<text class="axis" transform="translate(794,694.0) rotate(-90)" text-anchor="middle">delta1</text>
+<polyline points="834.00,812.88 1442.00,623.49" fill="none" stroke="#117a65" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="834.00,809.95 1442.00,623.03" fill="none" stroke="#1f77b4" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="1292" y1="566" x2="1316" y2="566" stroke="#117a65" stroke-width="2.4"/>
+<text class="legend" x="1322" y="570">val</text>
+<line x1="1292" y1="583" x2="1316" y2="583" stroke="#1f77b4" stroke-width="2.4"/>
+<text class="legend" x="1322" y="587">test</text>
+</svg>

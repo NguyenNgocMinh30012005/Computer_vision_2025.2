@@ -54,27 +54,24 @@
 \end{frame}
 
 \begin{frame}{Predicted-Depth Generalization Track}
-  \footnotesize
-  \begin{block}{Goal}
-    Move from true RGB-D source depth toward RGB image input by estimating
-    source depth from RGB, then using that depth for candidate correction.
-  \end{block}
-
+  \scriptsize
   \begin{itemize}
-    \item Run 35: evaluate Depth Anything V2 Metric Indoor Small using AbsRel,
+    \item Goal: move from true source RGB-D depth toward RGB image input by
+    estimating source depth from RGB, then using that estimate for correction.
+    \item Run 35: evaluate Depth Anything V2 Metric Indoor Small with AbsRel,
     RMSE, MAE, \(\delta_1/\delta_2/\delta_3\), and scale-aligned errors.
     \item Run 36: first predicted-depth correction attempt with the generic
-    depth model; it did not pass reconstruction gates.
-    \item Run 37: fine-tune the depth estimator so the next correction run can
-    use a stronger estimated-depth anchor.
-    \item True source depth is forbidden from Run 36 correction and residual
-    gating; it remains evaluator/proxy-GT data only.
+    depth model; reconstruction gates did not pass.
+    \item Run 37: fine-tune the depth estimator to provide a stronger
+    estimated-depth correction anchor.
+    \item Run 38: use the Run 37 \texttt{controlled\_best} checkpoint for
+    the full validation/test scene set by default, evaluating every discovered
+    sparse-view group while policy selection remains based on the train split.
+    \item True source depth is excluded from Run 36/38 method inference and
+    residual gating; it remains evaluator/proxy-GT data only.
+    \item Boundary: RGB-only with respect to source depth, but still uses known
+    pose/intrinsics and is not the official MV-DUSt3R+ benchmark.
   \end{itemize}
-
-  \begin{alertblock}{Claim boundary}
-    The target setting is RGB-only for source depth, but it is not fully
-    pose-free and is not the MV-DUSt3R+ paper benchmark setting.
-  \end{alertblock}
 \end{frame}
 
 \begin{frame}{Runs 35--36 Results}

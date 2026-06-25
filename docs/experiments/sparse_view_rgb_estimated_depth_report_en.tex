@@ -1,0 +1,461 @@
+\documentclass[12pt,a4paper]{article}
+
+% ------------------------------------------------------------------
+% Compilation note:
+% This English version is intended to be compiled with XeLaTeX.
+% Figures must be available in docs/experiments/figures/.
+% Figure1.png and Figure2.png describe the MV-DUSt3R+ architecture/pipeline.
+% Run37_*.png are the depth-estimator fine-tuning plots.
+% ------------------------------------------------------------------
+
+\usepackage[margin=1in]{geometry}
+\usepackage{fontspec}
+\IfFontExistsTF{Times New Roman}{\setmainfont{Times New Roman}}{\setmainfont{TeX Gyre Termes}}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{graphicx}
+\graphicspath{{figures/}}
+\usepackage{float}
+\usepackage{amsmath,amssymb}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,calc,shapes.geometric}
+\usepackage[hidelinks]{hyperref}
+\usepackage{url}
+
+\setstretch{1.15}
+\setlength{\parindent}{0.45in}
+\setlength{\parskip}{0pt}
+\titleformat{\section}{\normalfont\Large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalfont\large\bfseries}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}{\normalfont\normalsize\bfseries\itshape}{\thesubsubsection}{0.5em}{}
+\captionsetup{font=small,labelfont=bf}
+\renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
+
+\newcommand{\ours}{Estimated-Depth Correction}
+\newcommand{\mvd}{MV-DUSt3R}
+\newcommand{\mvdp}{MV-DUSt3R+}
+\newcommand{\da}{Depth Anything V2}
+
+\begin{document}
+
+% ------------------------------------------------------------------
+% Title page
+% ------------------------------------------------------------------
+\begin{titlepage}
+\centering
+{\Large HANOI UNIVERSITY OF SCIENCE AND TECHNOLOGY\\}
+\vspace{0.2cm}
+{\large School of Information and Communication Technology\\}
+\vspace{1.6cm}
+{\Large Computer Vision Project Report\\}
+\vspace{1.2cm}
+{\LARGE\bfseries Sparse-View RGB 3D Scene Reconstruction\\}
+\vspace{0.2cm}
+{\LARGE\bfseries with Fine-Tuned Estimated-Depth Correction\\}
+\vspace{2.0cm}
+\begin{flushleft}
+\hspace{2.8cm}\textbf{Students:}\\
+\hspace{2.8cm}Nguyen Ngoc Minh - 20235533\\
+\hspace{2.8cm}Kieu Son Tung - 20235571\\
+\hspace{2.8cm}Dang Thinh Tuong Minh - 20235528\\
+\vspace{0.3cm}
+\hspace{2.8cm}\textbf{Supervisor:} Tran Nguyen Ngoc\\
+\end{flushleft}
+\vfill
+{Hanoi, June 25, 2026}
+\end{titlepage}
+
+\pagenumbering{roman}
+\tableofcontents
+\newpage
+\pagenumbering{arabic}
+
+% ------------------------------------------------------------------
+\section{Introduction}
+Three-dimensional scene reconstruction is a fundamental problem in computer vision. It supports applications such as augmented reality, robotics, digital twins, indoor mapping, visual localization, and 3D content creation. Classical reconstruction pipelines usually require many images, calibrated cameras, reliable pose estimation, feature matching, structure-from-motion, and multi-view stereo. Although these systems can produce high-quality geometry, they are difficult to deploy when only a small number of ordinary RGB images are available.
+
+In practical settings, the input is often sparse. A user may only have three to five images of an indoor scene, captured by a standard phone camera. These images usually contain RGB appearance only. They do not provide measured depth maps, camera intrinsics, or camera poses. If a reconstruction system requires depth at inference time, it becomes tied to RGB-D cameras, LiDAR devices, or specialized scanning setups. This requirement is not compatible with most everyday image collections.
+
+Recent feed-forward reconstruction models such as \mvdp{} reduce this dependency by reconstructing 3D scenes from multiple unposed RGB views. \mvdp{} is designed for sparse multi-view RGB input and directly predicts pixel-aligned 3D pointmaps without requiring camera poses or depth maps during inference. The official project describes \mvdp{} as a model that reconstructs large scenes from multiple unposed RGB views, and the CVPR paper introduces cross-reference-view blocks to improve robustness with respect to reference-view selection \cite{mvdust3r_project,mvdust3r_paper}. This makes \mvdp{} a suitable backbone for sparse-view RGB-only reconstruction.
+
+However, RGB-only reconstruction remains difficult. Appearance alone is often insufficient for metric depth recovery in low-texture areas, occluded regions, repeated structures, and low-overlap views. Monocular depth estimation is also inherently ambiguous because a single image loses metric scale under perspective projection. Therefore, an RGB-only reconstruction backbone may generate visually plausible candidate points that are still geometrically misaligned.
+
+This project addresses the problem by combining RGB-only multi-view reconstruction with estimated depth. The dataset may contain RGB-D frames, but measured depth is not used as an inference-time input. Instead, measured depth is used to fine-tune a monocular depth estimator. At deployment time, the system receives only sparse RGB views. The fine-tuned depth estimator predicts pseudo-depth maps from these RGB images, and the estimated depths are then used to correct the candidate point cloud produced by \mvdp{}.
+
+The main motivation is practical deployment. The project aims to use RGB-D training data while preserving an RGB-only inference contract. In other words, depth maps in the dataset teach geometric priors to the model, while the final system does not require the user to provide measured depth.
+
+The main contributions of this report are:
+\begin{enumerate}[leftmargin=1.2cm]
+    \item It defines a sparse-view RGB-only reconstruction setting in which measured depth is used for training and evaluation, but not as an inference-time input.
+    \item It proposes a pipeline that combines \mvdp{} with a fine-tuned monocular depth estimator.
+    \item It describes an estimated-depth correction module that refines candidate geometry produced by the multi-view backbone.
+    \item It reports both depth-estimation quality and 3D point-cloud reconstruction metrics using the project experiment history.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+\section{Background and Related Work}
+This section reviews three related directions: sparse-view RGB-only reconstruction, monocular depth estimation, and depth-assisted 3D reconstruction. These areas motivate the design of the proposed pipeline.
+
+\subsection{Sparse-View RGB-Only 3D Reconstruction}
+Traditional multi-view reconstruction is usually implemented as a multi-stage pipeline consisting of feature detection, feature matching, camera pose estimation, triangulation, bundle adjustment, and dense multi-view stereo. This modular design is interpretable and has been validated in many practical systems. However, each stage depends on the quality of previous stages, so errors can accumulate. These systems also typically require sufficient view overlap, reliable intrinsics, and accurate camera poses.
+
+Recent learning-based methods move toward direct reconstruction from unposed RGB images. DUSt3R predicts 3D pointmaps from pairs of RGB images without known camera intrinsics or poses, and MASt3R extends this direction with dense matching grounded in 3D representations \cite{dust3r_paper,mast3r_paper}. When more than two images are used, pairwise methods must construct many local reconstructions and then align them through global optimization. The \mvdp{} paper notes that pairwise reconstructions may contain matching or geometric errors, and that global optimization cannot always remove these errors \cite{mvdust3r_paper}.
+
+\mvd{} handles multiple views in a single feed-forward pass. Instead of exchanging information only between two images, it uses multi-view decoder blocks so that each view can receive information from all other views. \mvdp{} further improves stability by using multiple reference views and cross-reference-view blocks, allowing the model to fuse information across different reference choices \cite{mvdust3r_paper}.
+
+In this project, \mvdp{} is used as the RGB-only multi-view reconstruction backbone. It produces the initial point cloud from a small number of input images. The RGB-only reconstruction is treated as candidate geometry, which can then be checked and corrected using estimated depth.
+
+\subsection{Monocular Depth Estimation}
+Monocular depth estimation predicts a dense depth map from a single RGB image. It is attractive for practical applications because it does not require stereo images or depth sensors. However, the problem is ill-posed. A single image cannot fully determine metric scale because different 3D scenes may project to similar 2D images. Recent work on scale ambiguity in monocular depth also emphasizes that metric depth from one image is under-constrained by perspective projection \cite{rsa_depth}.
+
+Large-scale depth models such as \da{} improve monocular depth estimation through strong pretrained encoders and large training corpora. \da{} provides robust depth predictions and includes metric-depth variants obtained by fine-tuning pretrained encoders with metric depth labels \cite{depthanything_project,depthanything_metric}. This makes it a suitable initialization for the project. The fine-tuning stage uses RGB-D data as supervision so that the depth estimator adapts to indoor scenes and the reconstruction evaluation protocol.
+
+\subsection{Depth-Assisted 3D Reconstruction}
+Depth maps provide strong geometric information for 3D reconstruction. If measured depth and camera poses are available, a point cloud can be constructed by back-projecting valid depth pixels into 3D. However, this assumes that the user has a depth sensor and camera geometry at inference time. This assumption conflicts with the RGB-only deployment goal.
+
+An intermediate solution is to use predicted depth instead of measured depth. Predicted depth is imperfect, but it can still provide useful geometric priors. In this project, predicted depth does not replace the multi-view backbone. Instead, it is used as a correction signal for candidate geometry. This design keeps the multi-view reasoning of \mvdp{} while using learned depth priors to reduce wrong-depth errors.
+
+\subsection{Project Positioning}
+This project does not train a new reconstruction backbone from scratch. Instead, it builds a structured pipeline on top of modern components. \mvdp{} provides candidate geometry from sparse RGB views, while the fine-tuned depth estimator provides a per-image metric-depth prior. The main contribution is the experimental setting, the depth fine-tuning process, and the correction module: using RGB-D data during development while keeping the final inference contract RGB-only.
+
+% ------------------------------------------------------------------
+\section{Model Architectures Used in the Project}
+This section describes the two main model components used in the pipeline: \mvdp{} and \da{} Metric Indoor. It is placed before the dataset section so that the reader can understand what each model receives, what it outputs, and how it contributes to the final system.
+
+\subsection{MV-DUSt3R+ Backbone}
+\mvdp{} is a feed-forward sparse-view scene reconstruction model. Its input is a set of RGB images. Its output is a set of pixel-aligned 3D pointmaps and associated confidence information. Compared with pairwise DUSt3R-style reconstruction, \mvdp{} is designed to reason over multiple input views in one stage. It uses cross-reference-view reasoning to reduce sensitivity to the selected reference view and to improve stability in sparse-view settings.
+
+In this project, \mvdp{} is used only as a frozen or pretrained reconstruction backbone. The project does not claim to modify the \mvdp{} architecture. Instead, \mvdp{} produces the RGB-only candidate point cloud. The proposed method then uses estimated depth to adjust this candidate point cloud.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{Figure1.png}
+    \caption{High-level \mvdp{} sparse-view reconstruction architecture used as the RGB-only backbone.}
+    \label{fig:mvd_arch}
+\end{figure}
+
+\subsection{Depth Anything V2 Metric Indoor}
+The depth estimator is initialized from \da{} Metric Indoor. This model predicts a dense metric depth map from a single RGB image. The pretrained checkpoint already provides useful indoor depth priors, but the project fine-tunes it on the available RGB-D data so that it better matches the dataset distribution and the reconstruction pipeline.
+
+At inference time, the depth estimator receives each sparse RGB input view independently and predicts an estimated depth map. These estimated depth maps are then used as source-depth anchors for point-cloud correction. Because the depth is predicted from RGB, the final pipeline still satisfies the RGB-only input contract.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{Figure2.png}
+    \caption{Proposed RGB-only deployment pipeline: sparse RGB views are processed by \mvdp{} and by the fine-tuned depth estimator; estimated depth is then used to correct the candidate geometry.}
+    \label{fig:proposed_pipeline}
+\end{figure}
+
+% ------------------------------------------------------------------
+\section{Problem Formulation}
+Let a sparse group contain \(N\) RGB views:
+\[
+\mathcal{I}=\{I_1,I_2,\ldots,I_N\}, \quad N\in\{3,4,5\}.
+\]
+The final inference-time input is only the RGB images. During development, the dataset also provides measured depth maps and camera information that can be used for supervision and evaluation:
+\[
+\mathcal{D}=\{D_1,D_2,\ldots,D_N\}, \quad
+\mathcal{K}=\{K_1,K_2,\ldots,K_N\}, \quad
+\mathcal{T}=\{T_1,T_2,\ldots,T_N\}.
+\]
+The measured depth maps \(\mathcal{D}\) are not used as final inference inputs. They are used to fine-tune the depth estimator and to evaluate reconstruction quality.
+
+The \mvdp{} backbone predicts candidate points:
+\[
+P_{\mathrm{mv}} = f_{\mathrm{mv}}(\mathcal{I}).
+\]
+The fine-tuned depth estimator predicts depth maps from RGB:
+\[
+\hat{D}_i = f_{\mathrm{depth}}(I_i).
+\]
+The proposed correction module produces the final point cloud:
+\[
+P_{\mathrm{corr}} = C(P_{\mathrm{mv}}, \hat{\mathcal{D}}, \mathcal{K}, \mathcal{T}).
+\]
+Although camera intrinsics and poses are used in the project implementation for back-projection and evaluation, the key distinction is that measured depth is replaced by estimated depth in the proposed RGB-only deployment setting.
+
+% ------------------------------------------------------------------
+\section{Proposed Method}
+\subsection{Pipeline Overview}
+The proposed pipeline has three stages:
+\begin{enumerate}[leftmargin=1.2cm]
+    \item \textbf{RGB-only candidate reconstruction.} Sparse RGB views are passed into \mvdp{} to obtain candidate 3D points and confidence scores.
+    \item \textbf{Monocular estimated depth.} Each input RGB image is passed through the fine-tuned \da{} Metric Indoor estimator to predict a depth map.
+    \item \textbf{Estimated-depth correction.} Candidate points are compared with points back-projected from estimated depth. Points with large residuals are moved toward the estimated-depth anchor.
+\end{enumerate}
+
+This design is intentionally conservative. It does not replace multi-view reconstruction with monocular depth alone. Instead, depth is used as a correction signal for the multi-view candidate geometry.
+
+\begin{figure}[H]
+    \centering
+    \resizebox{\linewidth}{!}{%
+    \begin{tikzpicture}[
+        font=\small,
+        box/.style={draw, rounded corners=3pt, align=center, minimum height=1.05cm, text width=3.25cm, inner sep=7pt},
+        inputbox/.style={box, fill=blue!6},
+        modelbox/.style={box, fill=green!8},
+        corrbox/.style={box, fill=yellow!13},
+        outbox/.style={box, fill=orange!10},
+        arrow/.style={-{Latex[length=3mm]}, thick}
+    ]
+        \node[inputbox] (input) at (0,0) {Sparse RGB views\\$I_1,\ldots,I_N$};
+        \node[modelbox] (mv) at (4.0,1.25) {\mvdp{}\\candidate pointmaps};
+        \node[modelbox] (depth) at (4.0,-1.25) {Fine-tuned\\depth estimator\\estimated depth maps};
+        \node[corrbox] (corr) at (8.2,0) {Correction using\\estimated depth};
+        \node[outbox] (out) at (12.0,0) {Final 3D\\point cloud};
+
+        \draw[arrow] (input.east) -- (mv.west);
+        \draw[arrow] (input.east) -- (depth.west);
+        \draw[arrow] (mv.east) -- (corr.west);
+        \draw[arrow] (depth.east) -- (corr.west);
+        \draw[arrow] (corr.east) -- (out.west);
+    \end{tikzpicture}%
+    }
+    \caption{Full main pipeline translated from the project diagram: sparse RGB views are processed by \mvdp{} and by the fine-tuned depth estimator; estimated depth then corrects candidate geometry to produce the final 3D point cloud.}
+    \label{fig:full_pipeline_main}
+\end{figure}
+
+\subsection{Back-Projection from Estimated Depth}
+For a source pixel \((u,v)\) in view \(i\), the estimated depth is \(\hat{z}=\hat{D}_i(u,v)\). The corresponding point in camera coordinates is:
+\begin{equation}
+\hat{X}^{\mathrm{cam}}_{\mathrm{src}}(u,v) =
+\hat{z}K_i^{-1}
+\begin{bmatrix}
+u\\v\\1
+\end{bmatrix}.
+\end{equation}
+The world-coordinate point is:
+\begin{equation}
+\hat{X}^{\mathrm{world}}_{\mathrm{src}}(u,v)=
+T_i\hat{X}^{\mathrm{cam}}_{\mathrm{src}}(u,v).
+\end{equation}
+
+\subsection{Residual-Gated Correction}
+Let \(X_{\mathrm{pred}}(u,v)\) be the \mvdp{} candidate point associated with the same source pixel. The residual between candidate geometry and estimated-depth geometry is:
+\begin{equation}
+r(u,v)=\left\|X_{\mathrm{pred}}(u,v)-\hat{X}^{\mathrm{world}}_{\mathrm{src}}(u,v)\right\|_2.
+\end{equation}
+The corrected point is:
+\begin{equation}
+X_{\mathrm{corr}}(u,v)=
+\begin{cases}
+(1-\alpha)X_{\mathrm{pred}}(u,v)+\alpha\hat{X}^{\mathrm{world}}_{\mathrm{src}}(u,v), & r(u,v)\geq\tau,\\
+X_{\mathrm{pred}}(u,v), & r(u,v)<\tau.
+\end{cases}
+\end{equation}
+Here, \(\tau\) is the correction threshold and \(\alpha\) is the correction weight. The intended final setting uses estimated depth from the fine-tuned model, not measured RGB-D source depth.
+
+% ------------------------------------------------------------------
+\section{Dataset and Experimental Setting}
+The experiments use a controlled ScanNet-style RGB-D dataset derived from Kaggle runs. The full discovered dataset contains more than the initial 30-scene subset. Earlier runs used a 30-scene controlled subset to validate the pipeline. Later full-data runs remove the scene cap for discovery and evaluation when the corresponding limit is set to unlimited.
+
+The report must therefore distinguish between three notions:
+\begin{itemize}[leftmargin=1.2cm]
+    \item \textbf{All-scene discovery:} the script discovers all available scenes in the Kaggle dataset.
+    \item \textbf{All-group metric evaluation:} all discovered sparse-view groups are evaluated when no group cap is applied.
+    \item \textbf{Official benchmark:} the project does not claim an official full ScanNet or ScanNet++ benchmark unless the official benchmark protocol is implemented.
+\end{itemize}
+
+The sparse-view setting uses groups of 3, 4, or 5 views. The report uses measured depth for fine-tuning and reference evaluation, but the proposed deployment setting uses only RGB images and estimated depth.
+
+% ------------------------------------------------------------------
+\section{Evaluation Metrics}
+\subsection{Depth Estimation Metrics}
+Let \(D\) be the measured depth map and \(\hat{D}\) be the predicted depth map over valid pixels \(\Omega\). The depth metrics are:
+\begin{align}
+\mathrm{AbsRel} &= \frac{1}{|\Omega|}\sum_{p\in\Omega}\frac{|D(p)-\hat{D}(p)|}{D(p)},\\
+\mathrm{MAE} &= \frac{1}{|\Omega|}\sum_{p\in\Omega}|D(p)-\hat{D}(p)|,\\
+\mathrm{RMSE} &= \sqrt{\frac{1}{|\Omega|}\sum_{p\in\Omega}\left(D(p)-\hat{D}(p)\right)^2}.
+\end{align}
+The \(\delta_1\) accuracy is the fraction of pixels satisfying:
+\begin{equation}
+\max\left(\frac{\hat{D}(p)}{D(p)},\frac{D(p)}{\hat{D}(p)}\right)<1.25.
+\end{equation}
+Lower AbsRel, MAE, and RMSE are better, while higher \(\delta_1\) is better.
+
+\subsection{Point-Cloud Reconstruction Metrics}
+Let \(P\) be the predicted point cloud and \(G\) be the reference point cloud. Accuracy is the average nearest-neighbor distance from prediction to reference:
+\begin{equation}
+\mathrm{Accuracy}=\frac{1}{|P|}\sum_{p\in P}\min_{g\in G}\|p-g\|_2.
+\end{equation}
+Completeness is the average nearest-neighbor distance from reference to prediction:
+\begin{equation}
+\mathrm{Completeness}=\frac{1}{|G|}\sum_{g\in G}\min_{p\in P}\|g-p\|_2.
+\end{equation}
+Precision and recall are computed at a fixed metric threshold. F-score is:
+\begin{equation}
+F_1=\frac{2\cdot \mathrm{Precision}\cdot \mathrm{Recall}}{\mathrm{Precision}+\mathrm{Recall}}.
+\end{equation}
+Chamfer distance is:
+\begin{equation}
+\mathrm{Chamfer}=\mathrm{Accuracy}+\mathrm{Completeness}.
+\end{equation}
+
+For shape-level analysis, the project also reports Normalized Distance (ND) and the DAc@0.2 metric on selected qualitative groups. These metrics are computed after scale and center normalization and should not be interpreted as absolute metric-pose evaluation.
+
+% ------------------------------------------------------------------
+\section{Results}
+\subsection{Depth Estimator Fine-Tuning}
+Depth evaluation checks whether the fine-tuned depth estimator is accurate enough to serve as a correction anchor. The values in Table~\ref{tab:depthtrain} and Table~\ref{tab:depthmetrics} are taken from Run 37. The checkpoint used for held-out reporting is \texttt{controlled\_best}. The \texttt{full\_dataset\_deployment} checkpoint is a deployment artifact because it is trained again on all discovered frames.
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.18}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+Stage & Scenes & Training frames & Epochs & Mini-batch steps & Mean train loss & Runtime \\
+\midrule
+Controlled train split & 1210 & 198862 & 1 & 99431 & 0.0850 & 4.01 h \\
+Full-data deployment & 1513 & 248402 & 1 & 124201 & 0.0718 & 4.08 h \\
+\bottomrule
+\end{tabular}%
+}
+\caption{Run 37 depth-estimator fine-tuning workload. The controlled stage uses the training split to select \texttt{controlled\_best}; the full-data stage uses all discovered scenes to create the deployment checkpoint.}
+\label{tab:depthtrain}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.18}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+Depth model & AbsRel $\downarrow$ & MAE (m) $\downarrow$ & RMSE (m) $\downarrow$ & $\delta_1$ $\uparrow$ & Scale-aligned MAE $\downarrow$ & Split \\
+\midrule
+Pretrained \da{} Metric Indoor & 0.2730 & 0.3839 & 0.4778 & 0.6441 & 0.1672 & validation \\
+Fine-tuned \texttt{controlled\_best} & \textbf{0.1145} & \textbf{0.1431} & \textbf{0.2393} & \textbf{0.9355} & \textbf{0.0992} & validation \\
+Pretrained \da{} Metric Indoor & 0.2707 & 0.3850 & 0.4806 & 0.6486 & 0.1676 & test \\
+Fine-tuned \texttt{controlled\_best} & \textbf{0.1140} & \textbf{0.1428} & \textbf{0.2370} & \textbf{0.9362} & \textbf{0.0982} & test \\
+\bottomrule
+\end{tabular}%
+}
+\caption{Run 37 held-out depth evaluation. Each split uses 1200 sampled frames; validation contains 149 scenes and test contains 152 scenes.}
+\label{tab:depthmetrics}
+\end{table}
+
+Fine-tuning substantially improves depth quality. On validation, AbsRel decreases from 0.2730 to 0.1145, MAE decreases from 0.3839 m to 0.1431 m, and \(\delta_1\) increases from 0.6441 to 0.9355. On test, AbsRel decreases from 0.2707 to 0.1140, MAE decreases from 0.3850 m to 0.1428 m, and \(\delta_1\) increases from 0.6486 to 0.9362. This indicates that the fine-tuned depth estimator is much more reliable than the initial pretrained checkpoint on the controlled ScanNet-style indoor subset.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\linewidth]{Run37_training_overview.png}
+    \caption{Run 37 fine-tuning workload overview. Because Run 37 logs one epoch per stage, this figure should be interpreted as a workload, mean-loss, and runtime summary rather than as a multi-epoch training-loss curve.}
+    \label{fig:run37_training_overview}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.96\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Run37_eval_error_metrics.png}
+        \caption{Depth error metrics on validation/test.}
+    \end{subfigure}
+    \vspace{0.35cm}
+    \begin{subfigure}{0.78\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Run37_eval_accuracy_metrics.png}
+        \caption{Depth accuracy metrics \(\delta_1\), \(\delta_2\), and \(\delta_3\).}
+    \end{subfigure}
+    \caption{Comparison between the pretrained checkpoint and the fine-tuned \texttt{controlled\_best} checkpoint.}
+    \label{fig:run37_eval_metrics}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.92\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Run37_per_frame_distributions.png}
+        \caption{Per-frame distributions of depth metrics.}
+    \end{subfigure}
+    \vspace{0.35cm}
+    \begin{subfigure}{0.82\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Run37_absrel_scatter.png}
+        \caption{AbsRel scatter before and after fine-tuning.}
+    \end{subfigure}
+    \caption{Per-frame analysis shows that the gain is not caused by a few easy frames. The fine-tuned checkpoint reduces AbsRel on about 93.1\% of validation frames and 92.8\% of test frames.}
+    \label{fig:run37_per_frame}
+\end{figure}
+
+\subsection{3D Reconstruction Results}
+The main reconstruction experiment evaluates whether estimated-depth correction improves over RGB-only \mvdp{}. Table~\ref{tab:recon} summarizes completed historical runs. These values use the project controlled sparse-view protocol and should not be interpreted as official full ScanNet or ScanNet++ benchmark results.
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.18}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+Method & Accuracy $\downarrow$ & Completeness $\downarrow$ & Precision $\uparrow$ & Recall $\uparrow$ & F-score $\uparrow$ & Chamfer $\downarrow$ \\
+\midrule
+RGB-only \mvdp{} & 0.1883 & 0.2099 & 0.2207 & 0.1499 & 0.1758 & 0.3982 \\
+Direct backprojection from estimated depth & 0.1627 & 0.1641 & 0.2029 & 0.1834 & 0.1894 & 0.3268 \\
+Correction with pretrained estimated depth & 0.2240 & 0.2055 & 0.1707 & 0.1343 & 0.1465 & 0.4295 \\
+Correction with measured RGB-D source depth & 0.1272 & 0.1385 & 0.3622 & 0.2283 & 0.2745 & 0.2656 \\
+Correction with fine-tuned estimated depth (Ours) & \multicolumn{6}{c}{Run 38 is still running; no number is reported before Kaggle output is complete} \\
+\bottomrule
+\end{tabular}%
+}
+\caption{3D reconstruction comparison on completed test-group runs. The measured RGB-D source-depth row is an upper-reference result in the controlled setting, not the RGB-only deployment setting. The final proposed row depends on Run 38 with the fine-tuned depth estimator and should only be filled after the Kaggle output is complete.}
+\label{tab:recon}
+\end{table}
+
+The central question is whether the proposed method improves over RGB-only \mvdp{}. If fine-tuned estimated-depth correction achieves a higher F-score and a lower Chamfer distance than the RGB-only baseline, then the depth estimator provides useful geometric correction while preserving the RGB-only inference contract.
+
+\subsection{Ablation Study}
+The ablation study answers three questions. First, comparing RGB-only \mvdp{} with pretrained-depth correction tests whether off-the-shelf monocular depth helps without task adaptation. Second, comparing pretrained-depth correction with fine-tuned-depth correction tests whether fine-tuning on RGB-D training data improves reconstruction. Third, comparing fine-tuned-depth correction with direct estimated-depth backprojection tests whether \mvdp{} still contributes useful multi-view geometry beyond monocular depth.
+
+This analysis is important because the proposed pipeline is not simply a depth-estimation project. It is a reconstruction pipeline that uses estimated depth to correct candidate multi-view geometry.
+
+\subsection{Qualitative Analysis}
+Qualitative results should show reconstructed point clouds side by side. For each selected scene group, the report should include the input RGB views, the RGB-only \mvdp{} point cloud, the direct estimated-depth point cloud, and the final corrected point cloud using fine-tuned estimated depth.
+
+Successful cases are expected to show fewer floating points, better-aligned surfaces, and more stable geometry in ambiguous regions. Failure cases should also be reported, especially scenes with severe occlusion, repeated furniture, reflective surfaces, or inaccurate estimated depth.
+
+% ------------------------------------------------------------------
+\section{Discussion}
+The proposed project is motivated by deployability. A system that requires measured depth at inference time can be accurate, but it is limited to users with specialized sensors. A system that only requires RGB images is easier to deploy because most cameras produce RGB images by default. Therefore, this project uses RGB-D data for training and evaluation while keeping the final inference input RGB-only.
+
+This design also changes the interpretation of the dataset. The depth maps are not ignored. They are used as supervision for the depth estimator and as reference information for reconstruction evaluation. The final system then applies the learned depth knowledge to RGB-only inputs.
+
+The expected benefit over RGB-only \mvdp{} is geometric stability. \mvdp{} provides multi-view candidate geometry but may still predict wrong depth in sparse-view settings. The fine-tuned depth estimator provides a per-image geometric prior. When estimated depth is reliable, the correction module can move candidate points toward more plausible metric positions. When estimated depth is unreliable, the correction should be weakened or rejected. This motivates future work on confidence-aware depth correction.
+
+The main limitation is that monocular depth is still imperfect. Fine-tuning reduces domain mismatch, but it does not remove all ambiguity. The depth model may still fail on unusual layouts, transparent objects, reflective surfaces, and scenes whose scale distribution differs from the training data. Therefore, final claims should remain limited to the controlled sparse-view RGB-only setting and should not be presented as an official ScanNet or ScanNet++ benchmark unless the official protocol is implemented.
+
+% ------------------------------------------------------------------
+\section{Conclusion}
+This project studies sparse-view RGB-only 3D scene reconstruction from a small number of ordinary 2D images. The motivation is practical: most everyday images do not include measured depth, and requiring a depth sensor would reduce deployability. The project therefore uses measured RGB-D data for supervision and evaluation, but not as an inference-time input.
+
+The proposed pipeline combines \mvdp{} with a fine-tuned monocular depth estimator. \mvdp{} produces candidate multi-view geometry from sparse RGB views, while the depth estimator predicts pseudo-depth maps from the same RGB inputs. The estimated-depth correction module then refines candidate geometry to reduce wrong-depth errors and improve point-cloud quality.
+
+The report defines an evaluation framework for this setting. Depth quality is measured using monocular depth metrics, while 3D reconstruction quality is measured using point-cloud metrics such as accuracy, completeness, precision, recall, F-score, and Chamfer distance. The main comparisons are RGB-only \mvdp{}, direct estimated-depth backprojection, pretrained-depth correction, and fine-tuned-depth correction. The final fine-tuned method should only be selected if it improves reconstruction metrics while preserving RGB-only inference.
+
+Future work should complete the fine-tuned-depth reconstruction run, evaluate all available sparse-view groups, add confidence-aware correction, and test the method on more diverse real RGB image sets. The long-term goal is a deployable reconstruction system that can produce useful 3D scene geometry from only a few ordinary 2D images.
+
+% ------------------------------------------------------------------
+\newpage
+\begin{thebibliography}{99}
+\bibitem{mvdust3r_paper} Z. Tang, Y. Fan, D. Wang, H. Xu, R. Ranjan, A. Schwing, and Z. Yan, ``MV-DUSt3R+: Single-Stage Scene Reconstruction from Sparse Views in 2 Seconds,'' \textit{CVPR}, 2025. Available: \url{https://openaccess.thecvf.com/content/CVPR2025/papers/Tang_MV-DUSt3R_Single-Stage_Scene_Reconstruction_from_Sparse_Views_In_2_Seconds_CVPR_2025_paper.pdf}
+\bibitem{mvdust3r_project} Meta Reality Labs, ``MV-DUSt3R+ official implementation,'' GitHub. Available: \url{https://github.com/facebookresearch/mvdust3r}
+\bibitem{dust3r_paper} S. Wang, V. Leroy, Y. Cabon, B. Chidlovskii, and J. Revaud, ``DUSt3R: Geometric 3D Vision Made Easy,'' \textit{CVPR}, 2024. Available: \url{https://arxiv.org/abs/2312.14132}
+\bibitem{mast3r_paper} V. Leroy, Y. Cabon, and J. Revaud, ``Grounding Image Matching in 3D with MASt3R,'' 2024. Available: \url{https://arxiv.org/abs/2406.09756}
+\bibitem{depthanything_project} L. Yang et al., ``Depth Anything V2,'' \textit{NeurIPS}, 2024. Project page: \url{https://depth-anything-v2.github.io/}
+\bibitem{depthanything_metric} Depth Anything V2, ``Metric depth estimation README,'' GitHub. Available: \url{https://github.com/depthanything/depth-anything-v2/blob/main/metric_depth/README.md}
+\bibitem{scannet} A. Dai, A. X. Chang, M. Savva, M. Halber, T. Funkhouser, and M. Niessner, ``ScanNet: Richly-annotated 3D Reconstructions of Indoor Scenes,'' \textit{CVPR}, 2017. Dataset page: \url{https://www.scan-net.org/ScanNet/}
+\bibitem{rsa_depth} Z. Zeng et al., ``RSA: Resolving Scale Ambiguities in Monocular Depth Estimators through Language Descriptions,'' arXiv:2410.02924, 2024. Available: \url{https://arxiv.org/abs/2410.02924}
+\bibitem{mde_survey} C. Zhao, Q. Sun, C. Zhang, Y. Tang, and F. Qian, ``Monocular Depth Estimation Based On Deep Learning: An Overview,'' arXiv:2003.06620, 2020. Available: \url{https://arxiv.org/abs/2003.06620}
+\end{thebibliography}
+
+\end{document}
