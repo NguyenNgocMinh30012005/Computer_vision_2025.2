@@ -67,8 +67,9 @@
     \item Run 38: use the Run 37 \texttt{controlled\_best} checkpoint for
     the full validation/test scene set by default, evaluating every discovered
     sparse-view group while policy selection remains based on the train split.
-    \item Full-data evaluator robustness: non-finite proxy-GT rows from invalid
-    pose/depth frames are filtered before KD-tree metric construction.
+    \item Full-data evaluator robustness: non-finite proxy-GT and predicted
+    point rows from invalid pose/depth frames are filtered before KD-tree metric
+    construction.
     \item True source depth is excluded from Run 36/38 method inference and
     residual gating; it remains evaluator/proxy-GT data only.
     \item Boundary: RGB-only with respect to source depth, but still uses known

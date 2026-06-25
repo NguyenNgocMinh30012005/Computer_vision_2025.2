@@ -68,6 +68,63 @@ MAX_SCENES = parse_optional_positive_limit(MAX_SCENES_RAW)
 MAX_EVAL_SCENES = parse_optional_positive_limit(MAX_EVAL_SCENES_RAW)
 MAX_EVAL_GROUPS = parse_optional_positive_limit(MAX_EVAL_GROUPS_RAW)
 _ORIGINAL_BUILD_GT_CLOUD = base.build_gt_cloud
+_ORIGINAL_R36_COMPUTE_METRICS = r36.compute_metrics
+_ORIGINAL_R36_FAST_FSCORE = r36.fast_fscore
+
+
+def finite_point_rows(points, label, context=None):
+    points = np.asarray(points, dtype=np.float32)
+    if points.ndim != 2 or points.shape[1] != 3:
+        raise ValueError(f"{label} must have shape [N, 3], got {points.shape}")
+    finite = np.isfinite(points).all(axis=1)
+    removed = int(len(points) - int(finite.sum()))
+    if removed:
+        payload = {
+            "label": label,
+            "removed": removed,
+            "kept": int(finite.sum()),
+        }
+        if context is not None:
+            payload["context"] = context
+        print("Run 38 filtered non-finite points:", payload)
+    return points[finite]
+
+
+def empty_metric_result(num_pred, num_gt, threshold=0.05):
+    missing_distance = 1.0e9
+    return {
+        "accuracy": missing_distance,
+        "completeness": missing_distance,
+        "precision": 0.0,
+        "recall": 0.0,
+        "fscore": 0.0,
+        "chamfer": missing_distance,
+        "num_pred_points": int(num_pred),
+        "num_gt_points": int(num_gt),
+        "threshold_m": float(threshold),
+        "normalized_distance": missing_distance,
+        "dac_at_0_2_normalized": 0.0,
+        "normalized_dac_threshold": 0.2,
+    }
+
+
+def compute_metrics_finite(points, gt):
+    pred = finite_point_rows(points, "metric_pred")
+    gt = finite_point_rows(gt, "metric_gt")
+    if len(pred) == 0 or len(gt) == 0:
+        return empty_metric_result(len(pred), len(gt))
+    return _ORIGINAL_R36_COMPUTE_METRICS(pred, gt)
+
+
+def fast_fscore_finite(points, record, threshold=0.05):
+    pred = finite_point_rows(
+        points,
+        "fast_fscore_pred",
+        record.get("group", {}).get("group_key"),
+    )
+    if len(pred) == 0 or len(record["gt"]) == 0:
+        return 0.0
+    return _ORIGINAL_R36_FAST_FSCORE(pred, record, threshold=threshold)
 
 
 def build_finite_gt_cloud(view_files, *args, **kwargs):
@@ -101,6 +158,8 @@ def build_finite_gt_cloud(view_files, *args, **kwargs):
 
 
 base.build_gt_cloud = build_finite_gt_cloud
+r36.compute_metrics = compute_metrics_finite
+r36.fast_fscore = fast_fscore_finite
 
 
 def install_depth_dependencies():
