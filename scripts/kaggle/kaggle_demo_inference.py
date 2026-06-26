@@ -608,32 +608,20 @@ def find_images_root():
 
 
 def find_run37_checkpoint(variant="controlled_best"):
-    if DEMO_DEPTH_CKPT:
-        ckpt_path = Path(DEMO_DEPTH_CKPT)
-        if ckpt_path.exists():
-            return ckpt_path
-        print(f"Warning: Provided DEMO_DEPTH_CKPT {ckpt_path} not found. Falling back to auto-search.")
-
-    # O(1) Shallow search to guarantee NO hanging on Kaggle filesystems.
-    input_dir = Path("/kaggle/input")
-    if input_dir.exists():
-        for dataset_dir in input_dir.iterdir():
-            if not dataset_dir.is_dir():
-                continue
-            
-            # Direct path check 1 (if mounted directly)
-            p1 = dataset_dir / "checkpoints" / variant / "model.safetensors"
-            if p1.exists(): return p1.parent
-            
-            # Direct path check 2 (if exported in a subfolder)
-            p2 = dataset_dir / "run_37_depth_estimator_full_finetune" / "checkpoints" / variant / "model.safetensors"
-            if p2.exists(): return p2.parent
-
-    raise FileNotFoundError(
-        f"Run 37 checkpoint '{variant}' not found. "
-        "Please mount your Run 37 output dataset "
-        "or explicitly set the DEMO_DEPTH_CKPT environment variable."
-    )
+    if not DEMO_DEPTH_CKPT:
+        raise ValueError(
+            "ERROR: You must provide the exact path to the depth model checkpoint! "
+            "Please set os.environ['DEMO_DEPTH_CKPT'] = '/kaggle/input/your-dataset/checkpoints/controlled_best'"
+        )
+        
+    ckpt_path = Path(DEMO_DEPTH_CKPT)
+    if not ckpt_path.exists():
+        raise FileNotFoundError(
+            f"ERROR: The path you provided in DEMO_DEPTH_CKPT does not exist: {ckpt_path}\n"
+            "Double-check your Kaggle /kaggle/input directory!"
+        )
+        
+    return ckpt_path
 
 
 def sample_colors_for_candidates(view_files, xs, ys, view_ids,
