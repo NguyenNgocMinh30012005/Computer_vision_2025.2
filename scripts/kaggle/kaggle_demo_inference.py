@@ -600,22 +600,16 @@ def find_images_root():
 
 def find_run37_checkpoint(variant="controlled_best"):
     matches = sorted(
-        Path("/kaggle/input").rglob(
-            "run_37_depth_estimator_full_finetune/run_config.json"
-        )
+        Path("/kaggle/input").rglob(f"checkpoints/{variant}/model.safetensors")
     )
     if not matches:
         raise FileNotFoundError(
-            "Run 37 output not found. Mount "
-            "nguynnminh/mv-dust3r-run-37-depth-full-fine-tune "
+            f"Run 37 checkpoint '{variant}' not found. "
+            "Please mount your Run 37 output dataset "
+            "(e.g., mv-dust3r-run-37-depth-full-fine-tune) "
             "as a Kaggle kernel source."
         )
-    run37_dir = matches[0].parent
-    checkpoint_dir = run37_dir / "checkpoints" / variant
-    if not (checkpoint_dir / "model.safetensors").exists():
-        raise FileNotFoundError(
-            f"Run 37 checkpoint incomplete: {checkpoint_dir}"
-        )
+    checkpoint_dir = matches[0].parent
     return checkpoint_dir
 
 
