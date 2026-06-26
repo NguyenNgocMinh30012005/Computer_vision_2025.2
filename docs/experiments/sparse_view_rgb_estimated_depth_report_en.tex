@@ -85,21 +85,21 @@
 \section{Introduction}
 Three-dimensional scene reconstruction is a fundamental problem in computer vision. It supports applications such as augmented reality, robotics, digital twins, indoor mapping, visual localization, and 3D content creation. Classical reconstruction pipelines usually require many images, calibrated cameras, reliable pose estimation, feature matching, structure-from-motion, and multi-view stereo. Although these systems can produce high-quality geometry, they are difficult to deploy when only a small number of ordinary RGB images are available.
 
-In practical settings, the input is often sparse. A user may only have three to five images of an indoor scene, captured by a standard phone camera. These images usually contain RGB appearance only. They do not provide measured depth maps, camera intrinsics, or camera poses. If a reconstruction system requires depth at inference time, it becomes tied to RGB-D cameras, LiDAR devices, or specialized scanning setups. This requirement is not compatible with most everyday image collections.
+In practical settings, the input is often sparse. A user may only have three to five images of an indoor scene, captured by a standard phone camera. These images usually contain RGB appearance only. They do not provide measured depth maps, camera intrinsics, or camera poses. 
 
-Recent feed-forward reconstruction models such as \mvdp{} reduce this dependency by reconstructing 3D scenes from multiple unposed RGB views. \mvdp{} is designed for sparse multi-view RGB input and directly predicts pixel-aligned 3D pointmaps without requiring camera poses or depth maps during inference. The official project describes \mvdp{} as a model that reconstructs large scenes from multiple unposed RGB views, and the CVPR paper introduces cross-reference-view blocks to improve robustness with respect to reference-view selection \cite{mvdust3r_project,mvdust3r_paper}. This makes \mvdp{} a suitable backbone for sparse-view RGB-only reconstruction.
+Recent feed-forward reconstruction models such as \mvdp{} reduce this dependency by reconstructing 3D scenes from multiple unposed RGB views. \mvdp{} is designed for sparse multi-view RGB input and directly predicts pixel-aligned 3D pointmaps without requiring camera poses or depth maps during inference. The official project describes \mvdp{} as a model that reconstructs large scenes from multiple unposed RGB views \cite{mvdust3r_project,mvdust3r_paper}. This makes \mvdp{} a highly capable backbone for sparse-view RGB-only reconstruction.
 
-However, RGB-only reconstruction remains difficult. Appearance alone is often insufficient for metric depth recovery in low-texture areas, occluded regions, repeated structures, and low-overlap views. Monocular depth estimation is also inherently ambiguous because a single image loses metric scale under perspective projection. Therefore, an RGB-only reconstruction backbone may generate visually plausible candidate points that are still geometrically misaligned.
+However, relying strictly on RGB appearance for full 3D geometry remains difficult. Appearance alone is often insufficient for metric depth recovery in low-texture areas, occluded regions, repeated structures, and low-overlap views. Monocular depth estimation is also inherently ambiguous because a single image loses metric scale under perspective projection. Therefore, while an RGB-only backbone can generate visually plausible structures, the resulting candidate points are often geometrically misaligned, distorted, or completely folded in ambiguous regions.
 
-This project addresses the problem by combining RGB-only multi-view reconstruction with estimated depth. The dataset may contain RGB-D frames, but measured depth is not used as an inference-time input. Instead, measured depth is used to fine-tune a monocular depth estimator. At deployment time, the system receives only sparse RGB views. The fine-tuned depth estimator predicts pseudo-depth maps from these RGB images, and the estimated depths are then used to correct the candidate point cloud produced by \mvdp{}.
+To address these severe geometric distortions, this project introduces a novel enhancement pipeline that explicitly extracts and combines rigid camera poses and estimated depth. Instead of treating \mvdp{} as a black-box point cloud generator, our method extracts the robust internal camera poses and coordinate system implicitly solved by the \mvdp{} multi-view decoder. We then combine these highly accurate rigid poses with auxiliary metric depth maps---produced by a fine-tuned monocular depth estimator---to perform a mathematically rigorous "source-ray correction."
 
-The main motivation is practical deployment. The project aims to use RGB-D training data while preserving an RGB-only inference contract. In other words, depth maps in the dataset teach geometric priors to the model, while the final system does not require the user to provide measured depth.
+The main motivation is practical deployment. The system requires only sparse RGB views at deployment time, satisfying the RGB-only contract. The extracted \mvdp{} poses provide structural rigidity, while the fine-tuned depth estimator provides per-pixel geometric priors that correct occlusions and scale ambiguities.
 
 The main contributions of this report are:
 \begin{enumerate}[leftmargin=1.2cm]
-    \item It defines a sparse-view RGB-only reconstruction setting in which measured depth is used for training and evaluation, but not as an inference-time input.
-    \item It proposes a pipeline that combines \mvdp{} with a fine-tuned monocular depth estimator.
-    \item It describes an estimated-depth correction module that refines candidate geometry produced by the multi-view backbone.
+    \item It proposes a novel pipeline that extracts internal camera poses from the RGB-only \mvdp{} backbone and combines them with a fine-tuned monocular depth estimator.
+    \item It describes a ray-based estimated-depth correction module that rigorously refines the candidate geometry and resolves sparse-view structural distortions.
+    \item It defines a sparse-view RGB-only reconstruction setting in which measured depth is used only for training and evaluation.
     \item It reports both depth-estimation quality and 3D point-cloud reconstruction metrics using the project experiment history.
 \end{enumerate}
 
@@ -143,6 +143,13 @@ In this project, \mvdp{} is used only as a frozen or pretrained reconstruction b
     \includegraphics[width=0.95\linewidth]{Figure1.png}
     \caption{High-level \mvdp{} sparse-view reconstruction architecture used as the RGB-only backbone.}
     \label{fig:mvd_arch}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{mv_overview.png}
+    \caption{Detailed overview of the \mvdp{} cross-view reasoning process.}
+    \label{fig:mvd_overview}
 \end{figure}
 
 \subsection{Depth Anything V2 Metric Indoor}
@@ -258,16 +265,63 @@ Here, \(\tau\) is the correction threshold and \(\alpha\) is the correction weig
 
 % ------------------------------------------------------------------
 \section{Dataset and Experimental Setting}
-The experiments use a controlled ScanNet-style RGB-D dataset derived from Kaggle runs. The full discovered dataset contains more than the initial 30-scene subset. Earlier runs used a 30-scene controlled subset to validate the pipeline. Later full-data runs remove the scene cap for discovery and evaluation when the corresponding limit is set to unlimited.
 
-The report must therefore distinguish between three notions:
-\begin{itemize}[leftmargin=1.2cm]
-    \item \textbf{All-scene discovery:} the script discovers all available scenes in the Kaggle dataset.
-    \item \textbf{All-group metric evaluation:} all discovered sparse-view groups are evaluated when no group cap is applied.
-    \item \textbf{Official benchmark:} the project does not claim an official full ScanNet or ScanNet++ benchmark unless the official benchmark protocol is implemented.
-\end{itemize}
+\subsection{Dataset Overview and Inputs}
+The experiments are conducted using a controlled indoor dataset derived from ScanNet \cite{scannet}. ScanNet is a large-scale, richly-annotated RGB-D video dataset containing 2.5 million views across more than 1,500 indoor scans. The dataset was gathered using a mobile setup consisting of an iPad Air 2 paired with an Occipital Structure Sensor, which simultaneously captured both RGB imagery and active depth maps at 30 frames per second. 
 
-The sparse-view setting uses groups of 3, 4, or 5 views. The report uses measured depth for fine-tuning and reference evaluation, but the proposed deployment setting uses only RGB images and estimated depth.
+The collected scans encompass a wide variety of typical indoor environments—such as offices, living rooms, bedrooms, and bathrooms—presenting significant structural complexities, including heavy furniture occlusion, textureless walls, and reflective surfaces. For each scene, the dataset provides aligned RGB and depth frames, globally optimized 6-DoF camera poses, and a dense reconstructed 3D mesh.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{scannetpp_overview_crop.png}
+    \caption{Overview of the dataset environment showing the diversity of indoor scenes and the dense 3D ground truth structure.}
+    \label{fig:scannet_overview}
+\end{figure}
+
+To simulate a realistic sparse-view deployment scenario, our input data is strictly limited to small groups of 3 to 5 RGB views sampled from these scenes. Figure \ref{fig:dataset_inputs} illustrates an example of the raw sparse RGB images provided to the system. Importantly, no external camera poses or active depth sensor measurements are provided to the pipeline during the inference phase.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.24\textwidth}
+        \includegraphics[width=\textwidth]{dataset_1.png}
+        \caption{View 1}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.24\textwidth}
+        \includegraphics[width=\textwidth]{dataset_2.png}
+        \caption{View 2}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.24\textwidth}
+        \includegraphics[width=\textwidth]{dataset_3.png}
+        \caption{View 3}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.24\textwidth}
+        \includegraphics[width=\textwidth]{dataset_4.png}
+        \caption{View 4}
+    \end{subfigure}
+    \caption{Example of the sparse RGB input images used for 3D reconstruction. The system must infer multi-view geometry and depth solely from these limited appearance viewpoints.}
+    \label{fig:dataset_inputs}
+\end{figure}
+
+For quantitative evaluation and depth estimator fine-tuning, the dataset also includes aligned RGB-D ground truth information. Figure \ref{fig:3d_gt} displays an example of the measured 3D ground truth structure, which is used strictly as an upper-bound reference to compute Chamfer distance and F-score reconstruction metrics.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\linewidth]{3D_GT.png}
+    \caption{Example of a 3D Ground Truth point cloud used for quantitative metric evaluation.}
+    \label{fig:3d_gt}
+\end{figure}
+
+\subsection{Experimental Setting}
+The experiments are designed to strictly evaluate the sparse-view RGB-only deployment scenario. The primary 3D reconstruction backbone is \mvdp{}, which receives groups of \(N = 3\) to \(5\) unposed RGB images to generate initial multi-view candidate geometry.
+
+For depth estimation, the \da{} model is employed. To improve its reliability on complex indoor structures and resolve metric scale ambiguity, the model is fine-tuned on the measured RGB-D data from the training split. During inference, this fine-tuned depth estimator processes the sparse RGB views independently to generate metric depth priors.
+
+The proposed correction module then combines the rigid camera poses extracted from the \mvdp{} output with the fine-tuned metric depth anchors. A geometric correction algorithm is applied to pull structurally distorted candidate points onto the physical surfaces defined by the metric depth rays.
+
+All inferences and fine-tuning processes are executed in a controlled Kaggle notebook environment equipped with NVIDIA GPUs. The system ultimately outputs reconstructed 3D point clouds mapped to the correct global coordinate frame for downstream 3D visualization and quantitative evaluation.
 
 % ------------------------------------------------------------------
 \section{Evaluation Metrics}

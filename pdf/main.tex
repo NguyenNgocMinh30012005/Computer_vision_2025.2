@@ -10,7 +10,8 @@
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{tikz}
-\usetikzlibrary{arrows.meta,positioning}
+\usepackage{amsmath,amssymb}
+\usepackage{subcaption}
 
 \definecolor{accent}{RGB}{14,88,109}
 \definecolor{soft}{RGB}{236,244,247}
@@ -20,25 +21,151 @@
 \setbeamercolor{structure}{fg=accent}
 \setbeamercolor{block title}{fg=white,bg=accent}
 \setbeamercolor{block body}{bg=soft}
-\graphicspath{{assets/figures/}}
-\newcommand{\figsource}[1]{{\raggedright\tiny Source: #1\par}}
 
-\title[Sparse-View RGB + Estimated-Depth 3D Reconstruction]{Sparse-View RGB + Estimated-Depth 3D Reconstruction}
-\subtitle{Run 30 RGB-D Reference and Run 37 Estimated-Depth Target}
+% Point graphicspath directly to the report's figures folder
+\graphicspath{{../docs/experiments/figures/}}
+
+\title[Sparse-View RGB + Estimated Depth]{Sparse-View RGB 3D Scene Reconstruction\\with Fine-Tuned Estimated-Depth Correction}
 \author[CV Team]{Nguyễn Ngọc Minh, Kiều Sơn Tùng, Đặng Thịnh Tường Minh}
-\institute[CV 2025.2]{Computer Vision 2025.2}
-\date{\today}
+\institute[IT4343E]{IT4343E - Computer Vision}
+\date{June 2026}
 
 \begin{document}
 
-\input{sections/01_title_team.tex}
-\input{sections/02_motivation_problem.tex}
-\input{sections/03_objectives.tex}
-\input{sections/03b_proposed_contributions.tex}
-\input{sections/04_method_comparison.tex}
-\input{sections/05_pipeline.tex}
-\input{sections/06_datasets_evaluation.tex}
-\input{sections/07_deliverables.tex}
-\input{sections/08_references.tex}
+\begin{frame}
+    \titlepage
+\end{frame}
+
+\begin{frame}{Table of Contents}
+    \tableofcontents
+\end{frame}
+
+\section{Motivation and Background}
+
+\begin{frame}{Motivation: Practical 3D Reconstruction}
+    \begin{itemize}
+        \item \textbf{Goal:} Reconstruct 3D scene geometry from a small number of ordinary 2D images.
+        \item \textbf{The Challenge:} In practical settings, users only have sparse RGB views (e.g., 3-5 photos from a phone) without measured depth or camera poses.
+        \item \textbf{Existing Solutions:} Classical pipelines require dense images and careful calibration. Feed-forward models like MV-DUSt3R+ work on sparse RGB but lack metric scale and geometric stability.
+    \end{itemize}
+    \vspace{0.5cm}
+    \begin{block}{The Problem with RGB-only Models}
+        Relying strictly on RGB appearance for 3D geometry causes severe distortions (folding) and absolute scale ambiguity in untextured or highly reflective regions.
+    \end{block}
+\end{frame}
+
+\section{Proposed Enhancement Pipeline}
+
+\begin{frame}{The Proposed Pipeline}
+    We propose an enhancement pipeline combining \textbf{MV-DUSt3R+} with a \textbf{Fine-Tuned Monocular Depth Estimator}.
+    \vspace{0.5cm}
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \textbf{MV-DUSt3R+ Role}
+            \begin{itemize}
+                \item Takes sparse RGB inputs.
+                \item Outputs initial candidate multi-view geometry.
+                \item Implicitly provides robust rigid camera poses and intrinsics.
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Depth Estimator Role}
+            \begin{itemize}
+                \item Fine-tuned DepthAnything V2.
+                \item Predicts metric depth maps from RGB.
+                \item Acts as a "geometric mold" to enforce real-world scale and surface rigidity.
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Geometric Correction Algorithm}
+    We extract the implicit camera pose $T_i$ and intrinsic matrix $K_i$ from MV-DUSt3R+. We then project the estimated depth $\hat{D}_i$ into a 3D anchor:
+    \begin{equation*}
+        X_{\mathrm{depth}}^{\mathrm{world}}(u,v) = T_i \left( \hat{D}_i(u,v)K_i^{-1}\begin{bmatrix}u\\v\\1\end{bmatrix} \right)
+    \end{equation*}
+    \vspace{0.2cm}
+    We measure the residual against the MV-DUSt3R+ candidate $X_{\mathrm{mv}}(u,v)$:
+    \begin{equation*}
+        r(u,v) = \| X_{\mathrm{mv}}(u,v) - X_{\mathrm{depth}}^{\mathrm{world}}(u,v) \|_2
+    \end{equation*}
+    \vspace{0.2cm}
+    If the candidate is highly distorted ($r \geq \tau$), we correct it via alpha-blending:
+    \begin{equation*}
+        X_{\mathrm{corr}} = (1-\alpha)X_{\mathrm{mv}} + \alpha X_{\mathrm{depth}}^{\mathrm{world}}
+    \end{equation*}
+\end{frame}
+
+\section{Dataset and Experimental Setting}
+
+\begin{frame}{Dataset: ScanNet}
+    \begin{itemize}
+        \item \textbf{Source:} Derived from ScanNet, a large-scale RGB-D dataset captured with an iPad Air 2 and Occipital Structure Sensor.
+        \item \textbf{Challenges:} Typical indoor scenes (offices, bedrooms, bathrooms) presenting heavy furniture occlusion and reflective surfaces.
+        \item \textbf{Ground Truth:} Provides aligned RGB-D frames, globally optimized 6-DoF camera poses, and dense 3D meshes for metric evaluation.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Sparse-View Inputs (3-5 Images)}
+    To simulate a deployment scenario, the system must infer geometry solely from sparse appearance viewpoints without any active depth sensors.
+    \vspace{0.5cm}
+    \begin{figure}
+        \centering
+        \begin{subfigure}[b]{0.24\textwidth}
+            \includegraphics[width=\textwidth]{dataset_1.png}
+            \caption*{View 1}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.24\textwidth}
+            \includegraphics[width=\textwidth]{dataset_2.png}
+            \caption*{View 2}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.24\textwidth}
+            \includegraphics[width=\textwidth]{dataset_3.png}
+            \caption*{View 3}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.24\textwidth}
+            \includegraphics[width=\textwidth]{dataset_4.png}
+            \caption*{View 4}
+        \end{subfigure}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Metric Evaluation and Ground Truth}
+    \begin{columns}
+        \begin{column}{0.4\textwidth}
+            \begin{figure}
+                \centering
+                \includegraphics[width=\textwidth]{3D_GT.png}
+                \caption{Ground Truth 3D Structure}
+            \end{figure}
+        \end{column}
+        \begin{column}{0.6\textwidth}
+            \textbf{Evaluation Metrics}
+            \begin{itemize}
+                \item \textbf{Depth Quality:} AbsRel, MAE, RMSE, $\delta_1$ accuracy.
+                \item \textbf{Reconstruction Quality:} Chamfer Distance, Accuracy, Completeness, F-score.
+            \end{itemize}
+            \vspace{0.5cm}
+            \textit{Note: Our deployment setting remains strictly RGB-only at inference time. The measured Ground Truth is used strictly as an upper-bound reference.}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\section{Conclusion}
+
+\begin{frame}{Conclusion}
+    \begin{itemize}
+        \item \textbf{Deployability:} Reconstructs metric 3D scenes from a few standard photos, avoiding the need for specialized depth sensors.
+        \item \textbf{Geometric Stability:} The fine-tuned depth estimator successfully acts as a geometric mold to fix "folded" walls and floating artifacts inherent to pure RGB-matching models.
+        \item \textbf{Absolute Scale:} Naturally resolves the scale ambiguity of MV-DUSt3R+, producing outputs in real-world physical meters suitable for downstream robotics and AR tasks.
+    \end{itemize}
+    \vspace{0.5cm}
+    \begin{center}
+        \Large \textbf{Thank You!}
+    \end{center}
+\end{frame}
 
 \end{document}
