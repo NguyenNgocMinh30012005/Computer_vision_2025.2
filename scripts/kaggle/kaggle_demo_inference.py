@@ -40,6 +40,7 @@ DEMO_FRAMES = os.environ.get("DEMO_FRAMES", "")
 DEMO_TAU = float(os.environ.get("DEMO_TAU", "0.30"))
 DEMO_ALPHA = float(os.environ.get("DEMO_ALPHA", "1.0"))
 DEMO_MAX_POINTS = int(os.environ.get("DEMO_MAX_POINTS", "50000"))
+DEMO_DEPTH_CKPT = os.environ.get("DEMO_DEPTH_CKPT", "")
 SEED = 4242
 IMAGE_SIZE = 224
 
@@ -599,6 +600,12 @@ def find_images_root():
 
 
 def find_run37_checkpoint(variant="controlled_best"):
+    if DEMO_DEPTH_CKPT:
+        ckpt_path = Path(DEMO_DEPTH_CKPT)
+        if ckpt_path.exists():
+            return ckpt_path
+        print(f"Warning: Provided DEMO_DEPTH_CKPT {ckpt_path} not found. Falling back to auto-search.")
+
     matches = sorted(
         Path("/kaggle/input").rglob(f"checkpoints/{variant}/model.safetensors")
     )
