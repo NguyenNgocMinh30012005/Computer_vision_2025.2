@@ -1,29 +1,23 @@
 """
-Demo Inference Script — Sparse-View RGB 3D Reconstruction
-=========================================================
+Demo Inference Script — Sparse-View RGB 3D Reconstruction (Pose-Free)
+=====================================================================
 
-Produces four visual outputs from user-supplied ScanNet RGB images:
+Produces four visual outputs from user-supplied RGB images:
 
   1. mvdust3r_only.glb        — Raw MV-DUSt3R+ candidate point cloud
   2. depth_backprojection.glb — Direct backprojection from fine-tuned depth
   3. corrected_final.glb      — MV-DUSt3R+ corrected by estimated depth (Ours)
   4. depth_maps/*.png         — Colorized predicted depth for each input view
 
+This version uses MV-DUSt3R+'s internally estimated camera poses and 
+intrinsics, making it completely "pose-free" and capable of running on 
+custom images without ground-truth camera data.
+
 Requirements
 ------------
 - Kaggle T4 x2 GPU environment
-- ScanNet posed images dataset mounted
+- Directory of JPG images mounted (default: scannet-data)
 - Run 37 fine-tuned depth checkpoint mounted
-
-Environment variables
----------------------
-  DEMO_SCENE        Scene directory name (default: scene0000_00)
-  DEMO_NUM_VIEWS    Number of views to select (default: 5)
-  DEMO_FRAMES       Comma-separated frame basenames to use instead of
-                    automatic selection (e.g. "00000.jpg,00050.jpg,00100.jpg")
-  DEMO_TAU          Correction threshold in meters (default: 0.30)
-  DEMO_ALPHA        Correction blending weight (default: 1.0)
-  DEMO_MAX_POINTS   Max points per output cloud (default: 50000)
 """
 
 import json
@@ -32,7 +26,6 @@ import random
 import subprocess
 import sys
 import time
-from collections import OrderedDict
 from pathlib import Path
 
 import numpy as np
@@ -87,7 +80,7 @@ def install_depth_deps():
 
 
 # ---------------------------------------------------------------------------
-# MV-DUSt3R+ backbone (reuses kaggle_run1_run2_eval_baseline.py patterns)
+# MV-DUSt3R+ backbone
 # ---------------------------------------------------------------------------
 
 import builtins
@@ -95,7 +88,6 @@ import types
 
 import torch
 from PIL import Image
-from scipy.spatial import cKDTree
 
 REPO_URL = "https://github.com/facebookresearch/mvdust3r.git"
 
@@ -215,8 +207,7 @@ def load_mvdust3r(root, ckpt_path):
 
 
 def run_mvdust3r_inference(model, root, view_files, out_dir):
-    """Run MV-DUSt3R+ and return the raw output dict, a GLB path, and the
-    candidate arrays (points, colors, conf, pixel coords, view ids)."""
+    """Run MV-DUSt3R+ and return the raw output dict, a GLB path, and runtime."""
     from demo import get_reconstructed_scene
 
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -239,8 +230,66 @@ def run_mvdust3r_inference(model, root, view_files, out_dir):
 
 
 # ---------------------------------------------------------------------------
-# Candidate extraction from MV-DUSt3R+ output
+# Pose and Intrinsics Extraction from MV-DUSt3R+ output
 # ---------------------------------------------------------------------------
+
+def extract_poses_and_intrinsics(output):
+    """Extract Camera-to-World poses and intrinsics from MV-DUSt3R+ pointmaps."""
+    from dust3r.losses import estimate_focal_knowing_depth, calibrate_camera_pnpransac
+    
+    with torch.no_grad():
+        _, h, w = output['pred1']['rgb'].shape[0:3]
+        pts3d = [output['pred1']['pts3d'][0]] + [x['pts3d_in_other_view'][0] for x in output['pred2s']]
+        conf = torch.stack([output['pred1']['conf'][0]] + [x['conf'][0] for x in output['pred2s']], 0)
+        
+        # Estimate focal length from the first view
+        conf_first = conf[0].reshape(-1)
+        conf_sorted = conf_first.sort()[0]
+        conf_thres = conf_sorted[int(conf_first.shape[0] * 0.03)]
+        valid_first = (conf_first >= conf_thres).reshape(h, w)
+        
+        focals = estimate_focal_knowing_depth(pts3d[0][None].cuda(), valid_first[None].cuda()).cpu().item()
+        
+        intrinsics = torch.eye(3,)
+        intrinsics[0, 0] = focals
+        intrinsics[1, 1] = focals
+        intrinsics[0, 2] = w / 2
+        intrinsics[1, 2] = h / 2
+        intrinsics = intrinsics.cuda()
+        
+        y_coords, x_coords = torch.meshgrid(torch.arange(h), torch.arange(w), indexing='ij')
+        pixel_coords = torch.stack([x_coords, y_coords], dim=-1).float().cuda()
+        
+        # Calibrate poses using PnP
+        c2ws = []
+        conf_thres_global = conf.reshape(-1).sort()[0][int(conf.numel() * 0.03)]
+        msk = conf >= conf_thres_global
+        
+        for (pr_pt, valid) in zip(pts3d, msk):
+            c2ws_i = calibrate_camera_pnpransac(
+                pr_pt.cuda().flatten(0,1)[None], 
+                pixel_coords.flatten(0,1)[None], 
+                valid.cuda().flatten(0,1)[None], 
+                intrinsics[None]
+            )
+            c2ws.append(c2ws_i[0])
+            
+        cams2world = torch.stack(c2ws, dim=0).cpu().numpy()
+        intrinsics_np = intrinsics.cpu().numpy()
+        
+    return cams2world, intrinsics_np, (h, w)
+
+
+def scale_intrinsics(intrinsics_matrix, mvd_shape, target_shape):
+    """Scale intrinsics matrix from MV-DUSt3R resolution to target resolution."""
+    mvd_h, mvd_w = mvd_shape
+    target_h, target_w = target_shape
+    
+    fx = intrinsics_matrix[0, 0] * (target_w / mvd_w)
+    fy = intrinsics_matrix[1, 1] * (target_h / mvd_h)
+    cx = intrinsics_matrix[0, 2] * (target_w / mvd_w)
+    cy = intrinsics_matrix[1, 2] * (target_h / mvd_h)
+    return fx, fy, cx, cy
 
 
 def extract_candidates(output):
@@ -255,7 +304,6 @@ def extract_candidates(output):
 
     num_views, height, width, _ = pts.shape
     all_points = []
-    all_colors = []
     all_xs = []
     all_ys = []
     all_view_ids = []
@@ -283,35 +331,53 @@ def extract_candidates(output):
 
 
 # ---------------------------------------------------------------------------
-# Camera geometry helpers
+# Scale Alignment (Arbitrary MV-DUSt3R+ space -> Metric Depth space)
 # ---------------------------------------------------------------------------
 
-
-def parse_pose(path):
-    values = [float(x) for x in Path(path).read_text().split()]
-    if len(values) == 16:
-        return np.array(values, dtype=np.float32).reshape(4, 4)
-    raise ValueError(f"Unexpected pose format in {path}: {len(values)} values")
-
-
-def intrinsics(depth_shape):
-    height, width = depth_shape
-    return (
-        577.870605 * (width / 640.0),
-        577.870605 * (height / 480.0),
-        319.5 * (width / 640.0),
-        239.5 * (height / 480.0),
-    )
+def compute_scale_alignment(mvd_points, metric_depths, xs, ys, view_ids, 
+                            cand_h, cand_w, poses, intrinsics_matrix, min_depth_m=0.10):
+    """Compute scale scalar to convert MV-DUSt3R poses to metric scale."""
+    scales = []
+    
+    for view_index, depth in enumerate(metric_depths):
+        indices = np.where(view_ids == view_index)[0]
+        if not len(indices):
+            continue
+            
+        pts = mvd_points[indices]
+        c2w = poses[view_index]
+        w2c = np.linalg.inv(c2w)
+        
+        # Transform MVD points into the LOCAL camera system to get their local Z
+        pts_hom = np.column_stack([pts, np.ones(len(pts))])
+        pts_cam = (w2c @ pts_hom.T).T[:, :3]
+        z_mvd = pts_cam[:, 2]
+        
+        # Get the corresponding metric depth for these pixels
+        depth = np.asarray(depth, dtype=np.float32)
+        height, width = depth.shape
+        px = np.clip(np.rint(xs[indices] / max(cand_w - 1, 1) * max(width - 1, 1)).astype(np.int32), 0, width - 1)
+        py = np.clip(np.rint(ys[indices] / max(cand_h - 1, 1) * max(height - 1, 1)).astype(np.int32), 0, height - 1)
+        z_metric = depth[py, px]
+        
+        valid = (z_mvd > 0) & (z_metric > min_depth_m)
+        if valid.sum() > 100:
+            scales.extend((z_metric[valid] / z_mvd[valid]).tolist())
+            
+    if not scales:
+        print("Warning: Could not compute scale alignment. Using 1.0.")
+        return 1.0
+        
+    global_scale = float(np.median(scales))
+    print(f"Computed Scale Factor (Metric / MVD): {global_scale:.4f}")
+    return global_scale
 
 
 # ---------------------------------------------------------------------------
 # Depth estimation
 # ---------------------------------------------------------------------------
 
-
 class DepthPredictor:
-    """Loads the Run 37 fine-tuned Depth Anything V2 checkpoint."""
-
     def __init__(self, checkpoint_dir, PILImage, AutoImageProcessor,
                  AutoModelForDepthEstimation):
         self.checkpoint_dir = Path(checkpoint_dir)
@@ -326,7 +392,6 @@ class DepthPredictor:
         self.model.eval()
 
     def predict(self, rgb_path):
-        """Predict metric depth from a single RGB image. Returns (H, W) float32."""
         image = self.PILImage.open(rgb_path).convert("RGB")
         inputs = self.processor(images=image, return_tensors="pt")
         pixel_values = inputs["pixel_values"].to(self.device, non_blocking=True)
@@ -336,7 +401,6 @@ class DepthPredictor:
         return depth
 
     def predict_and_colorize(self, rgb_path, output_path):
-        """Predict depth, save colorized PNG, and return raw depth array."""
         depth = self.predict(rgb_path)
         colorized = colorize_depth_turbo(depth)
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -345,7 +409,6 @@ class DepthPredictor:
 
 
 def colorize_depth_turbo(depth, min_depth=0.10):
-    """Colorize a depth map using a turbo-like gradient for visual appeal."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.cm as cm
@@ -357,23 +420,19 @@ def colorize_depth_turbo(depth, min_depth=0.10):
 
     lo, hi = np.percentile(depth[valid], [2, 98])
     normalized = np.clip((depth - lo) / max(hi - lo, 1e-6), 0.0, 1.0)
-    # Invert so closer = warmer colors
     normalized = 1.0 - normalized
-    colored = cm.turbo(normalized)[:, :, :3]  # drop alpha
+    colored = cm.turbo(normalized)[:, :, :3]
     colored = (colored * 255).astype(np.uint8)
-    # Mark invalid pixels as black
     colored[~valid] = 0
     return Image.fromarray(colored)
 
 
 # ---------------------------------------------------------------------------
-# Depth backprojection (direct depth-only point cloud)
+# Depth backprojection
 # ---------------------------------------------------------------------------
 
-
-def backproject_depth_cloud(view_files, depth_maps, stride=4, min_depth_m=0.10):
-    """Backproject estimated depth maps into 3D using known poses."""
-    poses = [parse_pose(str(p).replace(".jpg", ".txt")) for p in view_files]
+def backproject_depth_cloud(view_files, depth_maps, poses, intrinsics_matrix, 
+                            mvd_shape, stride=4, min_depth_m=0.10):
     first_pose_inv = np.linalg.inv(poses[0]).astype(np.float32)
     clouds = []
     colors_list = []
@@ -386,10 +445,13 @@ def backproject_depth_cloud(view_files, depth_maps, stride=4, min_depth_m=0.10):
         valid = np.isfinite(z) & (z > min_depth_m)
         if not valid.any():
             continue
+            
         x_px = xx[valid].astype(np.float32)
         y_px = yy[valid].astype(np.float32)
         z_val = z[valid]
-        fx, fy, cx, cy = intrinsics(depth.shape)
+        
+        fx, fy, cx, cy = scale_intrinsics(intrinsics_matrix, mvd_shape, depth.shape)
+        
         camera = np.column_stack([
             (x_px - cx) / fx * z_val,
             (y_px - cy) / fy * z_val,
@@ -401,7 +463,6 @@ def backproject_depth_cloud(view_files, depth_maps, stride=4, min_depth_m=0.10):
         finite = np.isfinite(first_camera).all(axis=1)
         clouds.append(first_camera[finite].astype(np.float32))
 
-        # Sample colors from the RGB image
         rgb = np.asarray(Image.open(view_file).convert("RGB").resize(
             (width, height), Image.Resampling.BILINEAR
         ), dtype=np.uint8)
@@ -414,18 +475,11 @@ def backproject_depth_cloud(view_files, depth_maps, stride=4, min_depth_m=0.10):
 
 
 # ---------------------------------------------------------------------------
-# Source-ray correction with estimated depth
+# Source-ray correction
 # ---------------------------------------------------------------------------
 
-
-def sample_depth_targets(view_files, depth_maps, xs, ys, view_ids,
-                         candidate_height, candidate_width, min_depth_m=0.10):
-    """For each MV-DUSt3R+ candidate, compute the corresponding estimated-depth
-    3D point by back-projecting the estimated depth along the source ray."""
-    poses = [
-        parse_pose(str(p).replace(".jpg", ".txt")).astype(np.float32)
-        for p in view_files
-    ]
+def sample_depth_targets(depth_maps, xs, ys, view_ids, candidate_height, candidate_width, 
+                         poses, intrinsics_matrix, min_depth_m=0.10):
     first_pose_inv = np.linalg.inv(poses[0]).astype(np.float32)
     targets = np.zeros((len(xs), 3), dtype=np.float32)
     valid = np.zeros(len(xs), dtype=bool)
@@ -434,25 +488,24 @@ def sample_depth_targets(view_files, depth_maps, xs, ys, view_ids,
         indices = np.where(view_ids == view_index)[0]
         if not len(indices):
             continue
+            
         depth = np.asarray(depth, dtype=np.float32)
         height, width = depth.shape
-        depth_x = np.clip(
-            np.rint(xs[indices] / max(candidate_width - 1, 1) * max(width - 1, 1)).astype(np.int32),
-            0, width - 1,
-        )
-        depth_y = np.clip(
-            np.rint(ys[indices] / max(candidate_height - 1, 1) * max(height - 1, 1)).astype(np.int32),
-            0, height - 1,
-        )
+        depth_x = np.clip(np.rint(xs[indices] / max(candidate_width - 1, 1) * max(width - 1, 1)).astype(np.int32), 0, width - 1)
+        depth_y = np.clip(np.rint(ys[indices] / max(candidate_height - 1, 1) * max(height - 1, 1)).astype(np.int32), 0, height - 1)
         z = depth[depth_y, depth_x]
+        
         usable = np.isfinite(z) & (z > min_depth_m)
         if not usable.any():
             continue
+            
         usable_indices = indices[usable]
         z = z[usable]
         x = depth_x[usable].astype(np.float32)
         y = depth_y[usable].astype(np.float32)
-        fx, fy, cx, cy = intrinsics(depth.shape)
+        
+        fx, fy, cx, cy = scale_intrinsics(intrinsics_matrix, (candidate_height, candidate_width), depth.shape)
+        
         camera = np.column_stack([
             (x - cx) / fx * z,
             (y - cy) / fy * z,
@@ -463,11 +516,11 @@ def sample_depth_targets(view_files, depth_maps, xs, ys, view_ids,
         first_camera = (first_pose_inv @ world.T).T
         targets[usable_indices] = first_camera[:, :3]
         valid[usable_indices] = True
+        
     return targets, valid
 
 
 def apply_correction(points, targets, valid, tau, alpha):
-    """Selectively correct candidate points where depth residual exceeds tau."""
     residual = np.linalg.norm(points - targets, axis=1).astype(np.float32)
     mask = valid & (residual >= tau)
     corrected = points.copy()
@@ -482,9 +535,7 @@ def apply_correction(points, targets, valid, tau, alpha):
 # GLB export
 # ---------------------------------------------------------------------------
 
-
 def export_glb(points, colors, output_path):
-    """Export a colored point cloud as a GLB file using trimesh."""
     trimesh = install_trimesh()
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -500,7 +551,6 @@ def export_glb(points, colors, output_path):
 
 
 def downsample(points, colors, max_points):
-    """Randomly downsample if too many points."""
     if len(points) <= max_points:
         return points, colors
     rng = np.random.default_rng(SEED)
@@ -512,50 +562,19 @@ def downsample(points, colors, max_points):
 # View selection
 # ---------------------------------------------------------------------------
 
-
-def select_views_diverse(scene_dir, num_views):
-    """Select views with angular diversity from the available frames."""
+def select_views_evenly(scene_dir, num_views):
+    """Select evenly spaced frames from the directory (no poses needed!)."""
     jpgs = sorted(scene_dir.glob("*.jpg"))
+    if not jpgs:
+        # Fallback to PNG if testing on custom datasets
+        jpgs = sorted(scene_dir.glob("*.png"))
+        
     if len(jpgs) <= num_views:
         return jpgs
-
-    # Load all poses and compute camera positions
-    positions = []
-    valid_jpgs = []
-    for jpg in jpgs:
-        pose_path = str(jpg).replace(".jpg", ".txt")
-        if not Path(pose_path).exists():
-            continue
-        try:
-            pose = parse_pose(pose_path)
-            if not np.isfinite(pose).all():
-                continue
-            positions.append(pose[:3, 3])
-            valid_jpgs.append(jpg)
-        except Exception:
-            continue
-
-    if len(valid_jpgs) <= num_views:
-        return valid_jpgs[:num_views]
-
-    positions = np.array(positions, dtype=np.float32)
-
-    # Greedy farthest-point sampling for spatial diversity
-    selected = [0]  # start with the first frame
-    for _ in range(num_views - 1):
-        selected_positions = positions[selected]
-        dists = np.min(
-            np.linalg.norm(
-                positions[:, None, :] - selected_positions[None, :, :],
-                axis=2,
-            ),
-            axis=1,
-        )
-        dists[selected] = -1  # exclude already-selected
-        selected.append(int(np.argmax(dists)))
-
-    chosen = sorted([valid_jpgs[i] for i in selected], key=lambda p: p.name)
-    print(f"Selected {num_views} diverse views: {[p.name for p in chosen]}")
+        
+    indices = np.linspace(0, len(jpgs) - 1, num_views, dtype=int)
+    chosen = [jpgs[i] for i in indices]
+    print(f"Selected {num_views} evenly spaced views: {[p.name for p in chosen]}")
     return chosen
 
 
@@ -563,8 +582,7 @@ def select_views_diverse(scene_dir, num_views):
 # Locate data sources
 # ---------------------------------------------------------------------------
 
-
-def find_posed_images_root():
+def find_images_root():
     candidates = [
         Path("/kaggle/input/scannet-data/scannet/posed_images"),
         Path("/kaggle/input/scannet-data/posed_images"),
@@ -576,11 +594,11 @@ def find_posed_images_root():
     for p in Path("/kaggle/input").rglob("posed_images"):
         if p.is_dir():
             return p
-    raise FileNotFoundError("Cannot locate posed_images in /kaggle/input")
+    print("Warning: scannet-data not found. Returning /kaggle/input as root.")
+    return Path("/kaggle/input")
 
 
 def find_run37_checkpoint(variant="controlled_best"):
-    """Find the Run 37 fine-tuned depth checkpoint."""
     matches = sorted(
         Path("/kaggle/input").rglob(
             "run_37_depth_estimator_full_finetune/run_config.json"
@@ -601,14 +619,8 @@ def find_run37_checkpoint(variant="controlled_best"):
     return checkpoint_dir
 
 
-# ---------------------------------------------------------------------------
-# Assign dummy colors to MV-DUSt3R+ points (sample from input images)
-# ---------------------------------------------------------------------------
-
-
 def sample_colors_for_candidates(view_files, xs, ys, view_ids,
                                  candidate_height, candidate_width):
-    """Sample RGB colors from input images for each candidate point."""
     colors = np.zeros((len(xs), 3), dtype=np.uint8)
     for view_index, view_file in enumerate(view_files):
         indices = np.where(view_ids == view_index)[0]
@@ -631,7 +643,6 @@ def sample_colors_for_candidates(view_files, xs, ys, view_ids,
 # Main
 # ---------------------------------------------------------------------------
 
-
 def main():
     random.seed(SEED)
     np.random.seed(SEED)
@@ -641,30 +652,27 @@ def main():
     out_dir = Path("/kaggle/working/outputs/demo_inference")
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # --- Locate data ---
-    posed_root = find_posed_images_root()
-    scene_dir = posed_root / DEMO_SCENE
+    images_root = find_images_root()
+    scene_dir = images_root / DEMO_SCENE
     if not scene_dir.exists():
-        raise FileNotFoundError(f"Scene directory not found: {scene_dir}")
+        # Maybe DEMO_SCENE is an absolute path?
+        scene_dir = Path(DEMO_SCENE)
+        if not scene_dir.exists():
+            raise FileNotFoundError(f"Scene directory not found: {scene_dir}")
 
-    # --- Select views ---
     if DEMO_FRAMES:
         frame_names = [f.strip() for f in DEMO_FRAMES.split(",") if f.strip()]
         view_files = [scene_dir / name for name in frame_names]
-        for vf in view_files:
-            if not vf.exists():
-                raise FileNotFoundError(f"Specified frame not found: {vf}")
     else:
-        view_files = select_views_diverse(scene_dir, DEMO_NUM_VIEWS)
+        view_files = select_views_evenly(scene_dir, DEMO_NUM_VIEWS)
 
     print(f"\n{'='*60}")
-    print(f"DEMO INFERENCE — {DEMO_SCENE}")
+    print(f"POSE-FREE DEMO INFERENCE — {scene_dir.name}")
     print(f"Views: {[p.name for p in view_files]}")
-    print(f"Correction: tau={DEMO_TAU}, alpha={DEMO_ALPHA}")
     print(f"{'='*60}\n")
 
     # =====================================================================
-    # STAGE 1: MV-DUSt3R+ Backbone
+    # STAGE 1: MV-DUSt3R+ Backbone & Pose Extraction
     # =====================================================================
     print("\n[Stage 1/4] Setting up MV-DUSt3R+ backbone...")
     root = clone_repo()
@@ -676,18 +684,15 @@ def main():
     output, mvdust3r_glb, mvdust3r_runtime = run_mvdust3r_inference(
         backbone, root, view_files, out_dir / "mvdust3r_workspace",
     )
-    # The built-in demo GLB is saved; copy it to our output dir
+    
     import shutil
     mvdust3r_output_glb = out_dir / "mvdust3r_only.glb"
     shutil.copy2(mvdust3r_glb, mvdust3r_output_glb)
-    print(f"[Stage 1/4] MV-DUSt3R+ GLB saved: {mvdust3r_output_glb}")
-
-    # Extract raw candidates for correction
+    
+    # Extract candidate points and poses
     points, xs, ys, view_ids, cand_h, cand_w = extract_candidates(output)
-    candidate_colors = sample_colors_for_candidates(
-        view_files, xs, ys, view_ids, cand_h, cand_w,
-    )
-    print(f"[Stage 1/4] Extracted {len(points)} candidate points")
+    poses, intrinsics_matrix, mvd_shape = extract_poses_and_intrinsics(output)
+    candidate_colors = sample_colors_for_candidates(view_files, xs, ys, view_ids, cand_h, cand_w)
 
     del output
     torch.cuda.empty_cache()
@@ -695,103 +700,64 @@ def main():
     # =====================================================================
     # STAGE 2: Depth Estimation
     # =====================================================================
-    print("\n[Stage 2/4] Loading fine-tuned depth estimator...")
+    print("\n[Stage 2/4] Predicting Metric Depth Maps...")
     checkpoint_dir = find_run37_checkpoint()
     PILImage, AutoImageProcessor, AutoModelForDepthEstimation = install_depth_deps()
-    depth_predictor = DepthPredictor(
-        checkpoint_dir, PILImage, AutoImageProcessor, AutoModelForDepthEstimation,
-    )
+    depth_predictor = DepthPredictor(checkpoint_dir, PILImage, AutoImageProcessor, AutoModelForDepthEstimation)
 
-    depth_map_dir = out_dir / "depth_maps"
     depth_maps = []
     for view_file in view_files:
-        depth_png = depth_map_dir / f"depth_{view_file.stem}.png"
-        print(f"  Predicting depth for {view_file.name}...")
-        depth = depth_predictor.predict_and_colorize(view_file, depth_png)
+        depth = depth_predictor.predict(view_file)
         depth_maps.append(depth)
-    print(f"[Stage 2/4] Saved {len(depth_maps)} depth maps to {depth_map_dir}")
-
-    # Also save a side-by-side comparison (RGB | Depth) for each view
-    comparison_dir = out_dir / "comparisons"
-    comparison_dir.mkdir(parents=True, exist_ok=True)
-    for view_file, depth in zip(view_files, depth_maps):
-        rgb_img = Image.open(view_file).convert("RGB")
-        depth_colored = colorize_depth_turbo(depth)
-        # Resize depth to match RGB dimensions
-        depth_colored = depth_colored.resize(rgb_img.size, Image.Resampling.BILINEAR)
-        # Create side-by-side
-        w, h = rgb_img.size
-        canvas = Image.new("RGB", (w * 2, h + 30), "white")
-        canvas.paste(rgb_img, (0, 30))
-        canvas.paste(depth_colored, (w, 30))
-        from PIL import ImageDraw
-        draw = ImageDraw.Draw(canvas)
-        draw.text((10, 8), "RGB Input", fill=(0, 0, 0))
-        draw.text((w + 10, 8), "Estimated Depth", fill=(0, 0, 0))
-        canvas.save(comparison_dir / f"comparison_{view_file.stem}.png")
-    print(f"[Stage 2/4] Saved RGB-Depth comparisons to {comparison_dir}")
 
     # =====================================================================
-    # STAGE 3: Direct Depth Backprojection
+    # STAGE 3: Scale Alignment & Direct Depth Backprojection
     # =====================================================================
-    print("\n[Stage 3/4] Building direct depth backprojection cloud...")
+    print("\n[Stage 3/4] Aligning Metric Scale with MV-DUSt3R+ Scale...")
+    scale_factor = compute_scale_alignment(
+        points, depth_maps, xs, ys, view_ids, cand_h, cand_w, poses, intrinsics_matrix
+    )
+    
+    # Scale MV-DUSt3R+ point clouds and poses to match Metric space
+    points_metric = points * scale_factor
+    metric_poses = []
+    for pose in poses:
+        p = pose.copy()
+        p[:3, 3] *= scale_factor
+        metric_poses.append(p)
+    metric_poses = np.array(metric_poses)
+
+    # Export scaled MV-DUSt3R+ for fair comparison
+    points_metric_ds, cand_colors_ds = downsample(points_metric, candidate_colors, DEMO_MAX_POINTS)
+    export_glb(points_metric_ds, cand_colors_ds, out_dir / "mvdust3r_only_metric_scaled.glb")
+
+    print("[Stage 3/4] Building direct depth backprojection cloud using predicted poses...")
     direct_pts, direct_colors = backproject_depth_cloud(
-        view_files, depth_maps, stride=2,
+        view_files, depth_maps, metric_poses, intrinsics_matrix, mvd_shape, stride=2,
     )
     direct_pts, direct_colors = downsample(direct_pts, direct_colors, DEMO_MAX_POINTS)
     export_glb(direct_pts, direct_colors, out_dir / "depth_backprojection.glb")
 
     # =====================================================================
-    # STAGE 4: Estimated-Depth Correction (Our Method)
+    # STAGE 4: Estimated-Depth Correction (Pose-Free)
     # =====================================================================
     print("\n[Stage 4/4] Applying estimated-depth source-ray correction...")
     targets, valid = sample_depth_targets(
-        view_files, depth_maps, xs, ys, view_ids, cand_h, cand_w,
+        depth_maps, xs, ys, view_ids, cand_h, cand_w, metric_poses, intrinsics_matrix
     )
-    corrected = apply_correction(points, targets, valid, DEMO_TAU, DEMO_ALPHA)
-    corrected_pts, corrected_colors = downsample(
-        corrected, candidate_colors, DEMO_MAX_POINTS,
-    )
+    corrected = apply_correction(points_metric, targets, valid, DEMO_TAU, DEMO_ALPHA)
+    corrected_pts, corrected_colors = downsample(corrected, candidate_colors, DEMO_MAX_POINTS)
     export_glb(corrected_pts, corrected_colors, out_dir / "corrected_final.glb")
 
     # =====================================================================
     # Summary
     # =====================================================================
     elapsed = time.time() - started
-    summary = {
-        "scene": DEMO_SCENE,
-        "views": [p.name for p in view_files],
-        "num_views": len(view_files),
-        "correction_tau": DEMO_TAU,
-        "correction_alpha": DEMO_ALPHA,
-        "num_candidates": len(points),
-        "num_corrected_points": len(corrected_pts),
-        "num_direct_depth_points": len(direct_pts),
-        "depth_checkpoint": str(checkpoint_dir),
-        "outputs": {
-            "mvdust3r_only": str(out_dir / "mvdust3r_only.glb"),
-            "depth_backprojection": str(out_dir / "depth_backprojection.glb"),
-            "corrected_final": str(out_dir / "corrected_final.glb"),
-            "depth_maps": str(depth_map_dir),
-            "comparisons": str(comparison_dir),
-        },
-        "total_runtime_seconds": elapsed,
-    }
-    (out_dir / "demo_config.json").write_text(
-        json.dumps(summary, indent=2), encoding="utf-8",
-    )
-
     print(f"\n{'='*60}")
-    print("DEMO COMPLETE")
-    print(f"{'='*60}")
-    print(f"Total runtime: {elapsed:.1f}s")
-    print(f"\nOutputs in {out_dir}:")
-    print(f"  1. mvdust3r_only.glb        — Raw MV-DUSt3R+ point cloud")
-    print(f"  2. depth_backprojection.glb  — Direct estimated-depth cloud")
-    print(f"  3. corrected_final.glb       — Corrected final cloud (Ours)")
-    print(f"  4. depth_maps/               — Colorized depth predictions")
-    print(f"  5. comparisons/              — RGB vs Depth side-by-side")
-    print(f"\nOpen GLB files in https://gltf-viewer.donmccurdy.com/ or MeshLab")
+    print("POSE-FREE DEMO COMPLETE")
+    print(f"Scale Factor applied: {scale_factor:.4f}")
+    print(f"Outputs saved to: {out_dir}")
+    print(f"{'='*60}\n")
 
 
 if __name__ == "__main__":
