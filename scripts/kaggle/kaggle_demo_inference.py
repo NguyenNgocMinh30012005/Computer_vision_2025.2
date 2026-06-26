@@ -706,12 +706,36 @@ def main():
     # STAGE 2: Depth Estimation
     # =====================================================================
     print("\n[Stage 2/4] Predicting Metric Depth Maps...")
+    
+    print("  -> Finding checkpoint...")
     checkpoint_dir = find_run37_checkpoint()
-    PILImage, AutoImageProcessor, AutoModelForDepthEstimation = install_depth_deps()
+    print(f"  -> Found checkpoint at: {checkpoint_dir}")
+    
+    print("  -> Installing/Importing depth dependencies...")
+    try:
+        from PIL import Image
+        from transformers import AutoImageProcessor, AutoModelForDepthEstimation
+        PILImage = Image
+        print("  -> Dependencies imported successfully.")
+    except Exception as e:
+        print(f"  -> Missing dependencies! Running pip install (WARNING: This will HANG FOREVER if Kaggle Internet is OFF!)...")
+        run_cmd([
+            sys.executable, "-m", "pip", "install", "-q", "--no-cache-dir",
+            "transformers>=4.45.0", "huggingface_hub>=0.24.0",
+            "safetensors", "accelerate", "timm",
+        ])
+        print("  -> Pip install finished.")
+        from PIL import Image
+        from transformers import AutoImageProcessor, AutoModelForDepthEstimation
+        PILImage = Image
+    
+    print("  -> Initializing DepthPredictor (WARNING: If Kaggle Internet is OFF, timm might hang here!)...")
     depth_predictor = DepthPredictor(checkpoint_dir, PILImage, AutoImageProcessor, AutoModelForDepthEstimation)
+    print("  -> DepthPredictor initialized successfully.")
 
     depth_maps = []
     for view_file in view_files:
+        print(f"  -> Predicting depth for {view_file.name}...")
         depth = depth_predictor.predict(view_file)
         depth_maps.append(depth)
 
