@@ -614,18 +614,20 @@ def find_run37_checkpoint(variant="controlled_best"):
             return ckpt_path
         print(f"Warning: Provided DEMO_DEPTH_CKPT {ckpt_path} not found. Falling back to auto-search.")
 
-    # Shallow search to prevent hanging on massive datasets
+    # O(1) Shallow search to guarantee NO hanging on Kaggle filesystems.
     input_dir = Path("/kaggle/input")
     if input_dir.exists():
         for dataset_dir in input_dir.iterdir():
             if not dataset_dir.is_dir():
                 continue
-            # Skip massive image datasets to prevent freezing
-            if "scannet" in dataset_dir.name.lower():
-                continue
-                
-            for p in dataset_dir.glob(f"**/checkpoints/{variant}/model.safetensors"):
-                return p.parent
+            
+            # Direct path check 1 (if mounted directly)
+            p1 = dataset_dir / "checkpoints" / variant / "model.safetensors"
+            if p1.exists(): return p1.parent
+            
+            # Direct path check 2 (if exported in a subfolder)
+            p2 = dataset_dir / "run_37_depth_estimator_full_finetune" / "checkpoints" / variant / "model.safetensors"
+            if p2.exists(): return p2.parent
 
     raise FileNotFoundError(
         f"Run 37 checkpoint '{variant}' not found. "
