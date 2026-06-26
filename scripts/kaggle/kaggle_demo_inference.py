@@ -739,9 +739,13 @@ def main():
     print("  -> DepthPredictor initialized successfully.")
 
     depth_maps = []
+    depth_dir = out_dir / "depth_maps"
+    depth_dir.mkdir(parents=True, exist_ok=True)
+    
     for view_file in view_files:
         print(f"  -> Predicting depth for {view_file.name}...")
-        depth = depth_predictor.predict(view_file)
+        depth_img_path = depth_dir / f"{view_file.stem}_depth.png"
+        depth = depth_predictor.predict_and_colorize(view_file, depth_img_path)
         depth_maps.append(depth)
 
     # =====================================================================
