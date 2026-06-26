@@ -621,6 +621,11 @@ def find_run37_checkpoint(variant="controlled_best"):
             "Double-check your Kaggle /kaggle/input directory!"
         )
         
+    # Hugging Face expects a directory containing config.json. 
+    # If the user provided the path to model.safetensors, use its parent directory.
+    if ckpt_path.is_file():
+        ckpt_path = ckpt_path.parent
+        
     return ckpt_path
 
 
