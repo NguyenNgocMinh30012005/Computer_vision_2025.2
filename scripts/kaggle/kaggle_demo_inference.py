@@ -433,7 +433,7 @@ def colorize_depth_turbo(depth, min_depth=0.10):
 # ---------------------------------------------------------------------------
 
 def backproject_depth_cloud(view_files, depth_maps, poses, intrinsics_matrix, 
-                            mvd_shape, stride=4, min_depth_m=0.10):
+                            mvd_shape, stride=4, min_depth_m=0.10, max_depth_m=15.0):
     first_pose_inv = np.linalg.inv(poses[0]).astype(np.float32)
     clouds = []
     colors_list = []
@@ -443,7 +443,7 @@ def backproject_depth_cloud(view_files, depth_maps, poses, intrinsics_matrix,
         height, width = depth.shape
         yy, xx = np.mgrid[0:height:stride, 0:width:stride]
         z = depth[yy, xx]
-        valid = np.isfinite(z) & (z > min_depth_m)
+        valid = np.isfinite(z) & (z > min_depth_m) & (z < max_depth_m)
         if not valid.any():
             continue
             
@@ -480,7 +480,7 @@ def backproject_depth_cloud(view_files, depth_maps, poses, intrinsics_matrix,
 # ---------------------------------------------------------------------------
 
 def sample_depth_targets(depth_maps, xs, ys, view_ids, candidate_height, candidate_width, 
-                         poses, intrinsics_matrix, min_depth_m=0.10):
+                         poses, intrinsics_matrix, min_depth_m=0.10, max_depth_m=15.0):
     first_pose_inv = np.linalg.inv(poses[0]).astype(np.float32)
     targets = np.zeros((len(xs), 3), dtype=np.float32)
     valid = np.zeros(len(xs), dtype=bool)
@@ -496,7 +496,7 @@ def sample_depth_targets(depth_maps, xs, ys, view_ids, candidate_height, candida
         depth_y = np.clip(np.rint(ys[indices] / max(candidate_height - 1, 1) * max(height - 1, 1)).astype(np.int32), 0, height - 1)
         z = depth[depth_y, depth_x]
         
-        usable = np.isfinite(z) & (z > min_depth_m)
+        usable = np.isfinite(z) & (z > min_depth_m) & (z < max_depth_m)
         if not usable.any():
             continue
             
@@ -765,7 +765,33 @@ def main():
         metric_poses.append(p)
     metric_poses = np.array(metric_poses)
 
-    # Export scaled MV-DUSt3R+ for fair comparison
+    # -----------------------------------------------------------------
+    # Apply Global OpenGL Upright Transform (Matching MV-DUSt3R demo)
+    # -----------------------------------------------------------------
+    opengl_mat = np.array([
+        [1,  0,  0, 0],
+        [0, -1,  0, 0],
+        [0,  0, -1, 0],
+        [0,  0,  0, 1]
+    ], dtype=np.float32)
+    rot_y_180 = np.array([
+        [-1,  0,  0, 0],
+        [ 0,  1,  0, 0],
+        [ 0,  0, -1, 0],
+        [ 0,  0,  0, 1]
+    ], dtype=np.float32)
+    
+    # Global transform used by demo.py to make scene upright
+    global_transform = np.linalg.inv(metric_poses[0] @ opengl_mat @ rot_y_180)
+    
+    # Apply to all points
+    pts_h = np.column_stack([points_metric, np.ones(len(points_metric), dtype=np.float32)])
+    points_metric = (global_transform @ pts_h.T).T[:, :3]
+    
+    # Apply to all poses (Camera-to-World)
+    metric_poses = np.array([global_transform @ p for p in metric_poses])
+
+    # Export scaled and upright MV-DUSt3R+ for fair comparison
     points_metric_ds, cand_colors_ds = downsample(points_metric, candidate_colors, DEMO_MAX_POINTS)
     export_glb(points_metric_ds, cand_colors_ds, out_dir / "mvdust3r_only_metric_scaled.glb")
 
