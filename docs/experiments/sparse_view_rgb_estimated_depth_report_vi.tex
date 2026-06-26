@@ -541,7 +541,7 @@ Kết quả cho thấy fine-tuning làm giảm mạnh lỗi depth. Trên validat
 \end{figure}
 
 \subsection{Đánh giá tái dựng 3D}
-Thí nghiệm tái dựng chính đánh giá liệu hiệu chỉnh bằng độ sâu ước lượng có cải thiện so với RGB-only \mvdp{} hay không. Bảng~\ref{tab:recon} tổng hợp các kết quả đã hoàn tất từ lịch sử chạy thí nghiệm. Các số này dùng controlled sparse-view protocol của project, không phải official full ScanNet hoặc ScanNet++ benchmark.
+Thí nghiệm tái dựng chính đánh giá liệu hiệu chỉnh bằng độ sâu ước lượng có cải thiện so với RGB-only \mvdp{} hay không. Bảng~\ref{tab:recon} báo cáo Run 41 cached evaluation đã hoàn tất, trong đó tận dụng cached reconstruction records từ Run 38 và Run 39 mà không chạy lại \mvdp{} hoặc depth estimator. Hàng RGB-D đo thật vẫn là mốc oracle từ Run 30. Các số này dùng controlled sparse-view protocol của project, không phải official full ScanNet hoặc ScanNet++ benchmark.
 
 \begin{table}[H]
 \centering
@@ -560,11 +560,11 @@ Hiệu chỉnh bằng độ sâu ước lượng đã tinh chỉnh (Ours) & 0.14
 \bottomrule
 \end{tabular}%
 }
-\caption{So sánh tái dựng 3D trên test groups của các run đã hoàn tất. Hàng RGB-D đo thật là mốc tham chiếu/upper reference trong controlled setting, không phải setting triển khai RGB-only.}
+\caption{So sánh tái dựng 3D từ Run 41 cached evaluation đã hoàn tất. Hàng RGB-D đo thật là mốc tham chiếu/oracle từ Run 30 trong controlled setting, không phải setting triển khai RGB-only.}
 \label{tab:recon}
 \end{table}
 
-Câu hỏi chính là liệu phương pháp đề xuất có cải thiện so với RGB-only \mvdp{} hay không. Nếu hiệu chỉnh bằng độ sâu ước lượng đã tinh chỉnh đạt F-score cao hơn và Chamfer distance thấp hơn so với baseline RGB-only, thì bộ ước lượng độ sâu đã cung cấp hiệu chỉnh hình học hữu ích trong khi vẫn giữ ràng buộc suy luận chỉ dùng RGB.
+Câu hỏi chính là liệu phương pháp đề xuất có cải thiện so với RGB-only \mvdp{} hay không. Trên subset cached của Run 41, backprojection trực tiếp từ độ sâu ước lượng đã tinh chỉnh đạt F-score và Chamfer tốt nhất, còn hiệu chỉnh bằng độ sâu ước lượng đã tinh chỉnh chưa vượt RGB-only \mvdp{} baseline. Hàng RGB-D đo thật chỉ nên được xem là mốc oracle cho thấy cơ chế correction có thể đạt gì khi dùng depth đo thật.
 
 \subsection{Ablation Study}
 Ablation study cần trả lời ba câu hỏi. Thứ nhất, so sánh RGB-only \mvdp{} với hiệu chỉnh bằng độ sâu pretrained cho thấy liệu monocular depth off-the-shelf có giúp ích khi chưa có thích nghi theo task hay không. Thứ hai, so sánh hiệu chỉnh bằng độ sâu pretrained với hiệu chỉnh bằng độ sâu ước lượng đã tinh chỉnh cho thấy việc fine-tuning trên RGB-D training split có cải thiện reconstruction hay không. Thứ ba, so sánh fine-tuned correction với backprojection trực tiếp từ độ sâu ước lượng cho thấy liệu \mvdp{} vẫn đóng góp multi-view geometry hữu ích vượt ngoài bộ ước lượng độ sâu hay không.
@@ -594,7 +594,7 @@ Pipeline được đề xuất kết hợp \mvdp{} với một bộ ước lư�
 
 Báo cáo định nghĩa một framework đánh giá hoàn chỉnh cho setting này. Chất lượng depth được đo bằng các monocular depth metrics, còn chất lượng tái dựng 3D được đo bằng các point-cloud metrics như accuracy, completeness, precision, recall, F-score và Chamfer distance. So sánh chính là với RGB-only \mvdp{}, direct estimated-depth backprojection và pretrained-depth correction. Phương pháp fine-tuned cuối cùng chỉ nên được chọn nếu nó cải thiện các reconstruction metrics trong ràng buộc suy luận chỉ dùng RGB.
 
-Công việc tiếp theo nên hoàn thiện thí nghiệm fine-tuned depth, đánh giá toàn bộ các nhóm sparse-view có sẵn, thêm cơ chế confidence-aware correction và kiểm thử phương pháp trên các tập ảnh RGB thực tế đa dạng hơn. Mục tiêu dài hạn là một hệ thống tái dựng có thể triển khai được, có khả năng tạo hình học cảnh 3D hữu ích từ chỉ một vài ảnh 2D thông thường.
+Công việc tiếp theo nên đánh giá thêm nhiều nhóm sparse-view dưới giao thức camera-geometry cập nhật, thêm cơ chế confidence-aware correction và kiểm thử phương pháp trên các tập ảnh RGB thực tế đa dạng hơn. Mục tiêu dài hạn là một hệ thống tái dựng có thể triển khai được, có khả năng tạo hình học cảnh 3D hữu ích từ chỉ một vài ảnh 2D thông thường.
 
 % ------------------------------------------------------------------
 \newpage

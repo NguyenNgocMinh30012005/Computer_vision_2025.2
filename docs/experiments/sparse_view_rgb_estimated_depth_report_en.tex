@@ -546,7 +546,7 @@ Fine-tuning substantially improves depth quality. On validation, AbsRel decrease
 \end{figure}
 
 \subsection{3D Reconstruction Results}
-The main reconstruction experiment evaluates whether fine-tuned estimated-depth correction improves over RGB-only \mvdp{}. Table~\ref{tab:recon} summarizes completed historical runs and the completed target row. These values use the project controlled sparse-view protocol and should not be interpreted as official full ScanNet or ScanNet++ benchmark results.
+The main reconstruction experiment evaluates whether fine-tuned estimated-depth correction improves over RGB-only \mvdp{}. Table~\ref{tab:recon} reports the completed Run 41 cached evaluation, which reuses the successful Run 38 and Run 39 cached reconstruction records without rerunning \mvdp{} or the depth estimator. The measured RGB-D source-depth row remains the completed Run 30 oracle reference. These values use the project controlled sparse-view protocol and should not be interpreted as official full ScanNet or ScanNet++ benchmark results.
 
 \begin{table}[H]
 \centering
@@ -565,11 +565,11 @@ Correction with fine-tuned estimated depth (Ours) & 0.1422 & 0.1323 & 0.2368 & 0
 \bottomrule
 \end{tabular}%
 }
-\caption{3D reconstruction comparison on completed test-group runs. The measured RGB-D source-depth row is an oracle upper-reference result in the controlled setting, not the RGB-only deployment setting.}
+\caption{3D reconstruction comparison from the completed Run 41 cached evaluation. The measured RGB-D source-depth row is an oracle upper-reference result from Run 30 in the controlled setting, not the RGB-only deployment setting.}
 \label{tab:recon}
 \end{table}
 
-The central question is whether the proposed method improves over RGB-only \mvdp{}. If fine-tuned estimated-depth correction achieves a higher F-score and a lower Chamfer distance than the RGB-only baseline, then the depth estimator provides useful geometric correction while preserving the RGB-only inference contract. The oracle RGB-D row should be interpreted only as a diagnostic upper reference showing what the correction mechanism can do when measured depth is available.
+The central question is whether the proposed method improves over RGB-only \mvdp{}. In the completed Run 41 cached subset, direct backprojection from fine-tuned estimated depth obtains the strongest F-score and Chamfer distance, while fine-tuned estimated-depth correction does not outperform the RGB-only \mvdp{} baseline. The oracle RGB-D row should be interpreted only as a diagnostic upper reference showing what the correction mechanism can do when measured depth is available.
 
 \subsection{Ablation Study}
 The ablation study answers three questions. First, comparing RGB-only \mvdp{} with pretrained-depth correction tests whether off-the-shelf monocular depth helps without task adaptation. Second, comparing pretrained-depth correction with fine-tuned-depth correction tests whether fine-tuning on RGB-D training data improves reconstruction. Third, comparing fine-tuned-depth correction with direct estimated-depth backprojection tests whether \mvdp{} still contributes useful multi-view geometry beyond monocular depth.
@@ -609,7 +609,7 @@ The proposed pipeline combines \mvdp{} with a fine-tuned monocular depth estimat
 
 The report defines an evaluation framework for this setting. Depth quality is measured using monocular depth metrics, while 3D reconstruction quality is measured using point-cloud metrics such as accuracy, completeness, precision, recall, F-score, and Chamfer distance. The main comparisons are RGB-only \mvdp{}, direct estimated-depth backprojection, pretrained-depth correction, and fine-tuned-depth correction. The final fine-tuned method should only be selected if it improves reconstruction metrics while preserving RGB-only inference.
 
-Future work should complete the fine-tuned-depth reconstruction rerun under the updated camera-geometry protocol, compare it with the three ablations, add confidence-aware correction, and test the method on more diverse real RGB image sets. The long-term goal is a deployable reconstruction system that can produce useful 3D scene geometry from only a few ordinary 2D images.
+Future work should evaluate more sparse-view groups under the updated camera-geometry protocol, add confidence-aware correction, and test the method on more diverse real RGB image sets. The long-term goal is a deployable reconstruction system that can produce useful 3D scene geometry from only a few ordinary 2D images.
 
 % ------------------------------------------------------------------
 \newpage
