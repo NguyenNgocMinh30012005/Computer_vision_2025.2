@@ -592,9 +592,17 @@ def find_images_root():
     for p in candidates:
         if p.exists():
             return p
-    for p in Path("/kaggle/input").rglob("posed_images"):
-        if p.is_dir():
-            return p
+            
+    # Shallow search to avoid hanging on millions of files
+    input_dir = Path("/kaggle/input")
+    if input_dir.exists():
+        for dataset_dir in input_dir.iterdir():
+            if dataset_dir.is_dir():
+                # Check up to 2 levels deep
+                for p in dataset_dir.glob("**/posed_images"):
+                    if p.is_dir():
+                        return p
+                        
     print("Warning: scannet-data not found. Returning /kaggle/input as root.")
     return Path("/kaggle/input")
 
@@ -606,18 +614,24 @@ def find_run37_checkpoint(variant="controlled_best"):
             return ckpt_path
         print(f"Warning: Provided DEMO_DEPTH_CKPT {ckpt_path} not found. Falling back to auto-search.")
 
-    matches = sorted(
-        Path("/kaggle/input").rglob(f"checkpoints/{variant}/model.safetensors")
+    # Shallow search to prevent hanging on massive datasets
+    input_dir = Path("/kaggle/input")
+    if input_dir.exists():
+        for dataset_dir in input_dir.iterdir():
+            if not dataset_dir.is_dir():
+                continue
+            # Skip massive image datasets to prevent freezing
+            if "scannet" in dataset_dir.name.lower():
+                continue
+                
+            for p in dataset_dir.glob(f"**/checkpoints/{variant}/model.safetensors"):
+                return p.parent
+
+    raise FileNotFoundError(
+        f"Run 37 checkpoint '{variant}' not found. "
+        "Please mount your Run 37 output dataset "
+        "or explicitly set the DEMO_DEPTH_CKPT environment variable."
     )
-    if not matches:
-        raise FileNotFoundError(
-            f"Run 37 checkpoint '{variant}' not found. "
-            "Please mount your Run 37 output dataset "
-            "(e.g., mv-dust3r-run-37-depth-full-fine-tune) "
-            "as a Kaggle kernel source."
-        )
-    checkpoint_dir = matches[0].parent
-    return checkpoint_dir
 
 
 def sample_colors_for_candidates(view_files, xs, ys, view_ids,
