@@ -27,6 +27,18 @@ MV-DUSt3R+ for candidate geometry, predict source depth from RGB with the Run
 37 fine-tuned depth estimator, then apply predicted-depth source-ray correction
 with known camera poses/intrinsics.
 
+Cache-first reconstruction workflow:
+
+- Run 38 and Run 39 can now write `record_cache/` outputs containing the
+  expensive MV-DUSt3R+ candidate points, proxy GT, predicted-depth anchors, and
+  direct backprojection clouds for each internal-validation/evaluation group.
+- Run 41 consumes successful Run 38/39 `record_cache/` outputs as kernel
+  sources and recomputes policy selection, ablation metrics, summaries, and
+  comparison rows without cloning/loading MV-DUSt3R+ or running the depth
+  estimator again.
+- This does not remove the first-run Kaggle setup cost. It turns later
+  ablation/report reruns into cached CPU-side evaluation jobs.
+
 Run order:
 
 1. `kaggle_run1_run2_eval_baseline.py`
@@ -64,6 +76,9 @@ Run order:
 33. `kaggle_run35_predicted_depth_quality_diagnostic.py`
 34. `kaggle_run36_predicted_depth_correction.py`
 35. `kaggle_run37_depth_estimator_full_finetune.py`
+36. `kaggle_run38_finetuned_depth_full_reconstruction.py`
+37. `kaggle_run39_pretrained_depth_subset.py`
+38. `kaggle_run41_cached_record_evaluation.py`
 
 The final validation script uses fixed thresholds selected before test-time
 evaluation, rather than tuning on the final test rows. Run 11 prefers T4 x2,
@@ -272,7 +287,8 @@ Run 38 also sanitizes point clouds before KD-tree construction. Full-data scene
 discovery can expose frames with invalid pose/depth values; those produce
 non-finite proxy-GT points, and some corrected predicted point clouds can also
 contain non-finite rows. Non-finite proxy-GT and predicted rows are filtered and
-reported in the log before metric computation.
+reported in the log before both inherited KD-tree construction and metric
+computation.
 
 Run 31 freezes `rgbd_residual_ge_0.30` and evaluates 360 sparse-view groups:
 12 per scene across 30 scenes. It keeps 3/4/5 views, hybrid and

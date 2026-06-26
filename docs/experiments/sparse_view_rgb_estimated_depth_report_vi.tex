@@ -552,15 +552,15 @@ Thí nghiệm tái dựng chính đánh giá liệu hiệu chỉnh bằng độ 
 \toprule
 Phương pháp & Accuracy $\downarrow$ & Completeness $\downarrow$ & Precision $\uparrow$ & Recall $\uparrow$ & F-score $\uparrow$ & Chamfer $\downarrow$ \\
 \midrule
-RGB-only \mvdp{} & 0.1883 & 0.2099 & 0.2207 & 0.1499 & 0.1758 & 0.3982 \\
-Backprojection trực tiếp từ độ sâu ước lượng & 0.1627 & 0.1641 & 0.2029 & 0.1834 & 0.1894 & 0.3268 \\
-Hiệu chỉnh bằng độ sâu pretrained & 0.2240 & 0.2055 & 0.1707 & 0.1343 & 0.1465 & 0.4295 \\
+RGB-only \mvdp{} & 0.1232 & 0.1571 & 0.2915 & 0.1449 & 0.1929 & 0.2803 \\
+Backprojection trực tiếp từ độ sâu ước lượng & 0.1132 & 0.1037 & 0.3542 & 0.2407 & 0.2862 & 0.2170 \\
+Hiệu chỉnh bằng độ sâu pretrained & 0.1648 & 0.1558 & 0.1963 & 0.1356 & 0.1600 & 0.3207 \\
 Hiệu chỉnh bằng độ sâu đo thật RGB-D & 0.1272 & 0.1385 & 0.3622 & 0.2283 & 0.2745 & 0.2656 \\
-Hiệu chỉnh bằng độ sâu ước lượng đã tinh chỉnh (Ours) & \multicolumn{6}{c}{Run 38 đang chạy; chưa dùng số khi output chưa hoàn tất} \\
+Hiệu chỉnh bằng độ sâu ước lượng đã tinh chỉnh (Ours) & 0.1422 & 0.1323 & 0.2368 & 0.1445 & 0.1780 & 0.2745 \\
 \bottomrule
 \end{tabular}%
 }
-\caption{So sánh tái dựng 3D trên test groups của các run đã hoàn tất. Hàng RGB-D đo thật là mốc tham chiếu/upper reference trong controlled setting, không phải setting triển khai RGB-only. Hàng Ours phụ thuộc Run 38 với depth estimator đã fine-tune và chỉ nên điền sau khi Kaggle output hoàn tất.}
+\caption{So sánh tái dựng 3D trên test groups của các run đã hoàn tất. Hàng RGB-D đo thật là mốc tham chiếu/upper reference trong controlled setting, không phải setting triển khai RGB-only.}
 \label{tab:recon}
 \end{table}
 

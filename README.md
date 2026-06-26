@@ -359,8 +359,10 @@ history:
   uses the Run 37 `controlled_best` checkpoint to preserve held-out evidence.
   Set `RUN38_MAX_EVAL_SCENES` to a positive integer only for an intentional
   smaller pilot. This is the desired RGB-only-input reconstruction setting and
-  must pass its
-  reconstruction gates before it replaces Run 30.
+  must pass its reconstruction gates before it replaces Run 30. Run 38 filters
+  non-finite proxy-GT and predicted rows before inherited KD-tree construction
+  and metric computation so invalid full-data pose/depth frames do not abort the
+  whole evaluation.
 
 Final script:
 

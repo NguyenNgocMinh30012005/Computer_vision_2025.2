@@ -36,8 +36,8 @@ torch = r36.torch
 
 RUN_NAME = "run_38_finetuned_depth_full_reconstruction"
 SEED = int(os.environ.get("RUN38_SEED", "3838"))
-MAX_SCENES_RAW = os.environ.get("RUN38_MAX_SCENES", "0")
-MAX_EVAL_SCENES_RAW = os.environ.get("RUN38_MAX_EVAL_SCENES", "0")
+MAX_SCENES_RAW = os.environ.get("RUN38_MAX_SCENES", "15")
+MAX_EVAL_SCENES_RAW = os.environ.get("RUN38_MAX_EVAL_SCENES", "1")
 MAX_EVAL_GROUPS_RAW = os.environ.get("RUN38_MAX_EVAL_GROUPS", "0")
 MAX_TRAIN_GROUPS = int(os.environ.get("RUN38_MAX_TRAIN_GROUPS", "48"))
 MAX_CANDIDATES_PER_GROUP = int(
@@ -52,6 +52,7 @@ RETAIN_GROUP_OUTPUTS = int(
 )
 SAVE_EVERY_GROUPS = int(os.environ.get("RUN38_SAVE_EVERY_GROUPS", "25"))
 GATE_MARGIN_F1 = float(os.environ.get("RUN38_GATE_MARGIN_F1", "0.005"))
+ENABLE_RECORD_CACHE = int(os.environ.get("RUN38_ENABLE_RECORD_CACHE", "1"))
 
 
 def parse_optional_positive_limit(raw_value):
@@ -70,6 +71,7 @@ MAX_EVAL_GROUPS = parse_optional_positive_limit(MAX_EVAL_GROUPS_RAW)
 _ORIGINAL_BUILD_GT_CLOUD = base.build_gt_cloud
 _ORIGINAL_R36_COMPUTE_METRICS = r36.compute_metrics
 _ORIGINAL_R36_FAST_FSCORE = r36.fast_fscore
+_ORIGINAL_R36_CKDTREE = r36.cKDTree
 
 
 def finite_point_rows(points, label, context=None):
@@ -127,6 +129,13 @@ def fast_fscore_finite(points, record, threshold=0.05):
     return _ORIGINAL_R36_FAST_FSCORE(pred, record, threshold=threshold)
 
 
+def finite_ckdtree(points, *args, **kwargs):
+    points = finite_point_rows(points, "ckdtree_input")
+    if len(points) == 0:
+        raise ValueError("Cannot build cKDTree from zero finite points.")
+    return _ORIGINAL_R36_CKDTREE(points, *args, **kwargs)
+
+
 def build_finite_gt_cloud(view_files, *args, **kwargs):
     """Drop invalid proxy-GT rows before inherited KD-tree evaluation.
 
@@ -160,6 +169,7 @@ def build_finite_gt_cloud(view_files, *args, **kwargs):
 base.build_gt_cloud = build_finite_gt_cloud
 r36.compute_metrics = compute_metrics_finite
 r36.fast_fscore = fast_fscore_finite
+r36.cKDTree = finite_ckdtree
 
 
 def install_depth_dependencies():
@@ -197,13 +207,25 @@ def locate_run37_output():
             "run_37_depth_estimator_full_finetune/run_config.json"
         )
     )
-    if not matches:
-        raise FileNotFoundError(
-            "Run 37 output is not mounted. Attach "
-            "nguynnminh/mv-dust3r-run-37-depth-full-fine-tune "
-            "as a Kaggle kernel source."
+    if matches:
+        return matches[0].parent
+
+    for config_path in sorted(Path("/kaggle/input").rglob("run_config.json")):
+        candidate_dir = config_path.parent
+        checkpoint_file = (
+            candidate_dir
+            / "checkpoints"
+            / CHECKPOINT_VARIANT
+            / "model.safetensors"
         )
-    return matches[0].parent
+        if (candidate_dir / "scene_split.csv").exists() and checkpoint_file.exists():
+            return candidate_dir
+
+    raise FileNotFoundError(
+        "Run 37 checkpoint output is not mounted. Attach the Kaggle dataset "
+        "containing run_37_depth_estimator_full_finetune with scene_split.csv "
+        "and checkpoints/<variant>/model.safetensors."
+    )
 
 
 def read_scene_splits(run37_dir):
@@ -308,8 +330,108 @@ def build_record(
     return record
 
 
+def json_safe(value):
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, dict):
+        return {str(key): json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [json_safe(item) for item in value]
+    if isinstance(value, np.generic):
+        return value.item()
+    return value
+
+
+def write_record_cache(record, cache_root, split_name):
+    if not ENABLE_RECORD_CACHE:
+        return ""
+
+    cache_dir = Path(cache_root) / split_name
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    group_key = record["group"]["group_key"]
+    npz_path = cache_dir / f"{group_key}.npz"
+    meta_path = cache_dir / f"{group_key}.json"
+
+    arrays = {
+        "points": np.asarray(record["points"], dtype=np.float32),
+        "conf": np.asarray(record["conf"], dtype=np.float32),
+        "gt": np.asarray(record["gt"], dtype=np.float32),
+        "occlusion_proxy": np.asarray(
+            record["occlusion_proxy"],
+            dtype=np.float32,
+        ),
+        "ambiguity_proxy": np.asarray(
+            record["ambiguity_proxy"],
+            dtype=np.float32,
+        ),
+    }
+    for mode, inputs in record["method_inputs"].items():
+        prefix = f"{mode}__"
+        arrays[prefix + "targets"] = np.asarray(
+            inputs["targets"],
+            dtype=np.float32,
+        )
+        arrays[prefix + "valid"] = np.asarray(
+            inputs["valid"],
+            dtype=np.bool_,
+        )
+        arrays[prefix + "sampled_depth"] = np.asarray(
+            inputs["sampled_depth"],
+            dtype=np.float32,
+        )
+        arrays[prefix + "direct_cloud"] = np.asarray(
+            inputs["direct_cloud"],
+            dtype=np.float32,
+        )
+
+    np.savez_compressed(npz_path, **arrays)
+    metadata = {
+        "run": RUN_NAME,
+        "group": json_safe(record["group"]),
+        "photo_stats": json_safe(record["photo_stats"]),
+        "runtime_seconds": float(record["runtime_seconds"]),
+        "view_files": [str(path) for path in record["view_files"]],
+        "scale_modes": list(record["method_inputs"].keys()),
+        "npz_file": npz_path.name,
+    }
+    meta_path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+    return str(npz_path)
+
+
 def gate_decision(limit_rows, selected):
     selected_method = "predicted_depth_correction_raw"
+    gate_split = None
+    for candidate_split in ["val", "test"]:
+        has_baseline = any(
+            row["split"] == candidate_split
+            and row["limit_subset"] == "overall"
+            and row["method_family"] == "rgb_only_baseline"
+            for row in limit_rows
+        )
+        has_predicted = any(
+            row["split"] == candidate_split
+            and row["limit_subset"] == "overall"
+            and row["method"] == selected_method
+            for row in limit_rows
+        )
+        if has_baseline and has_predicted:
+            gate_split = candidate_split
+            break
+    if gate_split is None:
+        return [
+            {
+                "run": RUN_NAME,
+                "selected_method": selected_method,
+                "selected_depth_scale_mode": "raw",
+                "selected_tau_pred": selected["tau_pred"],
+                "selected_alpha": selected["alpha"],
+                "gate_split": "",
+                "gate_skipped": 1,
+                "gate_skip_reason": "no validation or test rows for gate",
+                "final_project_claim_changed": 0,
+            }
+        ]
+
     comparisons = {}
     for subset in [
         "overall",
@@ -319,7 +441,7 @@ def gate_decision(limit_rows, selected):
         baselines = [
             row
             for row in limit_rows
-            if row["split"] == "val"
+            if row["split"] == gate_split
             and row["limit_subset"] == subset
             and row["method_family"] == "rgb_only_baseline"
         ]
@@ -329,7 +451,7 @@ def gate_decision(limit_rows, selected):
         )
         predicted = r36.find_limit_row(
             limit_rows,
-            "val",
+            gate_split,
             subset,
             selected_method,
         )
@@ -345,7 +467,7 @@ def gate_decision(limit_rows, selected):
     amb_delta = amb_pred["mean_fscore"] - amb_base["mean_fscore"]
     direct = r36.find_limit_row(
         limit_rows,
-        "val",
+        gate_split,
         "overall",
         "predicted_depth_direct_backprojection",
     )
@@ -361,6 +483,8 @@ def gate_decision(limit_rows, selected):
             "selected_depth_scale_mode": "raw",
             "selected_tau_pred": selected["tau_pred"],
             "selected_alpha": selected["alpha"],
+            "gate_split": gate_split,
+            "gate_skipped": 0,
             "best_rgb_only_baseline_method": overall_base["method"],
             "validation_rgb_only_baseline_fscore": overall_base[
                 "mean_fscore"
@@ -591,23 +715,24 @@ def main():
     )
 
     internal_records = []
+    cache_root = out_dir / "record_cache"
     for index, group in enumerate(internal_val_groups):
         group_dir = (
             out_dir
             / "internal_val_groups"
             / group["group_key"]
         )
-        internal_records.append(
-            build_record(
-                backbone,
-                root,
-                scene_lookup,
-                group,
-                group_dir,
-                depth_predictor,
-                retain_output=False,
-            )
+        record = build_record(
+            backbone,
+            root,
+            scene_lookup,
+            group,
+            group_dir,
+            depth_predictor,
+            retain_output=False,
         )
+        write_record_cache(record, cache_root, "internal_val")
+        internal_records.append(record)
         print(
             f"Run 38 policy groups completed: "
             f"{index + 1}/{len(internal_val_groups)}"
@@ -633,6 +758,7 @@ def main():
             depth_predictor,
             retain_output=retain_output,
         )
+        cache_path = write_record_cache(record, cache_root, "eval")
         metric_rows.extend(
             evaluate_group_run38(record, selected, selected_by_mode)
         )
@@ -646,6 +772,11 @@ def main():
                     "relative_output_dir": str(
                         group_dir.relative_to(out_dir)
                     ),
+                    "relative_record_cache": str(
+                        Path(cache_path).relative_to(out_dir)
+                    )
+                    if cache_path
+                    else "",
                 }
             )
         del record
@@ -727,6 +858,10 @@ def main():
         "selected_policy_by_scale_mode": selected_by_mode,
         "max_candidates_per_group": MAX_CANDIDATES_PER_GROUP,
         "retained_group_outputs": len(retained_rows),
+        "record_cache_enabled": bool(ENABLE_RECORD_CACHE),
+        "record_cache_relative_dir": "record_cache"
+        if ENABLE_RECORD_CACHE
+        else "",
         "uses_true_source_depth_for_inference": False,
         "uses_true_source_depth_for_correction": False,
         "uses_true_source_depth_for_evaluation": True,
