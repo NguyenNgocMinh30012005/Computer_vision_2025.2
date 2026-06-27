@@ -8,6 +8,19 @@ from PIL import Image
 
 
 MIN_DEPTH_M = 0.10
+DEPTH_SUMMARY_METRICS = (
+    "valid_pixel_ratio",
+    "abs_rel",
+    "rmse",
+    "mae",
+    "delta1",
+    "delta2",
+    "delta3",
+    "scale_aligned_rmse",
+    "scale_aligned_mae",
+    "median_scale_ratio",
+    "least_squares_scale_ratio",
+)
 
 
 def stable_hash01(value):
@@ -79,6 +92,17 @@ def valid_depth_mask(source_depth, predicted_depth, min_depth_m=MIN_DEPTH_M):
     )
 
 
+def depth_scale_factors(predicted, source):
+    predicted = np.asarray(predicted, dtype=np.float64)
+    source = np.asarray(source, dtype=np.float64)
+    scales = source / np.maximum(predicted, 1e-8)
+    median_scale = float(np.median(scales))
+    least_squares_scale = float(
+        np.sum(predicted * source) / max(np.sum(predicted * predicted), 1e-12)
+    )
+    return median_scale, least_squares_scale
+
+
 def depth_error_metrics(
     predicted_depth,
     source_depth,
@@ -98,11 +122,7 @@ def depth_error_metrics(
         pred / np.maximum(src, 1e-8),
         src / np.maximum(pred, 1e-8),
     )
-    scales = src / np.maximum(pred, 1e-8)
-    median_scale = float(np.median(scales))
-    least_squares_scale = float(
-        np.sum(pred * src) / max(np.sum(pred * pred), 1e-12)
-    )
+    median_scale, least_squares_scale = depth_scale_factors(pred, src)
     aligned_error = pred * median_scale - src
 
     return {
@@ -126,36 +146,33 @@ def depth_error_metrics(
     }
 
 
+def finite_metric_values(rows, name):
+    return [
+        float(row[name])
+        for row in rows
+        if math.isfinite(float(row[name]))
+    ]
+
+
+def summarize_metric_columns(rows, metric_names=DEPTH_SUMMARY_METRICS):
+    summary = {}
+    for name in metric_names:
+        values = finite_metric_values(rows, name)
+        summary[f"mean_{name}"] = float(np.mean(values))
+        summary[f"median_{name}"] = float(np.median(values))
+    return summary
+
+
 def summarize_depth_rows(rows, split):
     selected = rows if split == "all" else [row for row in rows if row["split"] == split]
     if not selected:
         return None
-    metric_names = [
-        "valid_pixel_ratio",
-        "abs_rel",
-        "rmse",
-        "mae",
-        "delta1",
-        "delta2",
-        "delta3",
-        "scale_aligned_rmse",
-        "scale_aligned_mae",
-        "median_scale_ratio",
-        "least_squares_scale_ratio",
-    ]
     summary = {
         "split": split,
         "num_frames": len(selected),
         "num_scenes": len({row["scene"] for row in selected}),
     }
-    for name in metric_names:
-        values = [
-            float(row[name])
-            for row in selected
-            if math.isfinite(float(row[name]))
-        ]
-        summary[f"mean_{name}"] = float(np.mean(values))
-        summary[f"median_{name}"] = float(np.median(values))
+    summary.update(summarize_metric_columns(selected))
     return summary
 
 
